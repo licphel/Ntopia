@@ -25,22 +25,21 @@ router.get('/', (req, res) => {
 
   const categories = db.prepare("SELECT * FROM categories WHERE type = 'blog' ORDER BY sort_order").all();
 
-  let orderBy = 'p.created_at DESC';
-  if (sort === 'replies') orderBy = 'comment_count DESC, p.created_at DESC';
-  else if (sort === 'hot') orderBy = "(CAST(comment_count AS REAL) / MAX((julianday('now') - julianday(p.created_at)) * 24, 1)) DESC, p.created_at DESC";
-
   let posts, total;
   const baseQuery = `SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role,
     (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
     FROM posts p JOIN users u ON p.author_id = u.id
     WHERE p.type = 'post' AND p.is_deleted = 0`;
   if (cat) {
-    posts = db.prepare(`${baseQuery} AND p.category = ? ORDER BY ${orderBy} LIMIT ? OFFSET ?`).all(cat, limit, offset);
+    posts = db.prepare(`${baseQuery} AND p.category = ? ORDER BY p.created_at DESC LIMIT ? OFFSET ?`).all(cat, limit, offset);
     total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE type = 'post' AND category = ? AND is_deleted = 0").get(cat);
   } else {
-    posts = db.prepare(`${baseQuery} ORDER BY ${orderBy} LIMIT ? OFFSET ?`).all(limit, offset);
+    posts = db.prepare(`${baseQuery} ORDER BY p.created_at DESC LIMIT ? OFFSET ?`).all(limit, offset);
     total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE type = 'post' AND is_deleted = 0").get();
   }
+  if (sort === 'replies') posts.sort((a, b) => b.comment_count - a.comment_count);
+  else if (sort === 'hot') posts.sort((a, b) => { let ha = a.comment_count / Math.max((Date.now() - new Date(a.created_at).getTime()) / 3600000, 1); let hb = b.comment_count / Math.max((Date.now() - new Date(b.created_at).getTime()) / 3600000, 1); return hb - ha; });
+
   const totalPages = Math.ceil(total.c / limit);
 
   res.render('index', { title: '首页', posts, page, totalPages, sort, categories, currentCat: cat });
@@ -63,7 +62,7 @@ router.get('/posts/:slug', (req, res) => {
     FROM comments c JOIN users u ON c.author_id = u.id
     LEFT JOIN comments pc ON c.parent_id = pc.id
     LEFT JOIN users p2 ON pc.author_id = p2.id
-    WHERE c.post_id = ? ORDER BY c.created_at ASC
+    WHERE c.post_id = ? AND c.is_deleted = 0 ORDER BY c.created_at ASC
   `).all(post.id);
 
   // Compute nesting depth
@@ -191,7 +190,7 @@ router.get('/posts/:slug/comments', (req, res) => {
     FROM comments c JOIN users u ON c.author_id = u.id
     LEFT JOIN comments pc ON c.parent_id = pc.id
     LEFT JOIN users p2 ON pc.author_id = p2.id
-    WHERE c.post_id = ? ORDER BY c.created_at ASC
+    WHERE c.post_id = ? AND c.is_deleted = 0 ORDER BY c.created_at ASC
   `).all(post.id);
 
   const depthMap = {};
@@ -231,7 +230,7 @@ router.get('/posts/:slug/comment/:id', (req, res) => {
     FROM comments c JOIN users u ON c.author_id = u.id
     LEFT JOIN comments pc ON c.parent_id = pc.id
     LEFT JOIN users p2 ON pc.author_id = p2.id
-    WHERE c.post_id = ? ORDER BY c.created_at ASC
+    WHERE c.post_id = ? AND c.is_deleted = 0 ORDER BY c.created_at ASC
   `).all(post.id);
 
   // Build descendant tree
@@ -268,7 +267,7 @@ router.post('/posts/:slug/delete-self', (req, res) => {
   if (post.author_id !== req.session.user.id && (req.session.user.role || 0) <= 16) {
     return res.status(403).render('error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
   }
-  db.prepare("UPDATE posts SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(post.id);
+  db.prepare("UPDATE posts SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(post.id);
   res.redirect(post.type === 'forum' ? '/forum' : '/');
 });
 
@@ -280,7 +279,7 @@ router.post('/comments/:id/delete', (req, res) => {
   if (cmt.author_id !== req.session.user.id && (req.session.user.role || 0) <= 16) {
     return res.status(403).render('error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
   }
-  db.prepare('DELETE FROM comments WHERE id = ?').run(req.params.id);
+  db.prepare("UPDATE comments SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?").run(req.params.id);
   const back = cmt.type === 'forum' ? '/forum/' + cmt.slug : '/posts/' + cmt.slug;
   res.redirect(back);
 });

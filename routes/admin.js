@@ -55,7 +55,7 @@ router.post('/forum/:slug/pin', requireLevel(LEVEL.ADMIN), (req, res) => {
 
 // Soft-delete post (>16)
 router.post('/posts/:slug/delete', requireLevel(LEVEL.MOD + 1), (req, res) => {
-  db.prepare("UPDATE posts SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE slug = ?").run(req.params.slug);
+  db.prepare("UPDATE posts SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE slug = ?").run(req.params.slug);
   res.redirect('/');
 });
 

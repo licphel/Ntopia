@@ -36,13 +36,15 @@ router.get('/:username', (req, res) => {
   const postTotal = db.prepare('SELECT COUNT(*) as c FROM posts WHERE author_id = ? AND is_deleted = 0').get(profile.id);
   const postPages = Math.ceil(postTotal.c / limit);
 
+  const isOwner = req.session.user && req.session.user.role >= 128;
+  const cmtFilter = isOwner ? '' : 'AND c.is_deleted = 0';
   const comments = db.prepare(`
     SELECT c.*, p.title as post_title, p.slug as post_slug, p.type as post_type
     FROM comments c JOIN posts p ON c.post_id = p.id
-    WHERE c.author_id = ? AND p.is_deleted = 0
+    WHERE c.author_id = ? AND p.is_deleted = 0 ${cmtFilter}
     ORDER BY c.created_at DESC LIMIT ? OFFSET ?
   `).all(profile.id, limit, (cmtPage - 1) * limit);
-  const cmtTotal = db.prepare('SELECT COUNT(*) as c FROM comments c JOIN posts p ON c.post_id = p.id WHERE c.author_id = ? AND p.is_deleted = 0').get(profile.id);
+  const cmtTotal = db.prepare(`SELECT COUNT(*) as c FROM comments c JOIN posts p ON c.post_id = p.id WHERE c.author_id = ? AND p.is_deleted = 0 ${cmtFilter}`).get(profile.id);
   const cmtPages = Math.ceil(cmtTotal.c / limit);
 
   const checkinCount = db.prepare('SELECT COUNT(*) as c FROM checkins WHERE user_id = ?').get(profile.id);
@@ -89,14 +91,16 @@ router.post('/:username/edit', (req, res) => {
 
   // Change username
   if (new_username && new_username !== profile.username) {
-    if (new_username.length < 2) {
+    const uname = new_username.toLowerCase();
+    if (uname.length < 2) {
       return res.render('edit-profile', { title: '编辑资料', profile, error: '用户名至少2个字符', formData });
     }
-    const exists = db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(new_username, profile.id);
+    const exists = db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(uname, profile.id);
     if (exists) {
       return res.render('edit-profile', { title: '编辑资料', profile, error: '用户名已被占用', formData });
     }
-    db.prepare('UPDATE users SET username = ? WHERE id = ?').run(new_username, profile.id);
+    db.prepare('UPDATE users SET username = ? WHERE id = ?').run(uname, profile.id);
+    req.session.user.username = uname;
     req.session.user.username = new_username;
   }
 
@@ -128,6 +132,18 @@ router.post('/:username/avatar', avatarUpload.single('avatar'), async (req, res)
       const outName = 'avatar-' + req.session.user.id + '.webp';
       const outPath = path.join(UPLOADS_DIR, outName);
 
+      const ext = path.extname(req.file.originalname).toLowerCase();
+      if (ext === '.gif') {
+        // Keep GIF as-is, just copy
+        const outName2 = 'avatar-' + req.session.user.id + '.gif';
+        const outPath2 = path.join(UPLOADS_DIR, outName2);
+        fs.copyFileSync(inPath, outPath2);
+        fs.unlinkSync(inPath);
+        const url = '/uploads/' + outName2 + '?v=' + Date.now();
+        db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(url, profile.id);
+        req.session.user.avatar = url;
+        return res.redirect('/users/' + profile.username + '/edit');
+      }
       await sharp(inPath)
         .resize(256, 256, { fit: 'cover' })
         .webp({ quality: 85 })

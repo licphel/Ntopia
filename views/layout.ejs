@@ -129,7 +129,7 @@ a:hover{color:var(--cd);text-decoration:underline}
 .auth-form{max-width:400px;margin:30px auto;padding:20px;background:#fff;border:1px solid #ddd}
 .auth-form h2{font-size:16px;margin-bottom:14px;text-align:center}
 .auth-form label{display:block;font-size:13px;margin-bottom:2px;color:#555;font-weight:bold}
-.auth-form input[type=text],.auth-form input[type=password]{width:100%;padding:7px 10px;border:1px solid #ccc;font-size:13px;margin-bottom:10px;font-family:inherit}
+.auth-form input[type=text],.auth-form input[type=password],.auth-form input[type=email]{width:100%;padding:7px 10px;border:1px solid #ccc;font-size:13px;margin-bottom:10px;font-family:inherit}
 .auth-form input:focus{outline:none;border-color:var(--c)}
 .auth-form .submit-btn{width:100%;background:var(--c);color:#fff;border:none;padding:7px;font-size:14px;cursor:pointer}
 .auth-form .submit-btn:hover{background:var(--cd)}
@@ -199,8 +199,8 @@ a:hover{color:var(--cd);text-decoration:underline}
         <li><a href="/" class="<%= path === '/' ? 'nav-active' : '' %>">首页</a></li>
         <li><a href="/forum" class="<%= path.startsWith('/forum') ? 'nav-active' : '' %>">论坛</a></li>
         <li><a href="/search" class="<%= path === '/search' ? 'nav-active' : '' %>">搜索</a></li>
-        <li><a href="/settings">设置</a></li>
         <% if (user) { %>
+          <li><a href="/settings">设置</a></li>
           <li><a href="/users/<%= user.username %>">我的</a></li>
           <% if ((user.role || 0) >= 32) { %><li><a href="/admin">管理</a></li><% } %>
           <li><a href="/notifications" style="position:relative">通知<% if (unreadNotifs) { %><span class="notif-badge"><%= unreadNotifs > 99 ? '99+' : unreadNotifs %></span><% } %></a></li>
@@ -232,10 +232,7 @@ a:hover{color:var(--cd);text-decoration:underline}
 <div id="InfoBar">
   <div class="ib-block">
     <h3>关于本站</h3>
-    <p>Ntopia 是由 Licphel 创建的博客-论坛一体站点，每个用户都可以发表自己的文章和讨论。
-      本站支持 Markdown 写作与 LaTeX 数学公式渲染，内容遵循 CC BY-NC-SA 4.0 协议。
-      注册成为会员即可发表文章、参与论坛讨论、与其他用户私信交流。每日签到可获得经验值，
-      发表优质内容可以快速升级。期待你的加入与分享。</p>
+    <p>Ntopia 是由 Licphel 创建的博客、论坛一体站。请勿发布违法违规内容，共同维护良好的社区环境。本站支持 Markdown 写作与 LaTeX 数学公式渲染，内容遵循 CC BY-NC-SA 4.0 协议。注册即可发文章、参与讨论、私信交流。每日签到获得经验，发表优质内容快速升级。</p>
   </p>
   </div>
   <div class="ib-block">

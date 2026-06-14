@@ -4,15 +4,45 @@
     <div class="auth-error"><%= error %></div>
   <% } %>
   <form method="POST" action="/auth/register">
+    <label>邮箱</label>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <input type="email" name="email" maxlength="128" required placeholder="用于接收验证码" style="flex:1;margin-bottom:0">
+      <button type="button" id="sendBtn" onclick="sendCode()" style="background:var(--c);color:#fff;border:none;padding:7px 14px;border-radius:3px;cursor:pointer;font-size:12px;white-space:nowrap">发送验证码</button>
+      <span id="sendStatus" style="font-size:11px;color:#999;margin-left:4px"></span>
+    </div>
+    <label>验证码</label>
+    <input type="text" name="email_code" maxlength="6" required placeholder="邮箱收到的6位验证码">
     <label>用户名</label>
-    <input type="text" name="username" required placeholder="至少2个字符">
+    <input type="text" name="username" maxlength="64" required placeholder="至少2个字符">
     <label>显示名称</label>
-    <input type="text" name="display_name" placeholder="可选，默认为用户名">
+    <input type="text" name="display_name" maxlength="64" placeholder="可选，默认为用户名">
     <label>密码</label>
-    <input type="password" name="password" required placeholder="至少4个字符">
+    <input type="password" name="password" maxlength="64" required placeholder="至少4个字符">
     <label>确认密码</label>
-    <input type="password" name="password2" required>
+    <input type="password" name="password2" maxlength="64" required>
     <button type="submit" class="submit-btn">注册</button>
   </form>
   <p style="text-align:center;margin-top:12px;font-size:13px">已有账号？<a href="/auth/login">立即登录</a></p>
 </div>
+
+<script>
+var countdown = 0;
+var statusEl = document.getElementById('sendStatus');
+function sendCode(){
+  if(countdown > 0) return;
+  var email = document.querySelector('[name=email]').value;
+  if(!email.includes('@')){ statusEl.textContent='邮箱格式错误'; statusEl.style.color='#c00'; return; }
+  var btn = document.getElementById('sendBtn');
+  btn.textContent = '发送中...'; btn.disabled = true; statusEl.textContent = '';
+  fetch('/email/send', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email}) })
+    .then(r=>r.json()).then(d=>{
+      if(d.ok){ countdown=60; statusEl.textContent='已发送，若未收到，请检查垃圾邮件'; statusEl.style.color='var(--c)'; tick(btn); }
+      else { btn.textContent='发送验证码'; btn.disabled=false; statusEl.textContent=d.error||'发送失败'; statusEl.style.color='#c00'; }
+    }).catch(function(){ btn.textContent='发送验证码'; btn.disabled=false; statusEl.textContent='网络错误'; statusEl.style.color='#c00'; });
+}
+function tick(btn){
+  if(countdown<=0){ btn.textContent='发送验证码'; btn.disabled=false; statusEl.textContent=''; return; }
+  btn.textContent = countdown+'s后重发'; btn.disabled=true;
+  countdown--; setTimeout(function(){tick(btn)},1000);
+}
+</script>

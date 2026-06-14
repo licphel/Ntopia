@@ -5,9 +5,9 @@
   <% } %>
   <form method="POST" action="/auth/login">
     <label>用户名</label>
-    <input type="text" name="username" required>
+    <input type="text" name="username" required maxlength="64">
     <label>密码</label>
-    <input type="password" name="password" required>
+    <input type="password" name="password" required maxlength="64">
     <button type="submit" class="submit-btn">登录</button>
   </form>
   <p style="text-align:center;margin-top:12px;font-size:13px">还没有账号？<a href="/auth/register">立即注册</a></p>

@@ -17,16 +17,12 @@ router.get('/', (req, res) => {
 
   const categories = db.prepare("SELECT * FROM categories WHERE type = 'forum' ORDER BY sort_order").all();
 
-  let orderBy = 'p.updated_at DESC';
-  if (sort === 'replies') orderBy = 'comment_count DESC, p.updated_at DESC';
-  else if (sort === 'hot') orderBy = "(CAST(comment_count AS REAL) / MAX((julianday('now') - julianday(p.created_at)) * 24, 1)) DESC, p.updated_at DESC";
-
   let topics, total;
   const baseQuery = `SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role,
     (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
     FROM posts p JOIN users u ON p.author_id = u.id
     WHERE p.type = 'forum' AND p.is_deleted = 0`;
-  const orderClause = `ORDER BY p.is_pinned DESC, ${orderBy} LIMIT ? OFFSET ?`;
+  const orderClause = `ORDER BY p.is_pinned DESC, p.updated_at DESC LIMIT ? OFFSET ?`;
 
   if (cat) {
     topics = db.prepare(`${baseQuery} AND p.forum_category = ? ${orderClause}`).all(cat, limit, offset);
@@ -83,7 +79,7 @@ router.get('/:slug/comments', (req, res) => {
     FROM comments c JOIN users u ON c.author_id = u.id
     LEFT JOIN comments pc ON c.parent_id = pc.id
     LEFT JOIN users p2 ON pc.author_id = p2.id
-    WHERE c.post_id = ? ORDER BY c.created_at ASC
+    WHERE c.post_id = ? AND c.is_deleted = 0 ORDER BY c.created_at ASC
   `).all(topic.id);
 
   const depthMap = {};
@@ -122,7 +118,7 @@ router.get('/:slug/comment/:id', (req, res) => {
     FROM comments c JOIN users u ON c.author_id = u.id
     LEFT JOIN comments pc ON c.parent_id = pc.id
     LEFT JOIN users p2 ON pc.author_id = p2.id
-    WHERE c.post_id = ? ORDER BY c.created_at ASC
+    WHERE c.post_id = ? AND c.is_deleted = 0 ORDER BY c.created_at ASC
   `).all(topic.id);
 
   function getDescendants(parentId) {
@@ -162,7 +158,7 @@ router.get('/:slug', (req, res) => {
     FROM comments c JOIN users u ON c.author_id = u.id
     LEFT JOIN comments pc ON c.parent_id = pc.id
     LEFT JOIN users p2 ON pc.author_id = p2.id
-    WHERE c.post_id = ? ORDER BY c.created_at ASC
+    WHERE c.post_id = ? AND c.is_deleted = 0 ORDER BY c.created_at ASC
   `).all(topic.id);
 
   const depthMap = {};

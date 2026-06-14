@@ -16,6 +16,10 @@ const PORT = process.env.PORT || 3000;
 // Trust proxy for correct client IP behind Nginx
 app.set('trust proxy', 1);
 
+// Global rate limit: 100 requests per 15s per IP
+const rateLimit = require('express-rate-limit');
+app.use(rateLimit({ windowMs: 15000, max: 100, standardHeaders: true, legacyHeaders: false }));
+
 // Security headers
 app.use(helmet({
   contentSecurityPolicy: {
@@ -200,15 +204,20 @@ app.post('/upload', (req, res, next) => {
     const outName = req.file.filename.replace(/\.[^.]+$/, '.webp');
     const outPath = path.join(UPLOADS_DIR, outName);
 
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    if (ext === '.gif') {
+      // Keep GIF as-is
+      const outName2 = req.file.filename.replace(/\.[^.]+$/, '.gif');
+      const outPath2 = path.join(UPLOADS_DIR, outName2);
+      fs.renameSync(inPath, outPath2);
+      return res.json({ ok: true, url: '/uploads/' + outName2 });
+    }
     await sharp(inPath)
       .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 80 })
-      .withMetadata({ exif: {} }) // strip EXIF for privacy
+      .withMetadata({ exif: {} })
       .toFile(outPath);
-
-    // Remove original if different format
     if (inPath !== outPath) fs.unlinkSync(inPath);
-
     res.json({ ok: true, url: '/uploads/' + outName });
   } catch(e) {
     console.error('Compress error:', e.message);
@@ -227,6 +236,7 @@ app.use('/admin', require('./routes/admin'));
 app.use('/messages', require('./routes/messages'));
 app.use('/notifications', require('./routes/notifications'));
 app.use('/settings', require('./routes/settings'));
+app.use('/email', require('./routes/email'));
 
 // 404
 app.use((req, res) => {

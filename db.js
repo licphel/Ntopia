@@ -99,8 +99,12 @@ function initDB() {
     ['users', 'consecutive_days', 'INTEGER DEFAULT 0'],
     ['users', 'last_checkin', 'DATE'],
     ['users', 'avatar', "TEXT DEFAULT '/img/default-avatar.svg'"],
+    ['users', 'email', "TEXT DEFAULT ''"],
     ['users', 'banned', 'INTEGER DEFAULT 0'],
     ['users', 'role', 'INTEGER DEFAULT 1'],
+    ['posts', 'deleted_at', 'DATETIME'],
+    ['comments', 'is_deleted', 'INTEGER DEFAULT 0'],
+    ['comments', 'deleted_at', 'DATETIME'],
     ['posts', 'is_deleted', 'INTEGER DEFAULT 0'],
   ]) {
     try { db.exec(`ALTER TABLE ${col[0]} ADD COLUMN ${col[1]} ${col[2]}`); } catch(e) {}
@@ -139,6 +143,11 @@ function initDB() {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`); } catch(e) {}
   try { db.exec(`CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, is_read)`); } catch(e) {}
+
+  // Cleanup posts soft-deleted over 60 days ago
+  db.prepare("DELETE FROM comments WHERE post_id IN (SELECT id FROM posts WHERE is_deleted = 1 AND deleted_at < datetime('now', '-60 days'))").run();
+  db.prepare("DELETE FROM comments WHERE is_deleted = 1 AND deleted_at < datetime('now', '-60 days')").run();
+  db.prepare("DELETE FROM posts WHERE is_deleted = 1 AND deleted_at < datetime('now', '-60 days')").run();
 
   // Insert default categories if none
   const catCount = db.prepare('SELECT COUNT(*) as c FROM categories').get();

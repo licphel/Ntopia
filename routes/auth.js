@@ -1,11 +1,10 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const rateLimit = require('express-rate-limit');
 const { db, addXP } = require('../db');
+const { verifyCode } = require('../mail');
 const router = express.Router();
 
 // Rate limit: 5 attempts per 15 minutes per IP
-const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
   message: { error: '请求过于频繁，请15分钟后再试' },
@@ -17,9 +16,9 @@ router.get('/login', (req, res) => {
   res.render('login', { title: '登录', error: null });
 });
 
-router.post('/login', loginLimiter, (req, res) => {
   const { username, password } = req.body;
-  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+  if (username.length > 64 || password.length > 64) return res.render('login', { title: '登录', error: '用户名或密码过长' });
+  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username.toLowerCase());
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     return res.render('login', { title: '登录', error: '用户名或密码错误' });
   }
@@ -31,17 +30,20 @@ router.get('/register', (req, res) => {
   res.render('register', { title: '注册', error: null });
 });
 
-router.post('/register', loginLimiter, (req, res) => {
-  const { username, password, password2, display_name } = req.body;
+  const { username, password, password2, display_name, email, email_code } = req.body;
+  if (username.length > 64 || password.length > 64 || (display_name||"").length > 64) return res.render('register', { title: '注册', error: '输入过长' });
+  if (!email || !email_code) return res.render('register', { title: '注册', error: '请先验证邮箱' });
+  if (!verifyCode(email, email_code)) return res.render('register', { title: '注册', error: '验证码错误或已过期' });
   if (password !== password2) return res.render('register', { title: '注册', error: '两次密码不一致' });
   if (username.length < 2 || password.length < 4) return res.render('register', { title: '注册', error: '用户名至少2字符，密码至少4字符' });
-  const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+  const uname = username.toLowerCase();
+  const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(uname);
   if (exists) return res.render('register', { title: '注册', error: '用户名已被占用' });
   const hash = bcrypt.hashSync(password, 10);
   const isFirst = db.prepare('SELECT COUNT(*) as c FROM users').get().c === 0;
-  db.prepare('INSERT INTO users (username, password_hash, display_name, role, avatar) VALUES (?, ?, ?, ?, ?)')
-    .run(username, hash, display_name || username, isFirst ? 128 : 1, '/img/default-avatar.svg');
-  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+  db.prepare('INSERT INTO users (username, password_hash, display_name, role, avatar, email) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(uname, hash, display_name || uname, isFirst ? 128 : 1, '/img/default-avatar.svg', email);
+  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username.toLowerCase());
   req.session.user = { id: user.id, username: user.username, display_name: user.display_name, role: user.role, avatar: user.avatar, xp: user.xp, level: user.level };
   res.redirect('/');
 });
