@@ -7,7 +7,8 @@
     <div class="title-wrap">
       <h2><% if (topic.is_pinned) { %>[置顶] <% } %><%= topic.title %></h2>
       <span class="submitted">
-        By <a href="/users/<%= topic.username %>"><%= topic.display_name || topic.username %></a>
+        <img src="<%= topic.avatar || '/img/default-avatar.svg' %>" style="width:20px;height:20px;border-radius:2px;vertical-align:middle;margin-right:3px">
+        <a href="/users/<%= topic.username %>"><%= topic.display_name || topic.username %></a>
         <span class="lv-badge">Lv.<%= topic.level || 1 %></span> |
         <%= topic.created_at.slice(0, 10) %>
         <% if (topic.forum_category) { %> | <a href="/forum?cat=<%= topic.forum_category %>"><%= topic.forum_category %></a><% } %>
@@ -34,7 +35,7 @@
   <% comments.filter(function(c){return !c.parent_id}).forEach(function(c) { %>
   <div class="comment" style="padding:10px 14px;margin-bottom:8px">
     <div style="margin-bottom:4px">
-      <a href="/users/<%= c.username %>"><strong><%= c.display_name || c.username %></strong></a>
+      <img src="<%= c.avatar || '/img/default-avatar.svg' %>" style="width:16px;height:16px;vertical-align:middle;margin-right:3px"><a href="/users/<%= c.username %>"><strong><%= c.display_name || c.username %></strong></a>
       <span class="lv-badge">Lv.<%= c.level || 1 %></span>
       <span style="color:#999;font-size:10px;float:right"><%= c.created_at.slice(5, 16) %></span>
     </div>

@@ -7,7 +7,7 @@
     <div class="title-wrap">
       <h2><a href="/<%= post.type === 'forum' ? 'forum' : 'posts' %>/<%= post.slug %>"><%= post.title %></a></h2>
       <span class="submitted">
-        By <a href="/users/<%= post.username %>"><%= post.display_name || post.username %></a>
+        <a href="/users/<%= post.username %>"><%= post.display_name || post.username %></a>
         <span class="lv-badge">Lv.<%= post.level || 1 %></span> |
         <%= post.created_at.slice(0, 10) %>
         | <a href="/<%= post.type === 'forum' ? 'forum' : 'posts' %>/<%= post.slug %>">← 返回</a>
@@ -21,7 +21,7 @@
 <% comments.forEach(function(c) { %>
 <div class="comment">
   <div class="cmt-header" style="display:block;margin-bottom:4px">
-    <a href="/users/<%= c.username %>"><strong><%= c.display_name || c.username %></strong></a>
+    <img src="<%= c.avatar || '/img/default-avatar.svg' %>" style="width:16px;height:16px;vertical-align:middle;margin-right:3px"><a href="/users/<%= c.username %>"><strong><%= c.display_name || c.username %></strong></a>
     <span class="lv-badge">Lv.<%= c.level || 1 %></span>
     <% if (c.parent_username) { %><span style="color:#058c05;font-size:11px"> 回复 @<%= c.parent_display || c.parent_username %></span><% } %>
     <span style="color:#999;font-size:11px;float:right"><%= c.created_at.slice(0, 16) %></span>

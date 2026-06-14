@@ -27,7 +27,7 @@
     <div class="forum-topic">
       <h3><a href="/posts/<%= p.slug %>"><%= p.title %></a></h3>
       <div class="forum-meta">
-        By <a href="/users/<%= p.username %>"><%= p.display_name || p.username %></a> |
+        <a href="/users/<%= p.username %>"><%= p.display_name || p.username %></a> |
         <%= p.created_at.slice(0, 10) %> |
         <%= p.comment_count %> 评论
       </div>
@@ -44,7 +44,7 @@
         <% if (t.forum_category) { %><span class="forum-cat"><%= t.forum_category %></span><% } %>
       </h3>
       <div class="forum-meta">
-        By <a href="/users/<%= t.username %>"><%= t.display_name || t.username %></a> |
+        <a href="/users/<%= t.username %>"><%= t.display_name || t.username %></a> |
         <%= t.created_at.slice(0, 10) %> |
         <%= t.comment_count %> 回复
       </div>
