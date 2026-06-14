@@ -45,6 +45,9 @@
         <form method="POST" action="/admin/users/<%= profile.id %>/demote" style="display:inline">
           <button style="background:#f0a030;color:#fff;border:none;padding:3px 10px;border-radius:2px;cursor:pointer;font-size:11px">降权</button>
         </form>
+        <form method="POST" action="/admin/users/<%= profile.id %>/delete" style="display:inline" onsubmit="return confirm('彻底删除用户 <%= profile.username %> 及其所有内容？此操作不可恢复！')">
+          <button style="background:#333;color:#fff;border:none;padding:3px 10px;border-radius:2px;cursor:pointer;font-size:11px">删除用户</button>
+        </form>
       </div>
     <% } %>
   </div>

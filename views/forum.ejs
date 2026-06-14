@@ -6,11 +6,19 @@
 </div>
 
 <!-- Category tabs -->
-<div class="search-tabs" style="margin-bottom:16px">
-  <a href="/forum" class="<%= !currentCat ? 'active' : '' %>">全部</a>
+<div class="search-tabs" style="margin-bottom:8px">
+  <a href="/forum<%= sort ? '?sort='+sort : '' %>" class="<%= !currentCat ? 'active' : '' %>">全部</a>
   <% categories.forEach(function(cat) { %>
-    <a href="/forum?cat=<%= cat.slug %>" class="<%= currentCat === cat.slug ? 'active' : '' %>"><%= cat.name %></a>
+    <a href="/forum?cat=<%= cat.slug %>&sort=<%= sort || 'newest' %>" class="<%= currentCat === cat.slug ? 'active' : '' %>"><%= cat.name %></a>
   <% }); %>
+</div>
+
+<!-- Sort tabs -->
+<div style="display:flex;gap:0;font-size:12px;margin-bottom:12px">
+  <% var base = '/forum' + (currentCat ? '?cat=' + currentCat + '&' : '?'); %>
+  <a href="<%= base %>sort=newest" style="padding:3px 10px;border:1px solid #ccc;<%= (sort||'newest')==='newest'?'background:#058c05;color:#fff;':'' %>">最新</a>
+  <a href="<%= base %>sort=replies" style="padding:3px 10px;border:1px solid #ccc;border-left:none;<%= sort==='replies'?'background:#058c05;color:#fff;':'' %>">回复</a>
+  <a href="<%= base %>sort=hot" style="padding:3px 10px;border:1px solid #ccc;border-left:none;<%= sort==='hot'?'background:#058c05;color:#fff;':'' %>">热门</a>
 </div>
 
 <% if (topics.length === 0) { %>
@@ -47,7 +55,7 @@
     <% if (i === page) { %>
       <span class="current"><%= i %></span>
     <% } else { %>
-      <a href="/forum?<%= currentCat ? 'cat=' + currentCat + '&' : '' %>page=<%= i %>"><%= i %></a>
+      <a href="/forum?sort=<%= sort || 'newest' %>&<%= currentCat ? 'cat=' + currentCat + '&' : '' %>page=<%= i %>"><%= i %></a>
     <% } %>
   <% } %>
 </div>

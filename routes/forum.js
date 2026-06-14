@@ -10,29 +10,34 @@ function slugify(text) {
 // Forum index
 router.get('/', (req, res) => {
   const cat = req.query.cat || '';
+  const sort = req.query.sort || 'newest';
   const page = parseInt(req.query.page) || 1;
   const limit = 15;
   const offset = (page - 1) * limit;
 
   const categories = db.prepare("SELECT * FROM categories WHERE type = 'forum' ORDER BY sort_order").all();
 
+  let orderBy = 'p.updated_at DESC';
+  if (sort === 'replies') orderBy = 'comment_count DESC, p.updated_at DESC';
+  else if (sort === 'hot') orderBy = "(CAST(comment_count AS REAL) / MAX((julianday('now') - julianday(p.created_at)) * 24, 1)) DESC, p.updated_at DESC";
+
   let topics, total;
   const baseQuery = `SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role,
     (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
     FROM posts p JOIN users u ON p.author_id = u.id
     WHERE p.type = 'forum' AND p.is_deleted = 0`;
+  const orderClause = `ORDER BY p.is_pinned DESC, ${orderBy} LIMIT ? OFFSET ?`;
+
   if (cat) {
-    topics = db.prepare(`${baseQuery} AND p.forum_category = ? ORDER BY p.is_pinned DESC, p.updated_at DESC LIMIT ? OFFSET ?`)
-      .all(cat, limit, offset);
+    topics = db.prepare(`${baseQuery} AND p.forum_category = ? ${orderClause}`).all(cat, limit, offset);
     total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE type = 'forum' AND forum_category = ? AND is_deleted = 0").get(cat);
   } else {
-    topics = db.prepare(`${baseQuery} ORDER BY p.is_pinned DESC, p.updated_at DESC LIMIT ? OFFSET ?`)
-      .all(limit, offset);
+    topics = db.prepare(`${baseQuery} ${orderClause}`).all(limit, offset);
     total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE type = 'forum' AND is_deleted = 0").get();
   }
   const totalPages = Math.ceil(total.c / limit);
 
-  res.render('forum', { title: '论坛', topics, categories, currentCat: cat, page, totalPages });
+  res.render('forum', { title: '论坛', topics, categories, currentCat: cat, page, totalPages, sort });
 });
 
 // New forum topic page — category dropdown

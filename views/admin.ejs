@@ -46,6 +46,9 @@
       <form method="POST" action="/admin/posts/<%= p.slug %>/restore" style="display:inline">
         <button style="background:#058c05;color:#fff;border:none;padding:2px 8px;border-radius:2px;cursor:pointer;font-size:11px">恢复</button>
       </form>
+      <form method="POST" action="/admin/posts/<%= p.slug %>/purge" style="display:inline" onsubmit="return confirm('彻底删除？不可恢复！')">
+        <button style="background:#333;color:#fff;border:none;padding:2px 8px;border-radius:2px;cursor:pointer;font-size:11px">清除</button>
+      </form>
     </td>
   </tr>
   <% }); %>

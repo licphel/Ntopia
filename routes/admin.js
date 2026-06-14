@@ -54,6 +54,16 @@ router.post('/posts/:slug/delete', requireLevel(LEVEL.MOD + 1), (req, res) => {
   res.redirect('/');
 });
 
+// Hard delete post permanently
+router.post('/posts/:slug/purge', requireLevel(LEVEL.ADMIN), (req, res) => {
+  const post = db.prepare('SELECT id FROM posts WHERE slug = ?').get(req.params.slug);
+  if (post) {
+    db.prepare('DELETE FROM comments WHERE post_id = ?').run(post.id);
+    db.prepare('DELETE FROM posts WHERE id = ?').run(post.id);
+  }
+  res.redirect('/admin');
+});
+
 // Restore post (>=32)
 router.post('/posts/:slug/restore', requireLevel(LEVEL.ADMIN), (req, res) => {
   db.prepare("UPDATE posts SET is_deleted = 0, updated_at = CURRENT_TIMESTAMP WHERE slug = ?").run(req.params.slug);
@@ -119,6 +129,23 @@ router.post('/comments/:id/delete-mod', requireLevel(LEVEL.MOD + 1), (req, res) 
   if (!cmt) return res.status(404).render('error', { title: '错误', code: 404, message: '评论不存在', detail: '', back: '/' });
   db.prepare('DELETE FROM comments WHERE id = ?').run(req.params.id);
   res.redirect((cmt.type === 'forum' ? '/forum/' : '/posts/') + cmt.slug);
+});
+
+// Hard delete user (must be strictly higher level)
+router.post('/users/:id/delete', (req, res) => {
+  if (!req.session.user) return res.redirect('/auth/login');
+  const myRole = req.session.user.role || 0;
+  const target = db.prepare('SELECT id, role, username FROM users WHERE id = ?').get(req.params.id);
+  if (!target) return res.redirect('/');
+  if (myRole <= target.role) return res.status(400).render('error', { title: '错误', code: 400, message: '权限不足', detail: '只能删除权限低于你的用户', back: '/users/' + target.username });
+  db.prepare('DELETE FROM comments WHERE author_id = ?').run(target.id);
+  db.prepare('DELETE FROM posts WHERE author_id = ?').run(target.id);
+  db.prepare('DELETE FROM messages WHERE from_id = ? OR to_id = ?').run(target.id, target.id);
+  db.prepare('DELETE FROM notifications WHERE user_id = ?').run(target.id);
+  db.prepare('DELETE FROM checkins WHERE user_id = ?').run(target.id);
+  db.prepare('DELETE FROM xp_log WHERE user_id = ?').run(target.id);
+  db.prepare('DELETE FROM users WHERE id = ?').run(target.id);
+  res.redirect('/');
 });
 
 module.exports = router;

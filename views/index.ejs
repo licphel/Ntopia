@@ -1,4 +1,23 @@
-<h2>最新文章</h2>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+  <h2 style="margin:0;padding:0;border:none">博客</h2>
+  <% if (user) { %>
+    <a href="/new-post" style="background:#058c05;color:#fff;padding:6px 14px;border-radius:3px;font-size:13px;text-decoration:none">+ 发布新文章</a>
+  <% } %>
+</div>
+<!-- Category tabs -->
+<div class="search-tabs" style="margin-bottom:8px">
+  <a href="/?sort=<%= sort || 'newest' %>" class="<%= !currentCat ? 'active' : '' %>">全部</a>
+  <% categories.forEach(function(cat) { %>
+    <a href="/?cat=<%= cat.slug %>&sort=<%= sort || 'newest' %>" class="<%= currentCat === cat.slug ? 'active' : '' %>"><%= cat.name %></a>
+  <% }); %>
+</div>
+
+<div style="display:flex;gap:0;font-size:12px;margin-bottom:12px">
+  <% var base = '/?' + (currentCat ? 'cat=' + currentCat + '&' : ''); %>
+  <a href="<%= base %>sort=newest" style="padding:3px 10px;border:1px solid #ccc;<%= (sort||'newest')==='newest'?'background:#058c05;color:#fff;':'' %>">最新</a>
+  <a href="<%= base %>sort=replies" style="padding:3px 10px;border:1px solid #ccc;border-left:none;<%= sort==='replies'?'background:#058c05;color:#fff;':'' %>">回复</a>
+  <a href="<%= base %>sort=hot" style="padding:3px 10px;border:1px solid #ccc;border-left:none;<%= sort==='hot'?'background:#058c05;color:#fff;':'' %>">热门</a>
+</div>
 
 <% if (posts.length === 0) { %>
   <p style="color:#999;text-align:center;padding:40px 0">还没有文章。</p>
@@ -44,7 +63,7 @@
     <% if (i === page) { %>
       <span class="current"><%= i %></span>
     <% } else { %>
-      <a href="/?page=<%= i %>"><%= i %></a>
+      <a href="<%= base %>sort=<%= sort %>&page=<%= i %>"><%= i %></a>
     <% } %>
   <% } %>
 </div>

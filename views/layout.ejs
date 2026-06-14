@@ -215,8 +215,6 @@ a:hover{color:#046a04;text-decoration:underline}
   <span class="xp-badge">Lv.<%= user.level || 1 %> (<%= user.xp || 0 %>/<%= user.xpNextTotal || 5 %> EXP)</span>
   <button class="checkin-btn" id="checkinBtn" onclick="doCheckin()">签到</button>
   |
-  <a href="/new-post">写文章</a> |
-  <a href="/forum/new-topic">发主题</a> |
   <a href="/notifications" style="position:relative">通知<% if (unreadNotifs) { %><span class="notif-badge"><%= unreadNotifs > 99 ? '99+' : unreadNotifs %></span><% } %></a>
   <a href="/messages" style="position:relative">私信<% if (unreadMessages) { %><span class="notif-badge"><%= unreadMessages > 99 ? '99+' : unreadMessages %></span><% } %></a>
 </div>
@@ -225,11 +223,11 @@ a:hover{color:#046a04;text-decoration:underline}
 <div id="InfoBar">
   <div class="ib-block">
     <h3>关于本站</h3>
-    <p>Ntopia 是一个基于 Node.js + SQLite 构建的个人知识空间。记录思考，分享技术，探索世界。本站支持 Markdown 写作与 LaTeX 数学公式渲染，内容遵循 CC BY-NC-SA 4.0 协议。</p>
+    <p>Ntopia 是由 Licphel 创建的博客-论坛一体站点，每个用户都可以发表自己的文章和讨论。本站支持 Markdown 写作与 LaTeX 数学公式渲染，内容遵循 CC BY-NC-SA 4.0 协议。</p>
   </div>
   <div class="ib-block">
     <h3>致谢</h3>
-    <p>感谢所有参与讨论、分享知识的朋友们。本站风格参考科学空间 (kexue.fm) 的古早学术风，以简约朴素的排版承载深度内容。欢迎通过论坛或私信进行交流。</p>
+    <p>感谢所有参与讨论、分享知识的朋友们。欢迎通过论坛或私信进行交流。</p>
   </div>
   <div class="ib-block">
     <h3>参与本站</h3>

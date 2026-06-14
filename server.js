@@ -47,6 +47,11 @@ app.use(session({
   cookie: { maxAge: 30 * 24 * 60 * 60 * 1000 }
 }));
 app.use(express.static(path.join(__dirname, 'public')));
+// No cache for HTML pages (login state dependent)
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  next();
+});
 
 // EJS + Layout
 app.set('view engine', 'ejs');

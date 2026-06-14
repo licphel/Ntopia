@@ -17,20 +17,33 @@ function canPostBlog(userId) {
 
 // Homepage — blog listing
 router.get('/', (req, res) => {
+  const cat = req.query.cat || '';
   const page = parseInt(req.query.page) || 1;
+  const sort = req.query.sort || 'newest';
   const limit = 10;
   const offset = (page - 1) * limit;
-  const posts = db.prepare(`
-    SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role,
-      (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
+
+  const categories = db.prepare("SELECT * FROM categories WHERE type = 'blog' ORDER BY sort_order").all();
+
+  let orderBy = 'p.created_at DESC';
+  if (sort === 'replies') orderBy = 'comment_count DESC, p.created_at DESC';
+  else if (sort === 'hot') orderBy = "(CAST(comment_count AS REAL) / MAX((julianday('now') - julianday(p.created_at)) * 24, 1)) DESC, p.created_at DESC";
+
+  let posts, total;
+  const baseQuery = `SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role,
+    (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
     FROM posts p JOIN users u ON p.author_id = u.id
-    WHERE p.type = 'post' AND p.is_deleted = 0
-    ORDER BY p.created_at DESC LIMIT ? OFFSET ?
-  `).all(limit, offset);
-  const total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE type = 'post' AND is_deleted = 0").get();
+    WHERE p.type = 'post' AND p.is_deleted = 0`;
+  if (cat) {
+    posts = db.prepare(`${baseQuery} AND p.category = ? ORDER BY ${orderBy} LIMIT ? OFFSET ?`).all(cat, limit, offset);
+    total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE type = 'post' AND category = ? AND is_deleted = 0").get(cat);
+  } else {
+    posts = db.prepare(`${baseQuery} ORDER BY ${orderBy} LIMIT ? OFFSET ?`).all(limit, offset);
+    total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE type = 'post' AND is_deleted = 0").get();
+  }
   const totalPages = Math.ceil(total.c / limit);
 
-  res.render('index', { title: '首页', posts, page, totalPages });
+  res.render('index', { title: '首页', posts, page, totalPages, sort, categories, currentCat: cat });
 });
 
 // Single blog post
