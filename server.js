@@ -1,7 +1,9 @@
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 const expressLayouts = require('express-ejs-layouts');
+const helmet = require('helmet');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
@@ -10,6 +12,19 @@ const { initDB, db, LEVEL, roleBadge } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+    }
+  }
+}));
 
 // Init database
 initDB();
@@ -41,7 +56,7 @@ app.use(session({
     ttl: 30 * 24 * 3600, // 30 days
     retries: 2
   }),
-  secret: process.env.SESSION_SECRET || 'ntopia-secret-change-me',
+  secret: process.env.SESSION_SECRET || require('crypto').randomBytes(32).toString('hex'),
   resave: false,
   saveUninitialized: false,
   cookie: { maxAge: 30 * 24 * 60 * 60 * 1000 }
