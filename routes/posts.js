@@ -1,3 +1,4 @@
+const { LEVEL, canPost, canEdit, canDelete, canManageUser } = require('../lib/perm');
 const express = require('express');
 const { renderMarkdown, slugify, computeDepth } = require('../lib/helpers');
 const { db, awardPostXP, awardCommentXP } = require('../db');
@@ -21,7 +22,7 @@ router.get('/', (req, res) => {
         COALESCE(cat.name, p.category) as category_name,
     (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
     FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.category = cat.slug AND cat.type = 'blog'
-    WHERE p.type = 'post' AND p.is_deleted = 0 AND p.is_draft = 0`;
+    WHERE p.type = 'post' AND (p.is_deleted = 0 OR p.is_deleted IS NULL) AND p.is_draft = 0`;
   if (cat) {
     posts = db.prepare(`${baseQuery} AND p.category = ? ORDER BY p.created_at DESC LIMIT ? OFFSET ?`).all(cat, limit, offset);
     total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE type = 'post' AND category = ? AND is_deleted = 0").get(cat);
@@ -42,9 +43,10 @@ router.get('/posts/:slug', (req, res) => {
   const post = db.prepare(`
     SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role
     FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.category = cat.slug AND cat.type = 'blog'
-    WHERE p.slug = ? AND p.type = 'post' AND p.is_deleted = 0 AND p.is_draft = 0
+    WHERE p.slug = ? AND p.type = 'post' AND p.is_draft = 0
   `).get(req.params.slug);
   if (!post) return res.status(404).render('404', { title: '404' });
+  if (post.is_deleted && post.author_id !== (req.session.user ? req.session.user.id : 0) && (req.session.user ? (req.session.user.role || 0) : 0) < 128) return res.status(404).render('404', { title: '404' });
 
   db.prepare('UPDATE posts SET view_count = view_count + 1 WHERE id = ?').run(post.id);
 
@@ -52,10 +54,11 @@ router.get('/posts/:slug', (req, res) => {
     SELECT c.*, u.username, u.display_name, u.avatar, u.level, u.role,
       p2.username as parent_username, p2.display_name as parent_display
     FROM comments c JOIN users u ON c.author_id = u.id
+    JOIN posts p ON c.post_id = p.id
     LEFT JOIN comments pc ON c.parent_id = pc.id
     LEFT JOIN users p2 ON pc.author_id = p2.id
-    WHERE c.post_id = ? AND c.is_deleted = 0 ORDER BY c.created_at ASC
-  `).all(post.id);
+    WHERE c.post_id = ? AND ((c.is_deleted = 0 OR c.is_deleted IS NULL) OR ? >= 128) ORDER BY c.created_at ASC
+  `).all(post.id, (req.session.user ? (req.session.user.role || 0) : 0));
 
   computeDepth(comments);
 
@@ -93,7 +96,7 @@ router.post('/new-post', (req, res) => {
 router.get('/posts/:slug/edit', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
   const post = db.prepare('SELECT * FROM posts WHERE slug = ? AND is_deleted = 0').get(req.params.slug);
-  if (!post || (post.author_id !== req.session.user.id && (req.session.user.role || 0) <= 16)) {
+  if (!post || (post.author_id !== req.session.user.id && (req.session.user.role || 0) <= LEVEL.MOD)) {
     return res.status(403).render('error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
   }
   const blogCats = db.prepare("SELECT * FROM categories WHERE type = 'blog' ORDER BY sort_order").all();
@@ -103,7 +106,7 @@ router.get('/posts/:slug/edit', (req, res) => {
 router.post('/posts/:slug/edit', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
   const post = db.prepare('SELECT * FROM posts WHERE slug = ? AND is_deleted = 0').get(req.params.slug);
-  if (!post || (post.author_id !== req.session.user.id && (req.session.user.role || 0) <= 16)) {
+  if (!post || (post.author_id !== req.session.user.id && (req.session.user.role || 0) <= LEVEL.MOD)) {
     return res.status(403).render('error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
   }
   const { title, category, tags, excerpt, content } = req.body;
@@ -150,33 +153,19 @@ router.post('/posts/:slug/comment', (req, res) => {
     }
   }
 
-  const redirectUrl = post.type === 'forum' ? '/forum/' + post.slug + '/comments' : '/posts/' + post.slug + '/comments';
+  const base = post.type === 'forum' ? '/forum/' : '/posts/';
+  const redirectUrl = parent_id ? base + post.slug + '/comment/' + parent_id : base + post.slug;
   res.redirect(redirectUrl);
-});
-
-// Full comments page
-router.get('/posts/:slug/comments', (req, res) => {
-  const post = db.prepare(`
-    SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role
-    FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.category = cat.slug AND cat.type = 'blog'
-    WHERE p.slug = ? AND p.type = 'post' AND p.is_deleted = 0 AND p.is_draft = 0
-  `).get(req.params.slug);
-  if (!post) return res.status(404).render('404', { title: '404' });
-
-  db.prepare('UPDATE posts SET view_count = view_count + 1 WHERE id = ?').run(post.id);
 
   const comments = db.prepare(`
     SELECT c.*, u.username, u.display_name, u.avatar, u.level, u.role,
       p2.username as parent_username, p2.display_name as parent_display
     FROM comments c JOIN users u ON c.author_id = u.id
+    JOIN posts p ON c.post_id = p.id
     LEFT JOIN comments pc ON c.parent_id = pc.id
     LEFT JOIN users p2 ON pc.author_id = p2.id
-    WHERE c.post_id = ? AND c.is_deleted = 0 ORDER BY c.created_at ASC
-  `).all(post.id);
-
-  computeDepth(comments);
-
-  res.render('comments', { title: '评论: ' + post.title, post, comments });
+    WHERE c.post_id = ? AND ((c.is_deleted = 0 OR c.is_deleted IS NULL) OR ? >= 128) ORDER BY c.created_at ASC
+  `).all(post.id, (req.session.user ? (req.session.user.role || 0) : 0));
 });
 
 // Sub-thread: single comment + all its replies
@@ -184,7 +173,7 @@ router.get('/posts/:slug/comment/:id', (req, res) => {
   const post = db.prepare(`
     SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role
     FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.category = cat.slug AND cat.type = 'blog'
-    WHERE p.slug = ? AND p.is_deleted = 0 AND p.is_draft = 0
+    WHERE p.slug = ? AND (p.is_deleted = 0 OR p.is_deleted IS NULL) AND p.is_draft = 0
   `).get(req.params.slug);
   if (!post) return res.status(404).render('404', { title: '404' });
 
@@ -200,10 +189,11 @@ router.get('/posts/:slug/comment/:id', (req, res) => {
     SELECT c.*, u.username, u.display_name, u.avatar, u.level, u.role,
       p2.username as parent_username, p2.display_name as parent_display
     FROM comments c JOIN users u ON c.author_id = u.id
+    JOIN posts p ON c.post_id = p.id
     LEFT JOIN comments pc ON c.parent_id = pc.id
     LEFT JOIN users p2 ON pc.author_id = p2.id
-    WHERE c.post_id = ? AND c.is_deleted = 0 ORDER BY c.created_at ASC
-  `).all(post.id);
+    WHERE c.post_id = ? AND ((c.is_deleted = 0 OR c.is_deleted IS NULL) OR ? >= 128) ORDER BY c.created_at ASC
+  `).all(post.id, (req.session.user ? (req.session.user.role || 0) : 0));
 
   // Build descendant tree
   function getDescendants(parentId) {
@@ -236,7 +226,7 @@ router.post('/posts/:slug/delete-self', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
   const post = db.prepare('SELECT * FROM posts WHERE slug = ? AND is_deleted = 0').get(req.params.slug);
   if (!post) return res.status(404).render('error', { title: '错误', code: 404, message: '内容不存在', detail: '该内容可能已被删除或链接错误', back: '/' });
-  if (post.author_id !== req.session.user.id && (req.session.user.role || 0) <= 16) {
+  if (post.author_id !== req.session.user.id && (req.session.user.role || 0) <= LEVEL.MOD) {
     return res.status(403).render('error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
   }
   db.prepare("UPDATE posts SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(post.id);
@@ -248,11 +238,12 @@ router.post('/comments/:id/delete', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
   const cmt = db.prepare('SELECT c.*, p.slug, p.type FROM comments c JOIN posts p ON c.post_id = p.id WHERE c.id = ?').get(req.params.id);
   if (!cmt) return res.status(404).render('error', { title: '错误', code: 404, message: '内容不存在', detail: '该内容可能已被删除或链接错误', back: '/' });
-  if (cmt.author_id !== req.session.user.id && (req.session.user.role || 0) <= 16) {
+  if (cmt.author_id !== req.session.user.id && (req.session.user.role || 0) <= LEVEL.MOD) {
     return res.status(403).render('error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
   }
   db.prepare("UPDATE comments SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?").run(req.params.id);
-  const back = cmt.type === 'forum' ? '/forum/' + cmt.slug : '/posts/' + cmt.slug;
+  const base = cmt.type === 'forum' ? '/forum/' : '/posts/';
+  const back = cmt.parent_id ? base + cmt.slug + '/comment/' + cmt.parent_id : base + cmt.slug;
   res.redirect(back);
 });
 

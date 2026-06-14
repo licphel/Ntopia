@@ -1,5 +1,6 @@
+const { LEVEL, canPost, canEdit, canDelete, canManageUser } = require('../lib/perm');
 const express = require('express');
-const { db, LEVEL } = require('../db');
+const { db } = require('../db');
 const router = express.Router();
 
 function requireLevel(level) {
@@ -17,8 +18,8 @@ router.get('/', requireLevel(LEVEL.ADMIN), (req, res) => {
   const limit = 20;
   const stats = {
     users: db.prepare('SELECT COUNT(*) as c FROM users').get().c,
-    posts: db.prepare("SELECT COUNT(*) as c FROM posts WHERE type = 'post' AND is_deleted = 0").get().c,
-    forumTopics: db.prepare("SELECT COUNT(*) as c FROM posts WHERE type = 'forum' AND is_deleted = 0").get().c,
+    posts: db.prepare("SELECT COUNT(*) as c FROM posts WHERE type = 'post' AND (is_deleted = 0 OR is_deleted IS NULL)").get().c,
+    forumTopics: db.prepare("SELECT COUNT(*) as c FROM posts WHERE type = 'forum' AND (is_deleted = 0 OR is_deleted IS NULL)").get().c,
     comments: db.prepare('SELECT COUNT(*) as c FROM comments').get().c,
     checkins: db.prepare('SELECT COUNT(*) as c FROM checkins').get().c,
   };
@@ -59,9 +60,9 @@ router.post('/posts/:slug/delete', requireLevel(LEVEL.MOD + 1), (req, res) => {
   res.redirect('/');
 });
 
-// Hard delete post permanently
+// Hard delete post (only if deleted 60+ days ago)
 router.post('/posts/:slug/purge', requireLevel(LEVEL.ADMIN), (req, res) => {
-  const post = db.prepare('SELECT id FROM posts WHERE slug = ?').get(req.params.slug);
+  const post = db.prepare("SELECT id FROM posts WHERE slug = ? AND is_deleted = 1 AND deleted_at < datetime('now', '-60 days')").get(req.params.slug);
   if (post) {
     db.prepare('DELETE FROM comments WHERE post_id = ?').run(post.id);
     db.prepare('DELETE FROM posts WHERE id = ?').run(post.id);
@@ -128,11 +129,11 @@ router.post('/users/:id/demote', (req, res) => {
   res.redirect('/users/' + target.username);
 });
 
-// Delete any comment (>16)
+// Soft-delete any comment (>16), never truly delete
 router.post('/comments/:id/delete-mod', requireLevel(LEVEL.MOD + 1), (req, res) => {
   const cmt = db.prepare('SELECT c.*, p.slug, p.type FROM comments c JOIN posts p ON c.post_id = p.id WHERE c.id = ?').get(req.params.id);
   if (!cmt) return res.status(404).render('error', { title: '错误', code: 404, message: '评论不存在', detail: '', back: '/' });
-  db.prepare('DELETE FROM comments WHERE id = ?').run(req.params.id);
+  db.prepare("UPDATE comments SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?").run(req.params.id);
   res.redirect((cmt.type === 'forum' ? '/forum/' : '/posts/') + cmt.slug);
 });
 
@@ -143,13 +144,13 @@ router.post('/users/:id/delete', (req, res) => {
   const target = db.prepare('SELECT id, role, username FROM users WHERE id = ?').get(req.params.id);
   if (!target) return res.redirect('/');
   if (myRole <= target.role) return res.status(400).render('error', { title: '错误', code: 400, message: '权限不足', detail: '只能删除权限低于你的用户', back: '/users/' + target.username });
-  db.prepare('DELETE FROM comments WHERE author_id = ?').run(target.id);
-  db.prepare('DELETE FROM posts WHERE author_id = ?').run(target.id);
+  db.prepare("UPDATE comments SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE author_id = ?").run(target.id);
+  db.prepare("UPDATE posts SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE author_id = ?").run(target.id);
   db.prepare('DELETE FROM messages WHERE from_id = ? OR to_id = ?').run(target.id, target.id);
   db.prepare('DELETE FROM notifications WHERE user_id = ?').run(target.id);
   db.prepare('DELETE FROM checkins WHERE user_id = ?').run(target.id);
   db.prepare('DELETE FROM xp_log WHERE user_id = ?').run(target.id);
-  db.prepare('DELETE FROM users WHERE id = ?').run(target.id);
+  db.prepare('UPDATE users SET banned = 1, password_hash = ? WHERE id = ?').run(require('bcryptjs').hashSync(Math.random().toString(), 10), target.id);
   res.redirect('/');
 });
 

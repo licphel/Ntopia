@@ -5,7 +5,7 @@
 
 <div class="comment" style="padding:12px 14px;margin-bottom:12px;border:2px solid var(--c)">
   <div style="margin-bottom:6px">
-    <img src="<%= root.avatar || '/img/default-avatar.svg' %>" style="width:20px;height:20px;vertical-align:middle;margin-right:3px"><a href="/users/<%= root.username %>"><strong><%= root.display_name || root.username %></strong></a>
+    <% if (root.is_deleted) { %><span style="color:#c00;font-size:10px">[已删除]</span> <% } %><img src="<%= root.avatar || '/img/default-avatar.svg' %>" style="width:20px;height:20px;vertical-align:middle;margin-right:3px"><a href="/users/<%= root.username %>"><strong><%= root.display_name || root.username %></strong></a>
     <span class="lv-badge">Lv.<%= root.level || 1 %></span>
     <span style="color:#999;font-size:11px;float:right"><%= root.created_at.slice(0, 16) %></span>
   </div>
@@ -21,9 +21,9 @@
 
 <h4>回复 (<%= replyCount %>)</h4>
 <% replies.forEach(function(c) { %>
-<div class="comment" style="padding:8px 12px;margin-bottom:4px">
+<div class="comment" style="padding:8px 12px;margin-bottom:4px;<%= c.is_deleted ? 'opacity:0.5;border-color:#c00' : '' %>">
   <div style="margin-bottom:3px">
-    <img src="<%= c.avatar || '/img/default-avatar.svg' %>" style="width:16px;height:16px;vertical-align:middle;margin-right:3px"><a href="/users/<%= c.username %>"><strong><%= c.display_name || c.username %></strong></a>
+    <% if (c.is_deleted) { %><span style="color:#c00;font-size:10px">[已删除]</span> <% } %><img src="<%= c.avatar || '/img/default-avatar.svg' %>" style="width:16px;height:16px;vertical-align:middle;margin-right:3px"><a href="/users/<%= c.username %>"><strong><%= c.display_name || c.username %></strong></a>
     <span class="lv-badge">Lv.<%= c.level || 1 %></span>
     <% if (c.parent_username && c.parent_id !== root.id) { %>
       <span style="color:var(--c);font-size:11px"> 回复 @<%= c.parent_display || c.parent_username %></span>

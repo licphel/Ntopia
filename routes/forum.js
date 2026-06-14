@@ -1,3 +1,4 @@
+const { LEVEL, canPost, canEdit, canDelete, canManageUser } = require('../lib/perm');
 const express = require('express');
 const { renderMarkdown, slugify, computeDepth } = require('../lib/helpers');
 const { db, awardForumXP, awardCommentXP } = require('../db');
@@ -19,7 +20,7 @@ router.get('/', (req, res) => {
         COALESCE(cat.name, p.forum_category) as category_name,
     (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
     FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.forum_category = cat.slug AND cat.type = 'forum'
-    WHERE p.type = 'forum' AND p.is_deleted = 0`;
+    WHERE p.type = 'forum' AND (p.is_deleted = 0 OR p.is_deleted IS NULL)`;
   const orderClause = `ORDER BY p.is_pinned DESC, p.updated_at DESC LIMIT ? OFFSET ?`;
 
   if (cat) {
@@ -57,28 +58,17 @@ router.post('/new-topic', (req, res) => {
   const post = db.prepare('SELECT id FROM posts WHERE slug = ?').get(slug);
   awardForumXP(req.session.user.id, post.id);
   req.session.user.xp = (req.session.user.xp || 0) + 3;
-  res.redirect('/forum/' + slug + '/comments');
-});
-
-// Full comments page for forum topic
-router.get('/:slug/comments', (req, res) => {
-  const topic = db.prepare(`
-    SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role
-    FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.forum_category = cat.slug AND cat.type = 'forum'
-    WHERE p.slug = ? AND p.type = 'forum' AND p.is_deleted = 0
-  `).get(req.params.slug);
-  if (!topic) return res.status(404).render('404', { title: '404' });
-
-  db.prepare('UPDATE posts SET view_count = view_count + 1 WHERE id = ?').run(topic.id);
+  res.redirect('/forum/' + slug);
 
   const comments = db.prepare(`
     SELECT c.*, u.username, u.display_name, u.avatar, u.level, u.role,
       p2.username as parent_username, p2.display_name as parent_display
     FROM comments c JOIN users u ON c.author_id = u.id
+    JOIN posts p ON c.post_id = p.id
     LEFT JOIN comments pc ON c.parent_id = pc.id
     LEFT JOIN users p2 ON pc.author_id = p2.id
-    WHERE c.post_id = ? AND c.is_deleted = 0 ORDER BY c.created_at ASC
-  `).all(topic.id);
+    WHERE c.post_id = ? AND ((c.is_deleted = 0 OR c.is_deleted IS NULL) OR ? >= 128) ORDER BY c.created_at ASC
+  `).all(topic.id, (req.session.user ? (req.session.user.role || 0) : 0));
 
   computeDepth(comments);
 
@@ -90,7 +80,7 @@ router.get('/:slug/comment/:id', (req, res) => {
   const topic = db.prepare(`
     SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role
     FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.forum_category = cat.slug AND cat.type = 'forum'
-    WHERE p.slug = ? AND p.type = 'forum' AND p.is_deleted = 0
+    WHERE p.slug = ? AND p.type = 'forum' AND (p.is_deleted = 0 OR p.is_deleted IS NULL)
   `).get(req.params.slug);
   if (!topic) return res.status(404).render('404', { title: '404' });
 
@@ -105,10 +95,11 @@ router.get('/:slug/comment/:id', (req, res) => {
     SELECT c.*, u.username, u.display_name, u.avatar, u.level, u.role,
       p2.username as parent_username, p2.display_name as parent_display
     FROM comments c JOIN users u ON c.author_id = u.id
+    JOIN posts p ON c.post_id = p.id
     LEFT JOIN comments pc ON c.parent_id = pc.id
     LEFT JOIN users p2 ON pc.author_id = p2.id
-    WHERE c.post_id = ? AND c.is_deleted = 0 ORDER BY c.created_at ASC
-  `).all(topic.id);
+    WHERE c.post_id = ? AND ((c.is_deleted = 0 OR c.is_deleted IS NULL) OR ? >= 128) ORDER BY c.created_at ASC
+  `).all(topic.id, (req.session.user ? (req.session.user.role || 0) : 0));
 
   function getDescendants(parentId) {
     const result = [];
@@ -135,9 +126,10 @@ router.get('/:slug', (req, res) => {
   const topic = db.prepare(`
     SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role
     FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.forum_category = cat.slug AND cat.type = 'forum'
-    WHERE p.slug = ? AND p.type = 'forum' AND p.is_deleted = 0
+    WHERE p.slug = ? AND p.type = 'forum'
   `).get(req.params.slug);
   if (!topic) return res.status(404).render('404', { title: '404' });
+  if (topic.is_deleted && topic.author_id !== (req.session.user ? req.session.user.id : 0) && (req.session.user ? (req.session.user.role || 0) : 0) < 128) return res.status(404).render('404', { title: '404' });
 
   db.prepare('UPDATE posts SET view_count = view_count + 1 WHERE id = ?').run(topic.id);
 
@@ -145,10 +137,11 @@ router.get('/:slug', (req, res) => {
     SELECT c.*, u.username, u.display_name, u.avatar, u.level, u.role,
       p2.username as parent_username, p2.display_name as parent_display
     FROM comments c JOIN users u ON c.author_id = u.id
+    JOIN posts p ON c.post_id = p.id
     LEFT JOIN comments pc ON c.parent_id = pc.id
     LEFT JOIN users p2 ON pc.author_id = p2.id
-    WHERE c.post_id = ? AND c.is_deleted = 0 ORDER BY c.created_at ASC
-  `).all(topic.id);
+    WHERE c.post_id = ? AND ((c.is_deleted = 0 OR c.is_deleted IS NULL) OR ? >= 128) ORDER BY c.created_at ASC
+  `).all(topic.id, (req.session.user ? (req.session.user.role || 0) : 0));
 
   computeDepth(comments);
 

@@ -203,7 +203,7 @@ a:hover{color:var(--cd);text-decoration:underline}
           <li><a href="/settings">设置</a></li>
           <li><a href="/users/<%= user.username %>">我的</a></li>
           <li><a href="/bookmarks">收藏</a></li>
-          <% if ((user.role || 0) >= 32) { %><li><a href="/admin">管理</a></li><% } %>
+          <% if ((user.role || 0) >= LEVEL.ADMIN) { %><li><a href="/admin">管理</a></li><% } %>
           <li><a href="/notifications" style="position:relative">通知<% if (unreadNotifs) { %><span class="notif-badge"><%= unreadNotifs > 99 ? '99+' : unreadNotifs %></span><% } %></a></li>
           <li><a href="/messages" style="position:relative">私信<% if (unreadMessages) { %><span class="notif-badge"><%= unreadMessages > 99 ? '99+' : unreadMessages %></span><% } %></a></li>
           <li><a href="/rss.xml" target="_blank">RSS</a></li>

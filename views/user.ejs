@@ -62,8 +62,11 @@
 <h3>文章与主题</h3>
 <% if (posts.length === 0) { %><p style="color:#999">暂无内容。</p><% } %>
 <% posts.forEach(function(p) { %>
-<div class="forum-topic">
-  <h3><a href="/<%= p.type === 'forum' ? 'forum' : 'posts' %>/<%= p.slug %>"><%= p.title %></a></h3>
+<div class="forum-topic" style="<%= p.is_deleted ? 'opacity:0.5;border-color:#c00' : '' %>">
+  <h3>
+    <% if (p.is_deleted) { %><span style="color:#c00;font-size:10px">[已删除]</span> <% } %>
+    <a href="/<%= p.type === 'forum' ? 'forum' : 'posts' %>/<%= p.slug %>"><%= p.title %></a>
+  </h3>
   <div class="forum-meta"><%= p.type === 'forum' ? '论坛主题' : '博客文章' %> | <%= p.created_at.slice(0, 10) %> | <%= p.comment_count %> 回复</div>
 </div>
 <% }); %>

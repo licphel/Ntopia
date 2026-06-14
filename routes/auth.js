@@ -24,7 +24,8 @@ router.get('/register', (req, res) => {
 });
 
 router.post('/register', (req, res) => {
-  const { username, password, password2, display_name, email, email_code } = req.body;
+  const { username, password, password2, display_name, email, email_code, agree } = req.body;
+  if (!agree) return res.render('register', { title: '注册', error: '请先阅读并同意用户须知' });
   if (username.length > 64 || password.length > 64 || (display_name||'').length > 64) return res.render('register', { title: '注册', error: '输入过长' });
   if (!email || !email_code) return res.render('register', { title: '注册', error: '请先验证邮箱' });
   if (!verifyCode(email, email_code)) return res.render('register', { title: '注册', error: '验证码错误或已过期' });
@@ -35,6 +36,7 @@ router.post('/register', (req, res) => {
   if (exists) return res.render('register', { title: '注册', error: '用户名已被占用' });
   const hash = bcrypt.hashSync(password, 10);
   db.prepare('INSERT INTO users (username, password_hash, display_name, role, avatar, email) VALUES (?, ?, ?, 1, ?, ?)')
+    .run(uname, hash, display_name || uname, '/img/default-avatar.svg', email);
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(uname);
   req.session.user = { id: user.id, username: user.username, display_name: user.display_name, role: user.role, avatar: user.avatar, xp: user.xp, level: user.level, email: user.email, needsEmail: !user.email };
   res.redirect('/');

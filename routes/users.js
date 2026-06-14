@@ -4,6 +4,7 @@ const path = require('path');
 const sharp = require('sharp');
 const fs = require('fs');
 const { renderMarkdown } = require('../lib/helpers');
+const { LEVEL } = require('../lib/perm');
 const { db, xpForLevel } = require('../db');
 const router = express.Router();
 
@@ -28,23 +29,24 @@ router.get('/:username', (req, res) => {
   const cmtPage = parseInt(req.query.cp) || 1;
   const limit = 10;
 
+  const isOwner = req.session.user && (req.session.user.role || 0) >= LEVEL.OWNER;
+  const postFilter = isOwner ? '' : 'AND is_deleted = 0';
   const posts = db.prepare(`
-    SELECT p.*, (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND p.is_deleted = 0) as comment_count
-    FROM posts p WHERE p.author_id = ? AND p.is_deleted = 0
+    SELECT p.*, (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
+    FROM posts p WHERE p.author_id = ? ${postFilter.replace('is_deleted', 'p.is_deleted')}
     ORDER BY p.created_at DESC LIMIT ? OFFSET ?
   `).all(profile.id, limit, (postPage - 1) * limit);
-  const postTotal = db.prepare('SELECT COUNT(*) as c FROM posts WHERE author_id = ? AND is_deleted = 0').get(profile.id);
+  const postTotal = db.prepare(`SELECT COUNT(*) as c FROM posts WHERE author_id = ? ${postFilter}`).get(profile.id);
   const postPages = Math.ceil(postTotal.c / limit);
 
-  const isOwner = req.session.user && req.session.user.role >= 128;
-  const cmtFilter = isOwner ? '' : 'AND c.is_deleted = 0';
+  const cmtFilter = isOwner ? '' : 'AND (c.is_deleted = 0 OR c.is_deleted IS NULL)';
   const comments = db.prepare(`
     SELECT c.*, p.title as post_title, p.slug as post_slug, p.type as post_type
     FROM comments c JOIN posts p ON c.post_id = p.id
-    WHERE c.author_id = ? AND p.is_deleted = 0 ${cmtFilter}
+    WHERE c.author_id = ? AND ((p.is_deleted = 0 OR p.is_deleted IS NULL) OR ?) ${cmtFilter}
     ORDER BY c.created_at DESC LIMIT ? OFFSET ?
-  `).all(profile.id, limit, (cmtPage - 1) * limit);
-  const cmtTotal = db.prepare(`SELECT COUNT(*) as c FROM comments c JOIN posts p ON c.post_id = p.id WHERE c.author_id = ? AND p.is_deleted = 0 ${cmtFilter}`).get(profile.id);
+  `).all(profile.id, isOwner ? 1 : 0, limit, (cmtPage - 1) * limit);
+  const cmtTotal = db.prepare(`SELECT COUNT(*) as c FROM comments c JOIN posts p ON c.post_id = p.id WHERE c.author_id = ? AND ((p.is_deleted = 0 OR p.is_deleted IS NULL) OR ?) ${cmtFilter}`).get(profile.id, isOwner ? 1 : 0);
   const cmtPages = Math.ceil(cmtTotal.c / limit);
 
   const checkinCount = db.prepare('SELECT COUNT(*) as c FROM checkins WHERE user_id = ?').get(profile.id);
