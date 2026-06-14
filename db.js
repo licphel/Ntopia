@@ -5,12 +5,40 @@ const fs = require('fs');
 const DATA_DIR = path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
-const db = new Database(path.join(DATA_DIR, 'ntopia.db'));
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+const coreDb = new Database(path.join(DATA_DIR, 'core.db'));
+coreDb.pragma('journal_mode = WAL');
+coreDb.pragma('foreign_keys = ON');
+
+const volatileDb = new Database(path.join(DATA_DIR, 'volatile.db'));
+volatileDb.pragma('journal_mode = WAL');
+volatileDb.pragma('foreign_keys = ON');
+
+const VOLATILE_TABLES = ['checkins', 'xp_log', 'likes', 'notifications'];
+
+// Proxy: auto-routes queries to core or volatile based on table name
+const db = new Proxy(coreDb, {
+  get(target, prop) {
+    if (prop === 'prepare') {
+      return function(sql) {
+        const lower = sql.toLowerCase();
+        const isVolatile = VOLATILE_TABLES.some(t => lower.includes(t));
+        return (isVolatile ? volatileDb : coreDb).prepare(sql);
+      };
+    }
+    if (prop === 'exec') {
+      return function(sql) {
+        coreDb.exec(sql);
+        volatileDb.exec(sql);
+      };
+    }
+    const val = target[prop];
+    return typeof val === 'function' ? val.bind(target) : val;
+  }
+});
 
 function initDB() {
-  db.exec(`
+  // Core tables
+  coreDb.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
@@ -24,24 +52,6 @@ function initDB() {
       consecutive_days INTEGER DEFAULT 0,
       last_checkin DATE,
       banned INTEGER DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS checkins (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL REFERENCES users(id),
-      checkin_date DATE NOT NULL DEFAULT (date('now')),
-      xp_earned INTEGER DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE(user_id, checkin_date)
-    );
-
-    CREATE TABLE IF NOT EXISTS xp_log (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL REFERENCES users(id),
-      amount INTEGER NOT NULL,
-      reason TEXT NOT NULL,
-      ref_id INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -88,6 +98,28 @@ function initDB() {
     CREATE INDEX IF NOT EXISTS idx_posts_author ON posts(author_id);
     CREATE INDEX IF NOT EXISTS idx_comments_post ON comments(post_id);
     CREATE INDEX IF NOT EXISTS idx_comments_author ON comments(author_id);
+  `);
+
+  // Volatile tables
+  volatileDb.exec(`
+    CREATE TABLE IF NOT EXISTS checkins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      checkin_date DATE NOT NULL DEFAULT (date('now')),
+      xp_earned INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, checkin_date)
+    );
+
+    CREATE TABLE IF NOT EXISTS xp_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      amount INTEGER NOT NULL,
+      reason TEXT NOT NULL,
+      ref_id INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE INDEX IF NOT EXISTS idx_checkins_user_date ON checkins(user_id, checkin_date);
     CREATE INDEX IF NOT EXISTS idx_xp_log_user ON xp_log(user_id);
   `);
@@ -105,20 +137,12 @@ function initDB() {
     ['posts', 'deleted_at', 'DATETIME'],
     ['comments', 'is_deleted', 'INTEGER DEFAULT 0'],
     ['comments', 'deleted_at', 'DATETIME'],
+    ['posts', 'is_draft', 'INTEGER DEFAULT 0'],
     ['posts', 'is_deleted', 'INTEGER DEFAULT 0'],
   ]) {
     try { db.exec(`ALTER TABLE ${col[0]} ADD COLUMN ${col[1]} ${col[2]}`); } catch(e) {}
   }
   
-  try { db.exec(`CREATE TABLE IF NOT EXISTS xp_log (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL REFERENCES users(id),
-    amount INTEGER NOT NULL,
-    reason TEXT NOT NULL,
-    ref_id INTEGER,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`); } catch(e) {}
-  try { db.exec(`CREATE INDEX IF NOT EXISTS idx_xp_log_user ON xp_log(user_id)`); } catch(e) {}
 
   // Messages & Notifications (new tables)
   try { db.exec(`CREATE TABLE IF NOT EXISTS messages (
@@ -133,21 +157,38 @@ function initDB() {
   try { db.exec(`CREATE INDEX IF NOT EXISTS idx_messages_to ON messages(to_id, is_read)`); } catch(e) {}
   try { db.exec(`CREATE INDEX IF NOT EXISTS idx_messages_from ON messages(from_id)`); } catch(e) {}
 
-  try { db.exec(`CREATE TABLE IF NOT EXISTS notifications (
+  volatileDb.exec(`CREATE TABLE IF NOT EXISTS notifications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL REFERENCES users(id),
+    user_id INTEGER NOT NULL,
     type TEXT NOT NULL,
     content TEXT NOT NULL,
     link TEXT NOT NULL,
     is_read INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`); } catch(e) {}
-  try { db.exec(`CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, is_read)`); } catch(e) {}
+  )`);
+  volatileDb.exec(`CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, is_read)`);
 
-  // Cleanup posts soft-deleted over 60 days ago
-  db.prepare("DELETE FROM comments WHERE post_id IN (SELECT id FROM posts WHERE is_deleted = 1 AND deleted_at < datetime('now', '-60 days'))").run();
-  db.prepare("DELETE FROM comments WHERE is_deleted = 1 AND deleted_at < datetime('now', '-60 days')").run();
-  db.prepare("DELETE FROM posts WHERE is_deleted = 1 AND deleted_at < datetime('now', '-60 days')").run();
+  // Likes (volatile) & Bookmarks (core)
+  volatileDb.exec(`CREATE TABLE IF NOT EXISTS likes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    post_id INTEGER,
+    comment_id INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, post_id, comment_id)
+  )`);
+  coreDb.exec(`CREATE TABLE IF NOT EXISTS bookmarks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    post_id INTEGER NOT NULL REFERENCES posts(id),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, post_id)
+  )`);
+
+  // Cleanup posts soft-deleted over 60 days ago (core)
+  coreDb.prepare("DELETE FROM comments WHERE post_id IN (SELECT id FROM posts WHERE is_deleted = 1 AND deleted_at < datetime('now', '-60 days'))").run();
+  coreDb.prepare("DELETE FROM comments WHERE is_deleted = 1 AND deleted_at < datetime('now', '-60 days')").run();
+  coreDb.prepare("DELETE FROM posts WHERE is_deleted = 1 AND deleted_at < datetime('now', '-60 days')").run();
 
   // Create owner from .env if not exists
   const bcrypt = require('bcryptjs');
@@ -177,28 +218,15 @@ function initDB() {
   }
 }
 
-// XP & Level helpers
-function xpForLevel(level) {
-  // LV1→LV2: 5, each subsequent: ×1.5
-  if (level <= 1) return 0;
-  let total = 0, req = 5;
-  for (let i = 2; i <= level; i++) {
-    total += Math.round(req);
-    req = Math.round(req * 1.5);
-  }
-  return total;
-}
-
-function addXP(userId, amount, reason, refId) {
-  db.prepare('INSERT INTO xp_log (user_id, amount, reason, ref_id) VALUES (?, ?, ?, ?)').run(userId, amount, reason, refId || null);
-  db.prepare('UPDATE users SET xp = xp + ? WHERE id = ?').run(amount, userId);
-  const user = db.prepare('SELECT xp, level FROM users WHERE id = ?').get(userId);
-  let newLevel = user.level;
-  while (user.xp >= xpForLevel(newLevel + 1)) newLevel++;
-  if (newLevel !== user.level) {
-    db.prepare('UPDATE users SET level = ? WHERE id = ?').run(newLevel, userId);
-  }
-}
+// XP & Level helpers (in lib/xp.js)
+const xpLib = require('./lib/xp');
+const xpForLevel = xpLib.xpForLevel;
+const awardPostXP = (uid, pid) => xpLib.awardPostXP(db, uid, pid);
+const awardForumXP = (uid, pid) => xpLib.awardForumXP(db, uid, pid);
+const awardCommentXP = (uid, cid) => xpLib.awardCommentXP(db, uid, cid);
+const awardCheckinXP = (uid, amt) => xpLib.awardCheckinXP(db, uid, amt);
+const awardLikeReceivedXP = (uid, pid) => xpLib.awardLikeReceivedXP(db, uid, pid);
+const awardBookmarkReceivedXP = (uid, pid) => xpLib.awardBookmarkReceivedXP(db, uid, pid);
 
 const LEVEL = { GUEST: 0, USER: 1, MOD: 16, ADMIN: 32, SUPER: 64, OWNER: 128 };
 
@@ -210,7 +238,7 @@ function roleBadge(role) {
   return { text: 'User', bg: '#ecf0f1', color: '#7f8c8d' };
 }
 
-module.exports = { db, initDB, addXP, xpForLevel, LEVEL, roleBadge };
+module.exports = { db, initDB, xpForLevel, LEVEL, roleBadge, awardPostXP, awardForumXP, awardCommentXP, awardCheckinXP, awardLikeReceivedXP, awardBookmarkReceivedXP };
 
 
 

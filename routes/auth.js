@@ -1,6 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { db, addXP } = require('../db');
+const { db, awardCheckinXP } = require('../db');
 const { verifyCode } = require('../mail');
 const router = express.Router();
 
@@ -61,7 +61,7 @@ router.post('/checkin', (req, res) => {
   const xpEarned = 1 + Math.floor(streak / 5);
   db.prepare('INSERT INTO checkins (user_id, checkin_date, xp_earned) VALUES (?, ?, ?)').run(uid, today, xpEarned);
   db.prepare('UPDATE users SET consecutive_days = ?, last_checkin = ? WHERE id = ?').run(streak, today, uid);
-  addXP(uid, xpEarned, '签到', null);
+  awardCheckinXP(uid, xpEarned, null);
   const updated = db.prepare('SELECT xp, level FROM users WHERE id = ?').get(uid);
   req.session.user.xp = updated.xp;
   req.session.user.level = updated.level;

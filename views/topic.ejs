@@ -11,7 +11,7 @@
         <a href="/users/<%= topic.username %>"><%= topic.display_name || topic.username %></a>
         <span class="lv-badge">Lv.<%= topic.level || 1 %></span> |
         <%= topic.created_at.slice(0, 10) %>
-        <% if (topic.forum_category) { %> | <a href="/forum?cat=<%= topic.forum_category %>"><%= topic.forum_category %></a><% } %>
+        <% if (topic.forum_category) { %> | <a href="/forum?cat=<%= topic.category_name || topic.forum_category %>"><%= topic.category_name || topic.forum_category %></a><% } %>
         | <%= topic.view_count %> 浏览
         <% if (user && (user.role || 0) >= 32) { %>
           | <form method="POST" action="/admin/forum/<%= topic.slug %>/pin" style="display:inline">

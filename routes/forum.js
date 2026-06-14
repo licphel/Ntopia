@@ -1,11 +1,8 @@
 const express = require('express');
-const { marked } = require('marked');
-const { db, addXP } = require('../db');
+const { renderMarkdown, slugify, computeDepth } = require('../lib/helpers');
+const { db, awardForumXP, awardCommentXP } = require('../db');
 const router = express.Router();
 
-function slugify(text) {
-  return text.toLowerCase().replace(/[^\w一-鿿]+/g, '-').replace(/^-|-$/g, '') || 'untitled';
-}
 
 // Forum index
 router.get('/', (req, res) => {
@@ -19,8 +16,9 @@ router.get('/', (req, res) => {
 
   let topics, total;
   const baseQuery = `SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role,
+        COALESCE(cat.name, p.forum_category) as category_name,
     (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
-    FROM posts p JOIN users u ON p.author_id = u.id
+    FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.forum_category = cat.slug AND cat.type = 'forum'
     WHERE p.type = 'forum' AND p.is_deleted = 0`;
   const orderClause = `ORDER BY p.is_pinned DESC, p.updated_at DESC LIMIT ? OFFSET ?`;
 
@@ -52,12 +50,12 @@ router.post('/new-topic', (req, res) => {
   if (user && (user.banned || !user.email)) return res.status(403).render('error', { title: '错误', code: 403, message: '账号受限', detail: user.banned ? '你的账号已被管理员封禁' : '请前往设置页面绑定邮箱后再操作', back: '/' });
   const { title, forum_category, content } = req.body;
   const slug = slugify(title) + '-' + Date.now();
-  const html = marked.parse(content || '');
+  const html = renderMarkdown(content || '');
   db.prepare(`INSERT INTO posts (title, slug, content_md, content_html, author_id, type, forum_category)
     VALUES (?, ?, ?, ?, ?, 'forum', ?)`)
     .run(title, slug, content, html, req.session.user.id, forum_category || 'general');
   const post = db.prepare('SELECT id FROM posts WHERE slug = ?').get(slug);
-  addXP(req.session.user.id, 3, '发布论坛主题', post.id);
+  awardForumXP(req.session.user.id, post.id);
   req.session.user.xp = (req.session.user.xp || 0) + 3;
   res.redirect('/forum/' + slug + '/comments');
 });
@@ -66,7 +64,7 @@ router.post('/new-topic', (req, res) => {
 router.get('/:slug/comments', (req, res) => {
   const topic = db.prepare(`
     SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role
-    FROM posts p JOIN users u ON p.author_id = u.id
+    FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.forum_category = cat.slug AND cat.type = 'forum'
     WHERE p.slug = ? AND p.type = 'forum' AND p.is_deleted = 0
   `).get(req.params.slug);
   if (!topic) return res.status(404).render('404', { title: '404' });
@@ -82,16 +80,7 @@ router.get('/:slug/comments', (req, res) => {
     WHERE c.post_id = ? AND c.is_deleted = 0 ORDER BY c.created_at ASC
   `).all(topic.id);
 
-  const depthMap = {};
-  function getDepth(c) {
-    if (depthMap[c.id] !== undefined) return depthMap[c.id];
-    if (!c.parent_id) { depthMap[c.id] = 0; return 0; }
-    const parent = comments.find(x => x.id === c.parent_id);
-    const d = parent ? getDepth(parent) + 1 : 0;
-    depthMap[c.id] = Math.min(d, 5);
-    return depthMap[c.id];
-  }
-  comments.forEach(c => { c.depth = getDepth(c); });
+  computeDepth(comments);
 
   res.render('comments', { title: '讨论: ' + topic.title, post: topic, comments });
 });
@@ -100,7 +89,7 @@ router.get('/:slug/comments', (req, res) => {
 router.get('/:slug/comment/:id', (req, res) => {
   const topic = db.prepare(`
     SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role
-    FROM posts p JOIN users u ON p.author_id = u.id
+    FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.forum_category = cat.slug AND cat.type = 'forum'
     WHERE p.slug = ? AND p.type = 'forum' AND p.is_deleted = 0
   `).get(req.params.slug);
   if (!topic) return res.status(404).render('404', { title: '404' });
@@ -145,7 +134,7 @@ router.get('/:slug/comment/:id', (req, res) => {
 router.get('/:slug', (req, res) => {
   const topic = db.prepare(`
     SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role
-    FROM posts p JOIN users u ON p.author_id = u.id
+    FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.forum_category = cat.slug AND cat.type = 'forum'
     WHERE p.slug = ? AND p.type = 'forum' AND p.is_deleted = 0
   `).get(req.params.slug);
   if (!topic) return res.status(404).render('404', { title: '404' });
@@ -161,16 +150,7 @@ router.get('/:slug', (req, res) => {
     WHERE c.post_id = ? AND c.is_deleted = 0 ORDER BY c.created_at ASC
   `).all(topic.id);
 
-  const depthMap = {};
-  function getDepth(c) {
-    if (depthMap[c.id] !== undefined) return depthMap[c.id];
-    if (!c.parent_id) { depthMap[c.id] = 0; return 0; }
-    const parent = comments.find(x => x.id === c.parent_id);
-    const d = parent ? getDepth(parent) + 1 : 0;
-    depthMap[c.id] = Math.min(d, 5);
-    return depthMap[c.id];
-  }
-  comments.forEach(c => { c.depth = getDepth(c); });
+  computeDepth(comments);
 
   res.render('topic', { title: topic.title, topic, comments });
 });

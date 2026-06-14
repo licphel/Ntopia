@@ -1,15 +1,11 @@
 <div id="SideBar">
-
   <div class="sb-box">
     <h3>关于站长</h3>
     <div class="sb-inner">
       <div style="overflow:hidden;margin-bottom:4px">
-        <a href="/users/<%= admin.username %>"><img src="<%= admin.avatar || '/img/default-avatar.svg' %>" style="width:48px;height:48px;border:2px solid #e0dbd0;float:left;margin:1px 8px 4px 0" alt=""></a>
+        <a href="/users/<%= admin.username %>"><img src="<%= admin.avatar || '/img/default-avatar.svg' %>" style="width:40px;height:40px;border:2px solid #e0dbd0;float:left;margin:1px 8px 4px 0" alt=""></a>
         <a href="/users/<%= admin.username %>" style="font-weight:bold"><%= admin.display_name || admin.username %></a>
-        <span style="font-size:12px;line-height:1.6;color:#666"><br><%= admin.bio%></span>
-      </div>
-      <div style="font-size:11px;color:#888;line-height:1.5;clear:both">
-        欢迎交流讨论。可通过论坛或私信联系。回复未必及时，必要时可写邮件。
+        <div style="font-size:13px;color:#999;margin-top:2px;letter-spacing:1px">Ntopia 站长，欢迎交流。</div>
       </div>
     </div>
   </div>

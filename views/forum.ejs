@@ -32,7 +32,7 @@
       <h3>
         <% if (t.is_pinned) { %><span style="color:var(--c)">[置顶]</span><% } %>
         <a href="/forum/<%= t.slug %>"><%= t.title %></a>
-        <% if (t.forum_category) { %><span class="forum-cat"><%= t.forum_category %></span><% } %>
+        <% if (t.forum_category) { %><span class="forum-cat"><%= t.category_name || t.forum_category %></span><% } %>
       </h3>
       <div class="forum-meta">
         <img src="<%= t.avatar || '/img/default-avatar.svg' %>" style="width:18px;height:18px;vertical-align:middle;margin-right:3px"><a href="/users/<%= t.username %>"><%= t.display_name || t.username %></a> |

@@ -79,7 +79,6 @@ app.use((req, res, next) => {
 
 // EJS + Layout
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
 app.set('layout', 'layout');
 app.use(expressLayouts);
 
@@ -158,7 +157,20 @@ app.use((req, res, next) => {
   res.locals.roleBadge = roleBadge;
   if (!res.locals.unreadNotifs) { res.locals.unreadNotifs = 0; res.locals.unreadMessages = 0; }
 
-  // Sidebar data (light queries, cached in DB)
+  // Pages for InfoBar
+  try {
+    const pagesDir2 = path.join(__dirname, 'pages');
+    const pageFiles = fs.readdirSync(pagesDir2).filter(f => f.endsWith('.md'));
+    res.locals.infoPages = pageFiles.map(f => {
+      const raw2 = fs.readFileSync(path.join(pagesDir2, f), 'utf8');
+      const slug2 = f.replace('.md', '');
+      let title2 = slug2;
+      if (raw2.startsWith('---')) { const end2 = raw2.indexOf('---', 3); if (end2 > 0) { const m2 = raw2.slice(3, end2).match(/title:\s*(.+)/); if (m2) title2 = m2[1].trim(); } }
+      return { title: title2, slug: slug2, url: '/pages/' + slug2 };
+    });
+  } catch(e) { res.locals.infoPages = []; }
+
+// Sidebar data (light queries, cached in DB)
   try {
     // Admin info for sidebar
     res.locals.admin = db.prepare('SELECT id, username, display_name, avatar, bio FROM users WHERE id = 1').get() || { username: 'admin', display_name: 'Administrator', avatar: '/img/default-avatar.svg', bio: '' };
@@ -192,10 +204,6 @@ app.use((req, res, next) => {
 });
 
 // Set EJS as template engine
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-
-// Image upload with compression
 app.post('/upload', (req, res, next) => {
   if (!req.session.user) return res.status(401).json({ error: '请先登录' });
   next();
@@ -237,6 +245,11 @@ app.use('/search', require('./routes/search'));
 app.use('/admin', require('./routes/admin'));
 app.use('/messages', require('./routes/messages'));
 app.use('/notifications', require('./routes/notifications'));
+app.use('/likes', require('./routes/likes'));
+app.use('/bookmarks', require('./routes/bookmarks'));
+app.use('/sitemap.xml', require('./routes/sitemap'));
+app.use('/rss.xml', require('./routes/rss'));
+app.use('/pages', require('./routes/pages'));
 app.use('/settings', require('./routes/settings'));
 app.use('/email', require('./routes/email'));
 

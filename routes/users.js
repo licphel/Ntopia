@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const sharp = require('sharp');
 const fs = require('fs');
-const { marked } = require('marked');
+const { renderMarkdown } = require('../lib/helpers');
 const { db, xpForLevel } = require('../db');
 const router = express.Router();
 
@@ -22,7 +22,7 @@ router.get('/:username', (req, res) => {
   const profile = db.prepare('SELECT * FROM users WHERE username = ?').get(req.params.username);
   if (!profile) return res.status(404).render('404', { title: '404' });
   // Render bio markdown
-  profile.bio_html = marked.parse(profile.bio || '');
+  profile.bio_html = renderMarkdown(profile.bio || '');
 
   const postPage = parseInt(req.query.pp) || 1;
   const cmtPage = parseInt(req.query.cp) || 1;

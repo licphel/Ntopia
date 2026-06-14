@@ -1,5 +1,5 @@
 const express = require('express');
-const { marked } = require('marked');
+const { renderMarkdown } = require('../lib/helpers');
 const { db } = require('../db');
 const router = express.Router();
 
@@ -47,7 +47,7 @@ router.post('/send', requireLogin, (req, res) => {
   if (toUser.id === req.session.user.id) {
     return res.render('send-message', { title: '发送私信', toUser, error: '不能给自己发私信' });
   }
-  const html = marked.parse(content || '');
+  const html = renderMarkdown(content || '');
   db.prepare('INSERT INTO messages (from_id, to_id, content_md, content_html) VALUES (?, ?, ?, ?)')
     .run(req.session.user.id, toUser.id, content, html);
 

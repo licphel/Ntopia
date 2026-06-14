@@ -1,19 +1,10 @@
 const express = require('express');
-const { marked } = require('marked');
-const { db, addXP } = require('../db');
+const { renderMarkdown, slugify, computeDepth } = require('../lib/helpers');
+const { db, awardPostXP, awardCommentXP } = require('../db');
 const router = express.Router();
 
-marked.setOptions({ breaks: true, gfm: true });
 
-function renderMarkdown(md) { return marked.parse(md || ''); }
-function slugify(text) { return text.toLowerCase().replace(/[^\w一-鿿]+/g, '-').replace(/^-|-$/g, '') || 'untitled'; }
 
-// Check if user can post a blog today
-function canPostBlog(userId) {
-  const today = new Date().toISOString().slice(0, 10);
-  const count = db.prepare("SELECT COUNT(*) as c FROM posts WHERE author_id = ? AND type = 'post' AND date(created_at) = ? AND is_deleted = 0").get(userId, today);
-  return count.c === 0;
-}
 
 // Homepage — blog listing
 router.get('/', (req, res) => {
@@ -27,9 +18,10 @@ router.get('/', (req, res) => {
 
   let posts, total;
   const baseQuery = `SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role,
+        COALESCE(cat.name, p.category) as category_name,
     (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
-    FROM posts p JOIN users u ON p.author_id = u.id
-    WHERE p.type = 'post' AND p.is_deleted = 0`;
+    FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.category = cat.slug AND cat.type = 'blog'
+    WHERE p.type = 'post' AND p.is_deleted = 0 AND p.is_draft = 0`;
   if (cat) {
     posts = db.prepare(`${baseQuery} AND p.category = ? ORDER BY p.created_at DESC LIMIT ? OFFSET ?`).all(cat, limit, offset);
     total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE type = 'post' AND category = ? AND is_deleted = 0").get(cat);
@@ -49,8 +41,8 @@ router.get('/', (req, res) => {
 router.get('/posts/:slug', (req, res) => {
   const post = db.prepare(`
     SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role
-    FROM posts p JOIN users u ON p.author_id = u.id
-    WHERE p.slug = ? AND p.type = 'post' AND p.is_deleted = 0
+    FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.category = cat.slug AND cat.type = 'blog'
+    WHERE p.slug = ? AND p.type = 'post' AND p.is_deleted = 0 AND p.is_draft = 0
   `).get(req.params.slug);
   if (!post) return res.status(404).render('404', { title: '404' });
 
@@ -65,19 +57,9 @@ router.get('/posts/:slug', (req, res) => {
     WHERE c.post_id = ? AND c.is_deleted = 0 ORDER BY c.created_at ASC
   `).all(post.id);
 
-  // Compute nesting depth
-  const depthMap = {};
-  function getDepth(c) {
-    if (depthMap[c.id] !== undefined) return depthMap[c.id];
-    if (!c.parent_id) { depthMap[c.id] = 0; return 0; }
-    const parent = comments.find(x => x.id === c.parent_id);
-    const d = parent ? getDepth(parent) + 1 : 0;
-    depthMap[c.id] = Math.min(d, 5); // max 5 levels
-    return depthMap[c.id];
-  }
-  comments.forEach(c => { c.depth = getDepth(c); });
+  computeDepth(comments);
 
-  res.render('post', { title: post.title, post, comments });
+  res.render("post", { title: post.title, post, comments });
 });
 
 // Create post page — uses category dropdown
@@ -86,7 +68,7 @@ router.get('/new-post', (req, res) => {
   const user = db.prepare('SELECT banned, email FROM users WHERE id = ?').get(req.session.user.id);
   if (user && (user.banned || !user.email)) return res.status(403).render('error', { title: '错误', code: 403, message: '账号受限', detail: user.banned ? '你的账号已被管理员封禁' : '请前往设置页面绑定邮箱后再操作', back: '/' });
   const blogCats = db.prepare("SELECT * FROM categories WHERE type = 'blog' ORDER BY sort_order").all();
-  res.render('editor', { title: '撰写文章', post: null, type: 'post', categories: blogCats, canPost: canPostBlog(req.session.user.id) });
+  res.render('editor', { title: '撰写文章', post: null, type: 'post', categories: blogCats, canPost: true });
 });
 
 // Create post POST
@@ -94,17 +76,15 @@ router.post('/new-post', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
   const user = db.prepare('SELECT banned, email FROM users WHERE id = ?').get(req.session.user.id);
   if (user && (user.banned || !user.email)) return res.status(403).render('error', { title: '错误', code: 403, message: '账号受限', detail: user.banned ? '你的账号已被管理员封禁' : '请前往设置页面绑定邮箱后再操作', back: '/' });
-  if (!canPostBlog(req.session.user.id)) {
-    return res.status(429).render('error', { title: '错误', code: 429, message: '发布限制', detail: '每天只能发布一篇博客文章，请明天再试', back: '/' });
-  }
   const { title, category, tags, excerpt, content } = req.body;
+  const is_draft = req.body.is_draft === '1' ? 1 : 0;
   const slug = slugify(title) + '-' + Date.now();
   const html = renderMarkdown(content);
-  db.prepare(`INSERT INTO posts (title, slug, content_md, content_html, excerpt, category, tags, author_id, type)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'post')`)
-    .run(title, slug, content, html, excerpt || '', category || '', tags || '', req.session.user.id);
+  db.prepare(`INSERT INTO posts (title, slug, content_md, content_html, excerpt, category, tags, author_id, type, is_draft)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'post', ?)`)
+    .run(title, slug, content, html, excerpt || '', category || '', tags || '', req.session.user.id, is_draft);
   const post = db.prepare('SELECT id FROM posts WHERE slug = ?').get(slug);
-  addXP(req.session.user.id, 3, '发布文章', post.id);
+  awardPostXP(req.session.user.id, post.id);
   req.session.user.xp = (req.session.user.xp || 0) + 3;
   res.redirect('/posts/' + slug);
 });
@@ -127,6 +107,7 @@ router.post('/posts/:slug/edit', (req, res) => {
     return res.status(403).render('error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
   }
   const { title, category, tags, excerpt, content } = req.body;
+  const is_draft = req.body.is_draft === '1' ? 1 : 0;
   const html = renderMarkdown(content);
   db.prepare(`UPDATE posts SET title=?, content_md=?, content_html=?, excerpt=?, category=?, tags=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
     .run(title, content, html, excerpt || '', category || '', tags || '', post.id);
@@ -145,7 +126,7 @@ router.post('/posts/:slug/comment', (req, res) => {
   db.prepare('INSERT INTO comments (post_id, author_id, content_md, content_html, parent_id) VALUES (?, ?, ?, ?, ?)')
     .run(post.id, req.session.user.id, content, html, parent_id || null);
   const cmt = db.prepare('SELECT id FROM comments ORDER BY id DESC LIMIT 1').get();
-  addXP(req.session.user.id, 1, '发表评论', cmt.id);
+  awardCommentXP(req.session.user.id, cmt.id);
   req.session.user.xp = (req.session.user.xp || 0) + 1;
 
   const myName = req.session.user.display_name || req.session.user.username;
@@ -177,8 +158,8 @@ router.post('/posts/:slug/comment', (req, res) => {
 router.get('/posts/:slug/comments', (req, res) => {
   const post = db.prepare(`
     SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role
-    FROM posts p JOIN users u ON p.author_id = u.id
-    WHERE p.slug = ? AND p.type = 'post' AND p.is_deleted = 0
+    FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.category = cat.slug AND cat.type = 'blog'
+    WHERE p.slug = ? AND p.type = 'post' AND p.is_deleted = 0 AND p.is_draft = 0
   `).get(req.params.slug);
   if (!post) return res.status(404).render('404', { title: '404' });
 
@@ -193,16 +174,7 @@ router.get('/posts/:slug/comments', (req, res) => {
     WHERE c.post_id = ? AND c.is_deleted = 0 ORDER BY c.created_at ASC
   `).all(post.id);
 
-  const depthMap = {};
-  function getDepth(c) {
-    if (depthMap[c.id] !== undefined) return depthMap[c.id];
-    if (!c.parent_id) { depthMap[c.id] = 0; return 0; }
-    const parent = comments.find(x => x.id === c.parent_id);
-    const d = parent ? getDepth(parent) + 1 : 0;
-    depthMap[c.id] = Math.min(d, 5);
-    return depthMap[c.id];
-  }
-  comments.forEach(c => { c.depth = getDepth(c); });
+  computeDepth(comments);
 
   res.render('comments', { title: '评论: ' + post.title, post, comments });
 });
@@ -211,8 +183,8 @@ router.get('/posts/:slug/comments', (req, res) => {
 router.get('/posts/:slug/comment/:id', (req, res) => {
   const post = db.prepare(`
     SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role
-    FROM posts p JOIN users u ON p.author_id = u.id
-    WHERE p.slug = ? AND p.is_deleted = 0
+    FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.category = cat.slug AND cat.type = 'blog'
+    WHERE p.slug = ? AND p.is_deleted = 0 AND p.is_draft = 0
   `).get(req.params.slug);
   if (!post) return res.status(404).render('404', { title: '404' });
 

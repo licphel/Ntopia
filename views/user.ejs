@@ -16,7 +16,6 @@
       EXP: <%= profile.xp || 0 %> / <%= xpNextTotal %>
       <% if (xpProgress < 100) { %>(<%= xpProgress %>%; 到 Lv.<%= profile.level + 1 %>)<% } else { %>(已满级)<% } %>
     </div>
-    <% if (profile.bio) { %><div class="bio" style="font-size:13px;line-height:1.7;margin:4px 0"><%- profile.bio_html %></div><% } %>
     <div class="meta">
       注册于 <%= profile.created_at.slice(0, 10) %> |
       签到 <%= checkinCount %> 天 |
@@ -46,7 +45,7 @@
         <form method="POST" action="/admin/users/<%= profile.id %>/demote" style="display:inline">
           <button style="background:#f0a030;color:#fff;border:none;padding:3px 10px;border-radius:2px;cursor:pointer;font-size:11px">降权</button>
         </form>
-        <form method="POST" action="/admin/users/<%= profile.id %>/delete" style="display:inline" onsubmit="return confirm('彻底删除用户 <%= profile.username %> 及其所有内容？此操作不可恢复！')">
+        <form method="POST" action="/admin/users/<%= profile.id %>/delete" style="display:inline" onsubmit="return confirm('彻底删除此用户？不可恢复！')">
           <button style="background:#333;color:#fff;border:none;padding:3px 10px;border-radius:2px;cursor:pointer;font-size:11px">删除用户</button>
         </form>
       </div>
@@ -54,7 +53,13 @@
   </div>
 </div>
 
-<h3>文章与主题 (共 <%= (postPages * 10) > 0 ? (postPages-1)*10 + posts.length : posts.length %> 篇)</h3>
+<% if (profile.bio) { %>
+<div style="margin-bottom:16px;padding:10px 14px;border:1px solid #e0dbd0;background:#fafaf5;font-size:13px;line-height:1.7;overflow:hidden">
+  <%- profile.bio_html %>
+</div>
+<% } %>
+
+<h3>文章与主题</h3>
 <% if (posts.length === 0) { %><p style="color:#999">暂无内容。</p><% } %>
 <% posts.forEach(function(p) { %>
 <div class="forum-topic">
@@ -70,7 +75,7 @@
 </div>
 <% } %>
 
-<h3>评论记录 (共 <%= (cmtPages * 10) > 0 ? (cmtPages-1)*10 + comments.length : comments.length %> 条)</h3>
+<h3>评论记录</h3>
 <% if (comments.length === 0) { %><p style="color:#999">暂无评论。</p><% } %>
 <% comments.forEach(function(c) { %>
 <div class="comment" style="<%= c.is_deleted ? 'opacity:0.5;border-color:#c00' : '' %>">
