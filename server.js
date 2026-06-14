@@ -24,7 +24,8 @@ app.use(helmet({
       connectSrc: ["'self'"],
       scriptSrcAttr: ["'unsafe-inline'"],
     }
-  }
+  },
+  crossOriginEmbedderPolicy: false
 }));
 
 // Init database
