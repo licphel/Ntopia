@@ -1,0 +1,54 @@
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+  <h2 style="margin:0;padding:0;border:none">论坛</h2>
+  <% if (user) { %>
+    <a href="/forum/new-topic" style="background:#058c05;color:#fff;padding:6px 14px;border-radius:3px;font-size:13px;text-decoration:none">+ 发布新主题</a>
+  <% } %>
+</div>
+
+<!-- Category tabs -->
+<div class="search-tabs" style="margin-bottom:16px">
+  <a href="/forum" class="<%= !currentCat ? 'active' : '' %>">全部</a>
+  <% categories.forEach(function(cat) { %>
+    <a href="/forum?cat=<%= cat.slug %>" class="<%= currentCat === cat.slug ? 'active' : '' %>"><%= cat.name %></a>
+  <% }); %>
+</div>
+
+<% if (topics.length === 0) { %>
+  <p style="color:#999;text-align:center;padding:40px 0">该分类下还没有主题。</p>
+<% } %>
+
+<% topics.forEach(function(t) { %>
+<div class="forum-topic <%= t.is_pinned ? 'pinned' : '' %>">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div style="flex:1">
+      <h3>
+        <% if (t.is_pinned) { %><span style="color:#058c05">[置顶]</span><% } %>
+        <a href="/forum/<%= t.slug %>"><%= t.title %></a>
+        <% if (t.forum_category) { %><span class="forum-cat"><%= t.forum_category %></span><% } %>
+      </h3>
+      <div class="forum-meta">
+        By <a href="/users/<%= t.username %>"><%= t.display_name || t.username %></a> |
+        <%= t.created_at.slice(0, 10) %> |
+        <%= t.comment_count %> 回复 |
+        <%= t.view_count %> 浏览
+      </div>
+    </div>
+    <div style="text-align:right;font-size:11px;color:#999;white-space:nowrap;margin-left:10px">
+      <div><%= t.comment_count %></div>
+      <div>回复</div>
+    </div>
+  </div>
+</div>
+<% }); %>
+
+<% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
+<div class="pages-nav">
+  <% for (var i = 1; i <= totalPages; i++) { %>
+    <% if (i === page) { %>
+      <span class="current"><%= i %></span>
+    <% } else { %>
+      <a href="/forum?<%= currentCat ? 'cat=' + currentCat + '&' : '' %>page=<%= i %>"><%= i %></a>
+    <% } %>
+  <% } %>
+</div>
+<% } %>

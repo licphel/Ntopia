@@ -1,0 +1,14 @@
+<div class="auth-form">
+  <h2>登录</h2>
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="auth-error"><%= error %></div>
+  <% } %>
+  <form method="POST" action="/auth/login">
+    <label>用户名</label>
+    <input type="text" name="username" required>
+    <label>密码</label>
+    <input type="password" name="password" required>
+    <button type="submit" class="submit-btn">登录</button>
+  </form>
+  <p style="text-align:center;margin-top:12px;font-size:13px">还没有账号？<a href="/auth/register">立即注册</a></p>
+</div>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><%= title %> — Ntopia</title>
+<link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/themes/prism-tomorrow.min.css">
+<script>
+MathJax = { tex: {inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']]}, svg: {fontCache:'global'} };
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#ddd8cc;color:#333;font:14px/1.7 Georgia,"Times New Roman","Noto Serif SC",serif}
+a{color:#058c05;text-decoration:none}
+a:hover{color:#046a04;text-decoration:underline}
+#Container{max-width:960px;margin:10px auto;background:#fffef9;border:1px solid #ccc;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+
+/* === Header === */
+#Header{display:flex;justify-content:space-between;padding:14px 20px 10px;border-bottom:3px solid #058c05;background:linear-gradient(to bottom,#fafaf5,#fffef9)}
+#HeadLeft{flex:1}
+#HeadLeft h1{font-size:22px;font-weight:bold;letter-spacing:1px}
+#HeadLeft h1 a{color:#333}#HeadLeft h1 a:hover{color:#058c05;text-decoration:none}
+#navigation{color:#999;font-size:12px;font-style:italic;margin-top:1px}
+#MenuTop{margin-top:6px}
+#MenuTop ul{list-style:none;display:flex;flex-wrap:wrap;gap:1px}
+#MenuTop a{font-size:12px;padding:2px 8px;border:1px solid #ccc;border-radius:2px;background:#fff;color:#058c05}
+#MenuTop a:visited{color:#058c05}
+#MenuTop a:hover,#MenuTop a.nav-active{background:#058c05;color:#fff;border-color:#058c05;text-decoration:none}
+#HeadRight{display:flex;gap:12px;text-align:center;font-size:11px;flex-shrink:0}
+#HeadRight a{color:#555;display:block;width:52px}
+#HeadRight a:hover{color:#058c05;text-decoration:none}
+#HeadRight .hr-icon{display:block;font-size:26px;line-height:1.2;margin-bottom:1px}
+#Submissions{margin-top:8px;font-size:11px;color:#999;line-height:1.5}
+
+/* === UserBar === */
+#UserBar{text-align:right;padding:4px 20px;background:#f8f6f0;border-bottom:1px solid #e0dbd0;font-size:11px;color:#666}
+#UserBar a{color:#058c05;font-weight:bold}
+#UserBar .checkin-btn{background:#058c05;color:#fff;border:none;padding:1px 10px;border-radius:2px;cursor:pointer;font-size:11px;margin:0 3px}
+#UserBar .checkin-btn:hover{background:#046a04}
+#UserBar .checkin-btn.done{background:#aaa;cursor:default}
+#UserBar .xp-badge{display:inline-block;background:#f0f7ee;color:#058c05;padding:0 6px;border-radius:2px;margin:0 3px;font-weight:bold;font-size:10px}
+
+/* === InfoBar (HeadUn style) === */
+#InfoBar{padding:12px 20px;background:#fafaf5;border-bottom:1px solid #ddd}
+#InfoBar .ib-block{padding:0 0 10px 0;margin-bottom:8px;border-bottom:1px dotted #e0dbd0;font-size:12px;line-height:1.7}
+#InfoBar .ib-block:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+#InfoBar .ib-block h3{font-size:14px;color:#058c05;margin-bottom:2px}
+#InfoBar .ib-block p{color:#777}
+
+/* === Layout === */
+#MainBody{display:flex;gap:18px;padding:16px 20px}
+#content{flex:1;min-width:0}
+
+/* === Post === */
+.Post{margin-bottom:24px;padding-bottom:20px;border-bottom:2px solid #e0dbd0}
+.Post:last-child,.Post:only-child{border-bottom:none}
+.PostHead{display:flex;gap:12px;align-items:flex-start}
+.date-wrap{text-align:center;background:#058c05;color:#fff;padding:3px 8px 4px;border-radius:2px;min-width:44px;flex-shrink:0;box-shadow:1px 1px 2px rgba(0,0,0,.1)}
+.date-wrap.forum-date{background:#6a8a4e}
+.date-day{display:block;font-size:20px;font-weight:bold;line-height:1.1}
+.date-month{display:block;font-size:10px;text-transform:uppercase}
+.title-wrap h2{font-size:18px;margin-bottom:2px;line-height:1.3}
+.title-wrap h2 a{color:#333}.title-wrap h2 a:hover{color:#058c05}
+.submitted{font-size:11px;color:#999}.submitted a{color:#058c05}
+.lv-badge{font-size:10px;background:#eaf0f8;color:#2b7cbe;padding:0 4px;border-radius:2px;font-weight:bold;margin-left:2px}
+.PostContent{margin-top:8px;font-size:14px}
+.PostContent p{margin:6px 0}
+.tools{margin-top:6px;font-size:11px;color:#999;display:flex;gap:8px;flex-wrap:wrap}
+
+/* === Sidebar === */
+#SideBar{width:260px;flex-shrink:0}
+#SideBar .sb-box{margin-bottom:12px;border:1px solid #d5d0c5;background:#fff;
+  box-shadow:0 1px 0 #fff inset,0 -1px 0 #e8e4d8 inset,0 0 0 1px #e8e4d8,0 1px 3px rgba(0,0,0,.04);
+  border-radius:3px;overflow:hidden}
+#SideBar .sb-box h3{font-size:13px;color:#058c05;padding:7px 12px 4px;border-bottom:1px solid #eee;margin-bottom:2px;font-weight:bold;background:#fafaf5}
+#SideBar .sb-box .sb-inner{padding:3px 12px 8px;font-size:12px;line-height:1.65}
+#SideBar ul{list-style:none}
+#SideBar li{margin-bottom:2px;padding-left:12px;position:relative}
+#SideBar li::before{content:">";color:#adcb83;position:absolute;left:0;font-weight:bold;font-size:11px;line-height:1.5}
+#SideBar li a{color:#444;font-size:12px}#SideBar li a:hover{color:#058c05}
+.tag-cloud{display:flex;flex-wrap:wrap;gap:2px}
+.tag-cloud a{font-size:11px;padding:1px 5px;background:#f4faf0;border-radius:2px;color:#058c05}
+.tag-cloud a:hover{background:#058c05;color:#fff;text-decoration:none}
+
+/* === Footer === */
+#Footer{padding:12px 20px;text-align:center;font-size:11px;color:#999;border-top:2px solid #058c05;background:#fafaf5;line-height:1.8}
+#Footer a{color:#058c05}
+
+/* === Content Typography === */
+#content h2{font-size:19px;margin:20px 0 8px;color:#333;padding-bottom:4px;border-bottom:1px solid #e0dbd0}
+#content h3{font-size:15px;margin:14px 0 6px;color:#444}
+#content blockquote{margin:8px 0;padding:5px 14px;border-left:3px solid #058c05;background:#f8f7f4;color:#666}
+#content pre{background:#2d2d2d;padding:12px;border-radius:3px;overflow-x:auto;font-size:13px;line-height:1.5;margin:8px 0}
+#content code{font-family:"Fira Code",Consolas,monospace;font-size:.9em}
+#content :not(pre)>code{background:#f0ede5;padding:1px 3px;border-radius:2px;color:#058c05}
+#content pre code{background:transparent;padding:0;color:#ccc}
+#content img{max-width:600px;max-height:400px;height:auto;width:auto;border-radius:2px;margin:6px 0}
+#content table{border-collapse:collapse;width:100%;margin:8px 0;font-size:13px}
+#content th,#content td{border:1px solid #ddd;padding:5px 8px}
+#content th{background:#f5f2eb;font-weight:bold}
+#content ul,#content ol{margin:4px 0;padding-left:22px}
+
+/* === Forum === */
+.forum-topic{padding:8px 12px;margin-bottom:6px;border:1px solid #e0dbd0;background:#fafaf5}
+.forum-topic:hover{border-color:#058c05}
+.forum-topic h3{font-size:14px;margin-bottom:2px}
+.forum-topic h3 a{color:#333}.forum-topic h3 a:hover{color:#058c05}
+.forum-topic.pinned{border-left:3px solid #058c05}
+.forum-meta{font-size:11px;color:#999}
+.forum-cat{display:inline-block;font-size:10px;padding:1px 5px;background:#f0ede5;border-radius:2px;color:#888;margin-left:3px}
+
+/* === Comments === */
+.comment{margin-bottom:4px;padding:6px 10px;border:1px solid #e0dbd0;background:#fafaf5;font-size:13px}
+.comment .cmt-header{font-size:12px;margin-bottom:2px}
+.comment .cmt-header a{font-weight:bold;color:#058c05}
+.comment .cmt-body{font-size:13px;line-height:1.6}
+.comment .cmt-body p{margin:3px 0}
+.comment-form{margin-top:14px}
+.comment-form textarea{width:100%;padding:8px;border:1px solid #ccc;border-radius:2px;font-size:13px;font-family:inherit;min-height:80px;resize:vertical}
+.comment-form textarea:focus{outline:none;border-color:#058c05}
+.cmt-btn{background:#058c05;color:#fff;border:none;padding:5px 14px;border-radius:2px;cursor:pointer;font-size:12px;margin-top:4px}
+.cmt-btn:hover{background:#046a04}
+
+/* === Auth === */
+.auth-form{max-width:400px;margin:30px auto;padding:20px;background:#fff;border:1px solid #ddd}
+.auth-form h2{font-size:16px;margin-bottom:14px;text-align:center}
+.auth-form label{display:block;font-size:13px;margin-bottom:2px;color:#555;font-weight:bold}
+.auth-form input[type=text],.auth-form input[type=password]{width:100%;padding:7px 10px;border:1px solid #ccc;font-size:13px;margin-bottom:10px;font-family:inherit}
+.auth-form input:focus{outline:none;border-color:#058c05}
+.auth-form .submit-btn{width:100%;background:#058c05;color:#fff;border:none;padding:7px;font-size:14px;cursor:pointer}
+.auth-form .submit-btn:hover{background:#046a04}
+.auth-error{color:#c00;font-size:12px;text-align:center;margin-bottom:8px}
+
+/* === Search === */
+.search-page .search-box{display:flex;gap:6px;margin-bottom:12px}
+.search-page .search-box input{flex:1;padding:7px 12px;border:1px solid #ccc;font-size:14px;font-family:inherit}
+.search-page .search-box button{background:#058c05;color:#fff;border:none;padding:7px 16px;cursor:pointer;font-size:13px}
+.search-tabs{display:flex;margin-bottom:12px;border-bottom:2px solid #058c05}
+.search-tabs a,.search-tabs span{padding:6px 14px;font-size:12px;color:#555}
+.search-tabs a.active,.search-tabs a:hover{background:#f8f6f0;color:#058c05;font-weight:bold;text-decoration:none}
+
+/* === Profile === */
+.profile-header{display:flex;gap:14px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #e0dbd0}
+.profile-avatar img{width:72px;height:72px;border:2px solid #e0dbd0}
+.profile-info h2{font-size:18px;margin-bottom:2px;border:none;padding:0}
+.profile-info .bio{color:#666;font-size:12px;margin:2px 0}
+.profile-info .meta{font-size:11px;color:#999}
+
+/* === Admin === */
+.admin-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px}
+.admin-table th,.admin-table td{border:1px solid #ddd;padding:4px 8px}
+.admin-table th{background:#f5f2eb}
+.admin-table button{background:#058c05;color:#fff;border:none;padding:2px 8px;cursor:pointer;font-size:11px}
+
+/* === Pages === */
+.pages-nav{text-align:center;margin:16px 0}
+.pages-nav a,.pages-nav span{padding:3px 8px;margin:0 1px;border:1px solid #ddd;font-size:12px;display:inline-block}
+.pages-nav span.current{background:#058c05;color:#fff;border-color:#058c05}
+
+/* === Editor === */
+.editor-wrap{max-width:760px;margin:0 auto}
+.editor-wrap input,.editor-wrap select,.editor-wrap textarea{width:100%;padding:7px 10px;border:1px solid #ccc;font-size:14px;font-family:inherit;margin-bottom:8px}
+.editor-wrap textarea{min-height:300px;font-family:"Fira Code",Consolas,monospace;font-size:14px;line-height:1.6}
+.editor-wrap label{font-weight:bold;font-size:12px;color:#555;display:block;margin-bottom:2px}
+.cmt-toolbar button{background:#f0ede5;border:1px solid #ccc;cursor:pointer;padding:2px 6px;font-size:11px;color:#555}
+.cmt-toolbar button:hover{background:#058c05;color:#fff;border-color:#058c05}
+
+/* === Notif badge === */
+.notif-badge{position:absolute;top:-5px;right:-8px;background:#c00;color:#fff;border-radius:8px;padding:0 4px;font-size:9px;font-weight:bold;line-height:1.4}
+
+@media(max-width:768px){
+  #Header{flex-direction:column}#HeadRight{margin-top:8px;justify-content:flex-start}
+  #MainBody{flex-direction:column;padding:10px 14px}#SideBar{width:100%}
+}
+</style>
+</head>
+<body>
+<div id="Container">
+
+<div id="Header">
+  <div id="HeadLeft">
+    <h1><a href="/">Ntopia</a></h1>
+    <div id="navigation">记录思考，分享技术，探索世界</div>
+    <div id="MenuTop">
+      <ul>
+        <li><a href="/" class="<%= path === '/' ? 'nav-active' : '' %>">首页</a></li>
+        <li><a href="/forum" class="<%= path.startsWith('/forum') ? 'nav-active' : '' %>">论坛</a></li>
+        <li><a href="/search" class="<%= path === '/search' ? 'nav-active' : '' %>">搜索</a></li>
+        <% if (user) { %>
+          <li><a href="/users/<%= user.username %>">我的</a></li>
+          <% if ((user.role || 0) >= 32) { %><li><a href="/admin">管理</a></li><% } %>
+          <li><a href="/auth/logout">退出</a></li>
+        <% } else { %>
+          <li><a href="/auth/login">登录</a></li>
+        <% } %>
+      </ul>
+    </div>
+  </div>
+  <div id="HeadRight">
+    <div id="Submissions">
+      <p>欢迎访问 Ntopia！</p>
+    </div>
+  </div>
+</div>
+
+<% if (user) { %>
+<div id="UserBar">
+  欢迎回来，<a href="/users/<%= user.username %>"><%= user.display_name || user.username %></a>
+  <span class="xp-badge">Lv.<%= user.level || 1 %> (<%= user.xp || 0 %>/<%= user.xpNextTotal || 5 %> EXP)</span>
+  <button class="checkin-btn" id="checkinBtn" onclick="doCheckin()">签到</button>
+  |
+  <a href="/new-post">写文章</a> |
+  <a href="/forum/new-topic">发主题</a> |
+  <a href="/notifications" style="position:relative">通知<% if (unreadNotifs) { %><span class="notif-badge"><%= unreadNotifs > 99 ? '99+' : unreadNotifs %></span><% } %></a>
+  <a href="/messages" style="position:relative">私信<% if (unreadMessages) { %><span class="notif-badge"><%= unreadMessages > 99 ? '99+' : unreadMessages %></span><% } %></a>
+</div>
+<% } %>
+
+<div id="InfoBar">
+  <div class="ib-block">
+    <h3>关于本站</h3>
+    <p>Ntopia 是一个基于 Node.js + SQLite 构建的个人知识空间。记录思考，分享技术，探索世界。本站支持 Markdown 写作与 LaTeX 数学公式渲染，内容遵循 CC BY-NC-SA 4.0 协议。</p>
+  </div>
+  <div class="ib-block">
+    <h3>致谢</h3>
+    <p>感谢所有参与讨论、分享知识的朋友们。本站风格参考科学空间 (kexue.fm) 的古早学术风，以简约朴素的排版承载深度内容。欢迎通过论坛或私信进行交流。</p>
+  </div>
+  <div class="ib-block">
+    <h3>参与本站</h3>
+    <p>注册成为会员即可发表文章、参与论坛讨论、与其他用户私信交流。每日签到可获得经验值，发表优质内容可以快速升级。期待你的加入与分享。</p>
+  </div>
+</div>
+
+<div id="MainBody">
+  <div id="content"><%- body %></div>
+  <%- include('sidebar') %>
+</div>
+
+<div id="Footer">
+  <p>&copy; 2026 Ntopia. All rights reserved. Powered by <a href="https://nodejs.org">Node.js</a> &amp; <a href="https://sqlite.org">SQLite</a>.
+  <br>Content licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons BY-NC-SA 4.0</a>.</p>
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/prism-core.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script>
+(function(){
+  var today = new Date().toISOString().slice(0,10);
+  var saved = sessionStorage.getItem('ntopia_checkin_' + today);
+  if (saved === 'done') {
+    var btn = document.getElementById('checkinBtn');
+    if (btn) { btn.textContent = '已签到'; btn.classList.add('done'); }
+  }
+})();
+async function doCheckin() {
+  var btn = document.getElementById('checkinBtn');
+  if (!btn || btn.classList.contains('done')) return;
+  try {
+    btn.textContent = '签到中...';
+    var resp = await fetch('/auth/checkin', { method: 'POST' });
+    var data = await resp.json();
+    if (data.ok) {
+      btn.textContent = '已签到(' + data.total + '天) +' + data.xpEarned + 'XP';
+      btn.classList.add('done');
+      sessionStorage.setItem('ntopia_checkin_' + new Date().toISOString().slice(0,10), 'done');
+      setTimeout(function(){ location.reload(); }, 800);
+    } else if (data.already) {
+      btn.textContent = '已签到(' + data.total + '天)';
+      btn.classList.add('done');
+      sessionStorage.setItem('ntopia_checkin_' + new Date().toISOString().slice(0,10), 'done');
+    }
+  } catch(e) { btn.textContent = '签到'; }
+}
+</script>
+</body>
+</html>

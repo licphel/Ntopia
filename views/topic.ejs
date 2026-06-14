@@ -1,0 +1,76 @@
+<div class="Post">
+  <div class="PostHead">
+    <div class="date-wrap forum-date">
+      <span class="date-day"><%= new Date(topic.created_at).getDate() %></span>
+      <span class="date-month"><%= ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][new Date(topic.created_at).getMonth()] %></span>
+    </div>
+    <div class="title-wrap">
+      <h2><% if (topic.is_pinned) { %>[置顶] <% } %><%= topic.title %></h2>
+      <span class="submitted">
+        By <a href="/users/<%= topic.username %>"><%= topic.display_name || topic.username %></a>
+        <span class="lv-badge">Lv.<%= topic.level || 1 %></span> |
+        <%= topic.created_at.slice(0, 10) %>
+        <% if (topic.forum_category) { %> | <a href="/forum?cat=<%= topic.forum_category %>"><%= topic.forum_category %></a><% } %>
+        | <%= topic.view_count %> 浏览
+        <% if (user && (user.role || 0) >= 32) { %>
+          | <form method="POST" action="/admin/forum/<%= topic.slug %>/pin" style="display:inline">
+              <button style="background:none;border:none;color:#058c05;cursor:pointer;font-size:11px;padding:0"><%= topic.is_pinned ? '取消置顶' : '置顶' %></button>
+            </form>
+        <% } %>
+        <% if (user && (user.id === topic.author_id || (user.role || 0) >= 32)) { %>
+          | <form method="POST" action="/posts/<%= topic.slug %>/delete-self" style="display:inline" onsubmit="return confirm('确认删除？')">
+              <button style="background:none;border:none;color:#c00;cursor:pointer;font-size:11px;padding:0">删除</button>
+            </form>
+        <% } %>
+      </span>
+    </div>
+  </div>
+  <div class="PostContent"><%- topic.content_html %></div>
+</div>
+
+<!-- Top-level replies only (like Tieba) -->
+<div style="margin-top:20px">
+  <h3>回复 (<%= comments.filter(function(c){return !c.parent_id}).length %>)</h3>
+  <% comments.filter(function(c){return !c.parent_id}).forEach(function(c) { %>
+  <div class="comment" style="padding:10px 14px;margin-bottom:8px">
+    <div style="margin-bottom:4px">
+      <a href="/users/<%= c.username %>"><strong><%= c.display_name || c.username %></strong></a>
+      <span class="lv-badge">Lv.<%= c.level || 1 %></span>
+      <span style="color:#999;font-size:10px;float:right"><%= c.created_at.slice(5, 16) %></span>
+    </div>
+    <div style="font-size:14px;line-height:1.7"><%- c.content_html %></div>
+    <div style="margin-top:6px;font-size:12px">
+      <% var rc = comments.filter(function(x){return x.parent_id === c.id}).length; %>
+      <a href="/forum/<%= topic.slug %>/comment/<%= c.id %>" style="color:#058c05"><%= rc > 0 ? rc + ' 条回复' : '回复' %></a>
+      <% if (user) { %>
+        <button onclick="var f=document.getElementById('reply-<%= c.id %>');f.style.display=f.style.display==='none'?'block':'none';var ta=f.querySelector('textarea');ta.value='@<%= c.username %> ';ta.focus()" style="background:none;border:none;color:#058c05;cursor:pointer;font-size:11px;margin-left:8px">快速回复</button>
+      <% } %>
+      <% if (user && (user.id === c.author_id || (user.role || 0) >= 32)) { %>
+        <form method="POST" action="/comments/<%= c.id %>/delete" style="display:inline;margin-left:8px" onsubmit="return confirm('确认删除？')">
+          <button style="background:none;border:none;color:#c00;cursor:pointer;font-size:11px;padding:0">删除</button>
+        </form>
+      <% } %>
+    </div>
+    <% if (user) { %>
+    <div id="reply-<%= c.id %>" style="display:none;margin-top:6px">
+      <form method="POST" action="/posts/<%= topic.slug %>/comment">
+        <input type="hidden" name="parent_id" value="<%= c.id %>">
+        <%- include('comment-toolbar') %>
+        <textarea name="content" placeholder="回复 @<%= c.username %>..." style="width:100%;min-height:40px;padding:4px;border:1px solid #ddd;border-radius:3px;font-size:12px;font-family:inherit"></textarea>
+        <button type="submit" class="cmt-btn" style="font-size:11px;padding:2px 8px;margin-top:2px">回复</button>
+      </form>
+    </div>
+    <% } %>
+  </div>
+  <% }); %>
+</div>
+
+<% if (user) { %>
+<div style="margin-top:4px;padding:10px 0">
+  <form method="POST" action="/posts/<%= topic.slug %>/comment">
+    <%- include('comment-toolbar') %>
+    <textarea name="content" placeholder="发表新回复..." style="width:100%;min-height:60px;padding:6px;border:1px solid #ddd;border-radius:3px;font-size:13px;font-family:inherit"></textarea>
+    <button type="submit" class="cmt-btn" style="margin-top:4px">发表回复</button>
+  </form>
+</div>
+<% } %>

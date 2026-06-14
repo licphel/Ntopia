@@ -1,0 +1,75 @@
+<div class="profile-header">
+  <div class="profile-avatar">
+    <img src="<%= profile.avatar || '/img/default-avatar.svg' %>" alt="avatar">
+  </div>
+  <div class="profile-info">
+    <h2><%= profile.display_name || profile.username %>
+      <span class="lv-badge">Lv.<%= profile.level || 1 %></span>
+      <% if (profile.role >= 32) { %><span style="background:#058c05;color:#fff;padding:0 6px;border-radius:2px;font-size:10px;margin-left:4px">ADMIN</span><% } %>
+    </h2>
+    <div style="color:#999;font-size:13px">@<%= profile.username %> <span style="font-size:10px">(ID: <%= profile.id %>)</span>
+      <span style="margin-left:8px"><%= profile.xp || 0 %> XP</span>
+      <% if (profile.banned) { %><span style="color:#c00;margin-left:4px">[已封禁]</span><% } %>
+    </div>
+    <div style="margin:6px 0;font-size:12px;color:#999">
+      EXP: <%= profile.xp || 0 %> / <%= xpNextTotal %>
+      <% if (xpProgress < 100) { %>(<%= xpProgress %>%; 到 Lv.<%= profile.level + 1 %>)<% } else { %>(已满级)<% } %>
+    </div>
+    <% if (profile.bio) { %><div class="bio" style="font-size:13px;line-height:1.7;margin:4px 0"><%- profile.bio_html %></div><% } %>
+    <div class="meta">
+      注册于 <%= profile.created_at.slice(0, 10) %> |
+      签到 <%= checkinCount %> 天 |
+      连续 <%= profile.consecutive_days || 0 %> 天
+      <% if (user && user.id === profile.id && !todayCheckedIn) { %>
+        <button class="checkin-btn" onclick="doCheckin()" style="font-size:11px">今日签到</button>
+      <% } else if (user && user.id === profile.id) { %>
+        <span style="color:#999">今日已签到</span>
+      <% } %>
+    </div>
+    <% if (user && user.id === profile.id) { %>
+      <a href="/users/<%= profile.username %>/edit" style="font-size:12px">编辑资料</a>
+    <% } %>
+    <% if (user && (user.role || 0) >= 32 && profile.id !== user.id) { %>
+      <form method="POST" action="/admin/users/<%= profile.id %>/<%= profile.banned ? 'unban' : 'ban' %>" style="display:inline;margin-left:8px">
+        <button style="<%= profile.banned ? 'background:#058c05' : 'background:#c00' %>;color:#fff;border:none;padding:2px 8px;border-radius:2px;cursor:pointer;font-size:11px">
+          <%= profile.banned ? '解封' : '封禁' %>
+        </button>
+      </form>
+    <% } %>
+  </div>
+</div>
+
+<h3>文章与主题 (共 <%= (postPages * 10) > 0 ? (postPages-1)*10 + posts.length : posts.length %> 篇)</h3>
+<% if (posts.length === 0) { %><p style="color:#999">暂无内容。</p><% } %>
+<% posts.forEach(function(p) { %>
+<div class="forum-topic">
+  <h3><a href="/<%= p.type === 'forum' ? 'forum' : 'posts' %>/<%= p.slug %>"><%= p.title %></a></h3>
+  <div class="forum-meta"><%= p.type === 'forum' ? '论坛主题' : '博客文章' %> | <%= p.created_at.slice(0, 10) %> | <%= p.comment_count %> 回复</div>
+</div>
+<% }); %>
+<% if (postPages > 1) { %>
+<div class="pages-nav">
+  <% for (var i = 1; i <= postPages; i++) { %>
+    <% if (i === postPage) { %><span class="current"><%= i %></span><% } else { %><a href="/users/<%= profile.username %>?pp=<%= i %>&cp=<%= cmtPage %>"><%= i %></a><% } %>
+  <% } %>
+</div>
+<% } %>
+
+<h3>评论记录 (共 <%= (cmtPages * 10) > 0 ? (cmtPages-1)*10 + comments.length : comments.length %> 条)</h3>
+<% if (comments.length === 0) { %><p style="color:#999">暂无评论。</p><% } %>
+<% comments.forEach(function(c) { %>
+<div class="comment">
+  <div class="cmt-header">
+    评论于 <a href="/<%= c.post_type === 'forum' ? 'forum' : 'posts' %>/<%= c.post_slug %>"><%= c.post_title %></a>
+    <span style="color:#999;font-size:11px"><%= c.created_at.slice(0, 16) %></span>
+  </div>
+  <div class="cmt-body"><%- (c.content_html || '').slice(0, 300) %></div>
+</div>
+<% }); %>
+<% if (cmtPages > 1) { %>
+<div class="pages-nav">
+  <% for (var i = 1; i <= cmtPages; i++) { %>
+    <% if (i === cmtPage) { %><span class="current"><%= i %></span><% } else { %><a href="/users/<%= profile.username %>?pp=<%= postPage %>&cp=<%= i %>"><%= i %></a><% } %>
+  <% } %>
+</div>
+<% } %>

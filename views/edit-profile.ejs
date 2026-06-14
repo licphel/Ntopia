@@ -1,0 +1,65 @@
+<div class="auth-form" style="max-width:480px">
+  <h2>编辑资料</h2>
+
+  <% if (typeof error !== 'undefined' && error) { %><div class="auth-error"><%= error %></div><% } %>
+
+  <div style="text-align:center;margin-bottom:12px">
+    <img id="avatar-img" src="<%= profile.avatar || '/img/default-avatar.svg' %>" style="width:64px;height:64px;border:2px solid #e0dbd0">
+    <div style="margin-top:4px">
+      <input type="file" id="avatar-input" accept="image/*" style="font-size:11px">
+      <button type="button" onclick="uploadAvatar()" style="font-size:11px;background:#058c05;color:#fff;border:none;padding:2px 8px;cursor:pointer;margin-left:4px">上传头像</button>
+      <span id="avatar-status" style="font-size:10px;color:#999;margin-left:4px"></span>
+    </div>
+  </div>
+
+  <form method="POST" action="/users/<%= profile.username %>/edit" id="profile-form">
+    <label>用户 ID（不可更改）</label>
+    <input type="text" value="<%= profile.id %>" disabled style="background:#f5f5f5;color:#999">
+
+    <label>用户名</label>
+    <input type="text" name="new_username" value="<%= (typeof formData !== 'undefined' && formData && formData.new_username) || profile.username %>">
+
+    <label>显示名称</label>
+    <input type="text" name="display_name" value="<%= (typeof formData !== 'undefined' && formData && formData.display_name) || profile.display_name || '' %>">
+
+    <label>个人简介</label>
+    <%- include('comment-toolbar') %>
+    <textarea name="bio" style="width:100%;min-height:100px;padding:7px;border:1px solid #ccc;font-family:inherit;font-size:13px"><%= (typeof formData !== 'undefined' && formData && formData.bio) || profile.bio || '' %></textarea>
+
+    <label>新密码（不修改则留空）</label>
+    <input type="password" name="new_password" placeholder="至少4个字符">
+
+    <label>确认新密码</label>
+    <input type="password" name="new_password2" placeholder="再次输入新密码">
+
+    <button type="submit" class="submit-btn">保存修改</button>
+  </form>
+</div>
+
+<script>
+async function uploadAvatar() {
+  var input = document.getElementById('avatar-input');
+  var status = document.getElementById('avatar-status');
+  var file = input.files[0];
+  if (!file) { status.textContent = '请选择文件'; return; }
+  status.textContent = '上传中...';
+  var form = new FormData();
+  form.append('file', file);
+  try {
+    var resp = await fetch('/upload', { method: 'POST', body: form });
+    var data = await resp.json();
+    if (data.ok) {
+      // Update avatar via the avatar route
+      var avForm = new FormData();
+      avForm.append('avatar', file);
+      var avResp = await fetch('/users/<%= profile.username %>/avatar', { method: 'POST', body: avForm });
+      if (avResp.ok) {
+        document.getElementById('avatar-img').src = data.url + '?v=' + Date.now();
+        status.textContent = '已更新';
+      }
+    } else {
+      status.textContent = '失败: ' + (data.error || '未知');
+    }
+  } catch(e) { status.textContent = '网络错误'; }
+}
+</script>

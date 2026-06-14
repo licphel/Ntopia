@@ -1,0 +1,39 @@
+<div class="editor-wrap">
+  <h2><%= post ? '编辑' : '撰写' %><%= type === 'forum' ? '主题' : '文章' %></h2>
+
+  <% if (typeof canPost !== 'undefined' && !canPost) { %>
+    <p style="color:#c00;margin-bottom:12px">每天只能发布一篇博客文章，你今天已经发布过了。</p>
+  <% } else { %>
+
+  <form method="POST" action="<%= post ? '/posts/' + post.slug + '/edit' : (type === 'forum' ? '/forum/new-topic' : '/new-post') %>">
+
+    <label>标题</label>
+    <input type="text" name="title" value="<%= post ? post.title : '' %>" required>
+
+    <label>分类</label>
+    <select name="<%= type === 'forum' ? 'forum_category' : 'category' %>">
+      <% if (categories && categories.length) {
+        categories.forEach(function(c) { %>
+          <option value="<%= c.slug %>" <%= post && (post.forum_category === c.slug || post.category === c.slug) ? 'selected' : '' %>><%= c.name %></option>
+        <% });
+      } else { %>
+        <option value="">默认</option>
+      <% } %>
+    </select>
+
+    <% if (type !== 'forum') { %>
+    <label>标签（逗号分隔）</label>
+    <input type="text" name="tags" value="<%= post ? post.tags : '' %>" placeholder="技术, Python">
+    <label>摘要</label>
+    <input type="text" name="excerpt" value="<%= post ? post.excerpt : '' %>" placeholder="简短描述...">
+    <% } %>
+
+    <label>正文（Markdown 格式，支持 $...$ 数学公式）</label>
+    <%- include('comment-toolbar') %>
+    <textarea name="content" style="min-height:400px"><%= post ? post.content_md : '' %></textarea>
+
+    <button type="submit" class="cmt-btn" style="padding:10px 24px;font-size:15px">发布</button>
+  </form>
+
+  <% } %>
+</div>
