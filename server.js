@@ -22,6 +22,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
       imgSrc: ["'self'", "data:", "https:"],
       connectSrc: ["'self'"],
+      scriptSrcAttr: ["'unsafe-inline'"],
     }
   }
 }));
@@ -73,6 +74,15 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.set('layout', 'layout');
 app.use(expressLayouts);
+
+// First visit: redirect homepage to login
+app.use((req, res, next) => {
+  if (req.path === '/' && !req.session.user && !(req.headers.cookie || '').includes('visited=1')) {
+    res.cookie('visited', '1', { maxAge: 365 * 24 * 3600 * 1000, httpOnly: false });
+    return res.redirect('/auth/login');
+  }
+  next();
+});
 
 // Global template variables + session refresh
 app.use((req, res, next) => {
@@ -212,6 +222,7 @@ app.use('/search', require('./routes/search'));
 app.use('/admin', require('./routes/admin'));
 app.use('/messages', require('./routes/messages'));
 app.use('/notifications', require('./routes/notifications'));
+app.use('/settings', require('./routes/settings'));
 
 // 404
 app.use((req, res) => {

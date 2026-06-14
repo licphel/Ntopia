@@ -23,13 +23,13 @@
   <div class="cmt-header" style="display:block;margin-bottom:4px">
     <img src="<%= c.avatar || '/img/default-avatar.svg' %>" style="width:16px;height:16px;vertical-align:middle;margin-right:3px"><a href="/users/<%= c.username %>"><strong><%= c.display_name || c.username %></strong></a>
     <span class="lv-badge">Lv.<%= c.level || 1 %></span>
-    <% if (c.parent_username) { %><span style="color:#058c05;font-size:11px"> 回复 @<%= c.parent_display || c.parent_username %></span><% } %>
+    <% if (c.parent_username) { %><span style="color:var(--c);font-size:11px"> 回复 @<%= c.parent_display || c.parent_username %></span><% } %>
     <span style="color:#999;font-size:11px;float:right"><%= c.created_at.slice(0, 16) %></span>
   </div>
   <div class="cmt-body" style="display:block;font-size:14px;line-height:1.7"><%- c.content_html %></div>
   <div style="margin-top:6px">
     <% if (user) { %>
-      <button onclick="var f=document.getElementById('reply-<%= c.id %>');f.style.display=f.style.display==='none'?'block':'none';var ta=f.querySelector('textarea');ta.value='@<%= c.username %> ';ta.focus()" style="background:none;border:none;color:#058c05;cursor:pointer;font-size:11px">回复</button>
+      <button onclick="var f=document.getElementById('reply-<%= c.id %>');f.style.display=f.style.display==='none'?'block':'none';var ta=f.querySelector('textarea');ta.value='@<%= c.username %> ';ta.focus()" style="background:none;border:none;color:var(--c);cursor:pointer;font-size:11px">回复</button>
     <% } %>
     <% if (user && (user.id === c.author_id || user.role === 'admin')) { %>
       <form method="POST" action="/comments/<%= c.id %>/delete" style="display:inline" onsubmit="return confirm('确认删除？')">

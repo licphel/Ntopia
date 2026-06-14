@@ -13,7 +13,7 @@
 </div>
 <style>
 .cmt-toolbar button{background:#f0ede5;border:1px solid #ccc;border-radius:2px;cursor:pointer;padding:1px 6px;font-size:11px;color:#555}
-.cmt-toolbar button:hover{background:#058c05;color:#fff;border-color:#058c05}
+.cmt-toolbar button:hover{background:var(--c);color:#fff;border-color:var(--c)}
 </style>
 <script>
 function tbFindTA(el){var p=el.closest('.cmt-toolbar');if(!p)return null;var form=p.closest('form')||p.parentElement;return form?form.querySelector('textarea'):null}

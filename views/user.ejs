@@ -34,7 +34,7 @@
           </form>
         <% } else { %>
           <form method="POST" action="/admin/users/<%= profile.id %>/unban" style="display:inline">
-            <button style="background:#058c05;color:#fff;border:none;padding:3px 10px;border-radius:2px;cursor:pointer;font-size:11px">解封</button>
+            <button style="background:var(--c);color:#fff;border:none;padding:3px 10px;border-radius:2px;cursor:pointer;font-size:11px">解封</button>
           </form>
         <% } %>
         <% if (myRole > (profile.role || 0) + 1 && (profile.role || 0) < myRole - 1) { %>

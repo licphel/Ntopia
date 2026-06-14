@@ -15,7 +15,7 @@
         | <%= topic.view_count %> 浏览
         <% if (user && (user.role || 0) >= 32) { %>
           | <form method="POST" action="/admin/forum/<%= topic.slug %>/pin" style="display:inline">
-              <button style="background:none;border:none;color:#058c05;cursor:pointer;font-size:11px;padding:0"><%= topic.is_pinned ? '取消置顶' : '置顶' %></button>
+              <button style="background:none;border:none;color:var(--c);cursor:pointer;font-size:11px;padding:0"><%= topic.is_pinned ? '取消置顶' : '置顶' %></button>
             </form>
         <% } %>
         <% if (user && (user.id === topic.author_id || (user.role || 0) >= 32)) { %>
@@ -42,9 +42,9 @@
     <div style="font-size:14px;line-height:1.7"><%- c.content_html %></div>
     <div style="margin-top:6px;font-size:12px">
       <% var rc = comments.filter(function(x){return x.parent_id === c.id}).length; %>
-      <a href="/forum/<%= topic.slug %>/comment/<%= c.id %>" style="color:#058c05"><%= rc > 0 ? rc + ' 条回复' : '回复' %></a>
+      <a href="/forum/<%= topic.slug %>/comment/<%= c.id %>" style="color:var(--c)"><%= rc > 0 ? rc + ' 条回复' : '回复' %></a>
       <% if (user) { %>
-        <button onclick="var f=document.getElementById('reply-<%= c.id %>');f.style.display=f.style.display==='none'?'block':'none';var ta=f.querySelector('textarea');ta.value='@<%= c.username %> ';ta.focus()" style="background:none;border:none;color:#058c05;cursor:pointer;font-size:11px;margin-left:8px">快速回复</button>
+        <button onclick="var f=document.getElementById('reply-<%= c.id %>');f.style.display=f.style.display==='none'?'block':'none';var ta=f.querySelector('textarea');ta.value='@<%= c.username %> ';ta.focus()" style="background:none;border:none;color:var(--c);cursor:pointer;font-size:11px;margin-left:8px">快速回复</button>
       <% } %>
       <% if (user && (user.id === c.author_id || (user.role || 0) >= 32)) { %>
         <form method="POST" action="/comments/<%= c.id %>/delete" style="display:inline;margin-left:8px" onsubmit="return confirm('确认删除？')">

@@ -5,7 +5,7 @@
 <% } %>
 
 <% notifs.forEach(function(n) { %>
-<div class="comment" style="<%= n.is_read ? '' : 'border-left:3px solid #058c05;background:#f8fff8' %>">
+<div class="comment" style="<%= n.is_read ? '' : 'border-left:3px solid var(--c);background:#f8fff8' %>">
   <div style="display:flex;justify-content:space-between;align-items:center">
     <span>
       <% if (n.type === 'reply') { %>回复<% } else if (n.type === 'message') { %>私信<% } else { %>通知<% } %>

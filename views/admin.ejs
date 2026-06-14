@@ -22,7 +22,7 @@
   <% categories.forEach(function(c) { %>
   <tr>
     <td><%= c.name %></td><td><%= c.slug.slice(0,20) %></td>
-    <td><span style="<%= c.type === 'blog' ? 'color:#1a6fb5' : 'color:#058c05' %>"><%= c.type %></span></td>
+    <td><span style="<%= c.type === 'blog' ? 'color:#1a6fb5' : 'color:var(--c)' %>"><%= c.type %></span></td>
     <td><%= c.description || '-' %></td>
     <td>
       <form method="POST" action="/admin/categories/<%= c.id %>/delete" style="display:inline" onsubmit="return confirm('确认删除？')">
@@ -44,7 +44,7 @@
     <td><%= p.type %></td>
     <td>
       <form method="POST" action="/admin/posts/<%= p.slug %>/restore" style="display:inline">
-        <button style="background:#058c05;color:#fff;border:none;padding:2px 8px;border-radius:2px;cursor:pointer;font-size:11px">恢复</button>
+        <button style="background:var(--c);color:#fff;border:none;padding:2px 8px;border-radius:2px;cursor:pointer;font-size:11px">恢复</button>
       </form>
       <form method="POST" action="/admin/posts/<%= p.slug %>/purge" style="display:inline" onsubmit="return confirm('彻底删除？不可恢复！')">
         <button style="background:#333;color:#fff;border:none;padding:2px 8px;border-radius:2px;cursor:pointer;font-size:11px">清除</button>

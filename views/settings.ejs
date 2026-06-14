@@ -1,0 +1,50 @@
+<h2>设置</h2>
+
+<div class="search-tabs" style="margin-bottom:16px">
+  <a href="/settings?tab=theme" class="<%= tab==='theme'||!tab?'active':'' %>">主题</a>
+  <a href="/settings?tab=profile" class="<%= tab==='profile'?'active':'' %>">资料</a>
+</div>
+
+<% if (tab === 'profile') { %>
+  <p style="color:#999;margin:20px 0">资料修改请前往 <a href="/users/<%= user.username %>/edit">编辑资料</a>。</p>
+<% } else { %>
+  <h3>主题颜色</h3>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">
+    <% [
+      { id:'green', name:'墨绿', c:'#5a8a5a', bg:'#e6f7e6' },
+      { id:'blue', name:'蓝', c:'#5a8aaa', bg:'#e4effa' },
+      { id:'purple', name:'紫', c:'#7a6a9a', bg:'#f3e6fc' },
+      { id:'orange', name:'橙', c:'#b8845a', bg:'#fef3e6' },
+      { id:'red', name:'红', c:'#a06050', bg:'#fce8e6' },
+      { id:'teal', name:'青', c:'#5a8a7a', bg:'#e6f5f2' },
+      { id:'pink', name:'粉', c:'#9a6a80', bg:'#fce6f0' },
+      { id:'dark', name:'暗绿', c:'#5a7a5a', bg:'#e8f0e8' },
+    ].forEach(function(t){ %>
+      <div onclick="setTheme('<%= t.id %>')" style="cursor:pointer;text-align:center;padding:12px 16px;border:2px solid #ddd;border-radius:6px;min-width:80px;background:<%= t.bg %>">
+        <div style="width:32px;height:32px;border-radius:50%;background:<%= t.c %>;margin:0 auto 6px"></div>
+        <span style="font-size:13px"><%= t.name %></span>
+      </div>
+    <% }); %>
+  </div>
+  <p style="color:#999;font-size:12px;margin-top:16px">点击颜色即可切换，设置保存在浏览器中。</p>
+<% } %>
+
+<script>
+function setTheme(id){
+  document.documentElement.className = 'theme-' + id;
+  document.cookie = 'ntopia_theme=' + id + ';path=/;max-age=31536000';
+  // Update border highlights
+  document.querySelectorAll('[onclick^="setTheme"]').forEach(function(el){
+    el.style.borderColor = el.getAttribute('onclick').indexOf("'"+id+"'")>0 ? '#333' : '#ddd';
+  });
+}
+// Highlight current theme
+(function(){
+  var m = document.cookie.match(/ntopia_theme=([^;]+)/);
+  var cur = m ? m[1] : 'green';
+  var items = document.querySelectorAll('[onclick^="setTheme"]');
+  items.forEach(function(el){
+    if(el.getAttribute('onclick').indexOf("'"+cur+"'")>0) el.style.borderColor = '#333';
+  });
+})();
+</script>
