@@ -13,6 +13,8 @@ function requireLevel(level) {
 
 // Admin dashboard (>=32)
 router.get('/', requireLevel(LEVEL.ADMIN), (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = 20;
   const stats = {
     users: db.prepare('SELECT COUNT(*) as c FROM users').get().c,
     posts: db.prepare("SELECT COUNT(*) as c FROM posts WHERE type = 'post' AND is_deleted = 0").get().c,
@@ -22,7 +24,10 @@ router.get('/', requireLevel(LEVEL.ADMIN), (req, res) => {
   };
   const categories = db.prepare('SELECT * FROM categories ORDER BY type, sort_order').all();
   const deletedPosts = db.prepare("SELECT * FROM posts WHERE is_deleted = 1 ORDER BY updated_at DESC LIMIT 10").all();
-  res.render('admin', { title: '管理后台', stats, categories, deletedPosts, LEVEL });
+  const users = db.prepare('SELECT * FROM users ORDER BY role DESC, created_at ASC LIMIT ? OFFSET ?').all(limit, (page-1)*limit);
+  const userTotal = db.prepare('SELECT COUNT(*) as c FROM users').get();
+  const totalPages = Math.ceil(userTotal.c / limit);
+  res.render('admin', { title: '管理后台', stats, categories, deletedPosts, users, page, totalPages, LEVEL });
 });
 
 // Add category (>=32)
