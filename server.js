@@ -97,7 +97,7 @@ app.use((req, res, next) => {
   // Refresh session user data (XP, level, banned status)
   if (req.session.user) {
     try {
-      const u = db.prepare('SELECT id, xp, level, banned, display_name, avatar, role FROM users WHERE id = ?').get(req.session.user.id);
+      const u = db.prepare('SELECT id, xp, level, banned, display_name, avatar, role, email FROM users WHERE id = ?').get(req.session.user.id);
       if (u) {
         // Auto-correct level if XP exceeds threshold
         const { xpForLevel } = require('./db');
@@ -108,6 +108,8 @@ app.use((req, res, next) => {
           u.level = correctLevel;
         }
         req.session.user.xp = u.xp;
+        req.session.user.email = u.email || '';
+        req.session.user.needsEmail = !u.email;
         req.session.user.level = u.level;
         req.session.user.display_name = u.display_name;
         req.session.user.avatar = u.avatar;

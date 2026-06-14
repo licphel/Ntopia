@@ -15,7 +15,7 @@ router.post('/login', (req, res) => {
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     return res.render('login', { title: '登录', error: '用户名或密码错误' });
   }
-  req.session.user = { id: user.id, username: user.username, display_name: user.display_name, role: user.role, avatar: user.avatar, xp: user.xp, level: user.level };
+  req.session.user = { id: user.id, username: user.username, display_name: user.display_name, role: user.role, avatar: user.avatar, xp: user.xp, level: user.level, email: user.email, needsEmail: !user.email };
   res.redirect('/');
 });
 
@@ -34,11 +34,9 @@ router.post('/register', (req, res) => {
   const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(uname);
   if (exists) return res.render('register', { title: '注册', error: '用户名已被占用' });
   const hash = bcrypt.hashSync(password, 10);
-  const isFirst = db.prepare('SELECT COUNT(*) as c FROM users').get().c === 0;
-  db.prepare('INSERT INTO users (username, password_hash, display_name, role, avatar, email) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(uname, hash, display_name || uname, isFirst ? 128 : 1, '/img/default-avatar.svg', email);
+  db.prepare('INSERT INTO users (username, password_hash, display_name, role, avatar, email) VALUES (?, ?, ?, 1, ?, ?)')
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(uname);
-  req.session.user = { id: user.id, username: user.username, display_name: user.display_name, role: user.role, avatar: user.avatar, xp: user.xp, level: user.level };
+  req.session.user = { id: user.id, username: user.username, display_name: user.display_name, role: user.role, avatar: user.avatar, xp: user.xp, level: user.level, email: user.email, needsEmail: !user.email };
   res.redirect('/');
 });
 

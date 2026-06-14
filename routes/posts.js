@@ -83,8 +83,8 @@ router.get('/posts/:slug', (req, res) => {
 // Create post page — uses category dropdown
 router.get('/new-post', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
-  const user = db.prepare('SELECT banned FROM users WHERE id = ?').get(req.session.user.id);
-  if (user && user.banned) return res.status(403).render('error', { title: '错误', code: 403, message: '账号已被封禁', detail: '你的账号已被管理员封禁，无法执行此操作', back: '/' });
+  const user = db.prepare('SELECT banned, email FROM users WHERE id = ?').get(req.session.user.id);
+  if (user && (user.banned || !user.email)) return res.status(403).render('error', { title: '错误', code: 403, message: '账号受限', detail: user.banned ? '你的账号已被管理员封禁' : '请前往设置页面绑定邮箱后再操作', back: '/' });
   const blogCats = db.prepare("SELECT * FROM categories WHERE type = 'blog' ORDER BY sort_order").all();
   res.render('editor', { title: '撰写文章', post: null, type: 'post', categories: blogCats, canPost: canPostBlog(req.session.user.id) });
 });
@@ -92,8 +92,8 @@ router.get('/new-post', (req, res) => {
 // Create post POST
 router.post('/new-post', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
-  const user = db.prepare('SELECT banned FROM users WHERE id = ?').get(req.session.user.id);
-  if (user && user.banned) return res.status(403).render('error', { title: '错误', code: 403, message: '账号已被封禁', detail: '你的账号已被管理员封禁，无法执行此操作', back: '/' });
+  const user = db.prepare('SELECT banned, email FROM users WHERE id = ?').get(req.session.user.id);
+  if (user && (user.banned || !user.email)) return res.status(403).render('error', { title: '错误', code: 403, message: '账号受限', detail: user.banned ? '你的账号已被管理员封禁' : '请前往设置页面绑定邮箱后再操作', back: '/' });
   if (!canPostBlog(req.session.user.id)) {
     return res.status(429).render('error', { title: '错误', code: 429, message: '发布限制', detail: '每天只能发布一篇博客文章，请明天再试', back: '/' });
   }
@@ -136,8 +136,8 @@ router.post('/posts/:slug/edit', (req, res) => {
 // Add comment
 router.post('/posts/:slug/comment', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
-  const user = db.prepare('SELECT banned FROM users WHERE id = ?').get(req.session.user.id);
-  if (user && user.banned) return res.status(403).render('error', { title: '错误', code: 403, message: '账号已被封禁', detail: '你的账号已被管理员封禁，无法执行此操作', back: '/' });
+  const user = db.prepare('SELECT banned, email FROM users WHERE id = ?').get(req.session.user.id);
+  if (user && (user.banned || !user.email)) return res.status(403).render('error', { title: '错误', code: 403, message: '账号受限', detail: user.banned ? '你的账号已被管理员封禁' : '请前往设置页面绑定邮箱后再操作', back: '/' });
   const post = db.prepare('SELECT id, slug, type, author_id FROM posts WHERE slug = ? AND is_deleted = 0').get(req.params.slug);
   if (!post) return res.status(404).render('error', { title: '错误', code: 404, message: '内容不存在', detail: '该内容可能已被删除或链接错误', back: '/' });
   const { content, parent_id } = req.body;

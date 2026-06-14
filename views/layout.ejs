@@ -219,6 +219,11 @@ a:hover{color:var(--cd);text-decoration:underline}
   </div>
 </div>
 
+<% if (user && user.needsEmail) { %>
+<div style="background:#fff3cd;color:#856404;text-align:center;padding:6px;font-size:12px;border-bottom:1px solid #ffc107">
+  未绑定邮箱，无法发表内容。请前往 <a href="/settings" style="font-weight:bold;color:#856404">设置</a> 绑定或换绑邮箱。
+</div>
+<% } %>
 <% if (user) { %>
 <div id="UserBar">
   欢迎回来，<a href="/users/<%= user.username %>"><%= user.display_name || user.username %></a>

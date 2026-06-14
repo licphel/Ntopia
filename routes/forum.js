@@ -39,8 +39,8 @@ router.get('/', (req, res) => {
 // New forum topic page — category dropdown
 router.get('/new-topic', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
-  const user = db.prepare('SELECT banned FROM users WHERE id = ?').get(req.session.user.id);
-  if (user && user.banned) return res.status(403).render('error', { title: '错误', code: 403, message: '账号已被封禁', detail: '你的账号已被管理员封禁，无法执行此操作', back: '/' });
+  const user = db.prepare('SELECT banned, email FROM users WHERE id = ?').get(req.session.user.id);
+  if (user && (user.banned || !user.email)) return res.status(403).render('error', { title: '错误', code: 403, message: '账号受限', detail: user.banned ? '你的账号已被管理员封禁' : '请前往设置页面绑定邮箱后再操作', back: '/' });
   const categories = db.prepare("SELECT * FROM categories WHERE type = 'forum' ORDER BY sort_order").all();
   res.render('editor', { title: '发布新主题', post: null, type: 'forum', categories, canPost: true });
 });
@@ -48,8 +48,8 @@ router.get('/new-topic', (req, res) => {
 // New forum topic POST
 router.post('/new-topic', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
-  const user = db.prepare('SELECT banned FROM users WHERE id = ?').get(req.session.user.id);
-  if (user && user.banned) return res.status(403).render('error', { title: '错误', code: 403, message: '账号已被封禁', detail: '你的账号已被管理员封禁，无法执行此操作', back: '/' });
+  const user = db.prepare('SELECT banned, email FROM users WHERE id = ?').get(req.session.user.id);
+  if (user && (user.banned || !user.email)) return res.status(403).render('error', { title: '错误', code: 403, message: '账号受限', detail: user.banned ? '你的账号已被管理员封禁' : '请前往设置页面绑定邮箱后再操作', back: '/' });
   const { title, forum_category, content } = req.body;
   const slug = slugify(title) + '-' + Date.now();
   const html = marked.parse(content || '');

@@ -149,6 +149,16 @@ function initDB() {
   db.prepare("DELETE FROM comments WHERE is_deleted = 1 AND deleted_at < datetime('now', '-60 days')").run();
   db.prepare("DELETE FROM posts WHERE is_deleted = 1 AND deleted_at < datetime('now', '-60 days')").run();
 
+  // Create owner from .env if not exists
+  const bcrypt = require('bcryptjs');
+  const ownerName = process.env.OWNER_NAME || 'admin';
+  const owner = db.prepare('SELECT id FROM users WHERE id = 1').get();
+  if (!owner) {
+    const hash = bcrypt.hashSync(process.env.OWNER_PASSWORD || 'admin123', 10);
+    db.prepare('INSERT INTO users (username, password_hash, display_name, role, email) VALUES (?, ?, ?, 128, ?)')
+      .run(ownerName.toLowerCase(), hash, ownerName, process.env.OWNER_EMAIL || '');
+  }
+
   // Insert default categories if none
   const catCount = db.prepare('SELECT COUNT(*) as c FROM categories').get();
   if (catCount.c === 0) {

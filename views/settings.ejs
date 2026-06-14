@@ -2,11 +2,73 @@
 
 <div class="search-tabs" style="margin-bottom:16px">
   <a href="/settings?tab=theme" class="<%= tab==='theme'||!tab?'active':'' %>">主题</a>
-  <a href="/settings?tab=profile" class="<%= tab==='profile'?'active':'' %>">资料</a>
+  <a href="/settings?tab=account" class="<%= tab==='account'?'active':'' %>">密码</a>
+  <a href="/settings?tab=email" class="<%= tab==='email'?'active':'' %>">邮箱</a>
 </div>
 
-<% if (tab === 'profile') { %>
-  <p style="color:#999;margin:20px 0">资料修改请前往 <a href="/users/<%= user.username %>/edit">编辑资料</a>。</p>
+<% if (tab === 'account') { %>
+  <h3>修改密码</h3>
+  <% if (accountError) { %><div class="auth-error"><%= accountError %></div><% } %>
+  <% if (accountOk) { %><div style="color:var(--c);text-align:center;margin-bottom:8px"><%= accountOk %></div><% } %>
+  <div class="auth-form" style="margin-top:0">
+  <form method="POST" action="/settings/account">
+    <label>邮箱验证码</label>
+    <p style="font-size:12px;color:#999;margin-bottom:6px">验证码将发送至：<strong><%= user.email || '未绑定' %></strong></p>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <input type="text" name="email_code" required placeholder="6位验证码" style="flex:1;margin-bottom:0">
+      <button type="button" id="pwdSendBtn" onclick="sendPwdCode()" style="background:var(--c);color:#fff;border:none;padding:7px 14px;border-radius:3px;cursor:pointer;font-size:12px;white-space:nowrap">发送验证码</button>
+      <span id="pwdSendStatus" style="font-size:11px;color:#999;margin-left:4px"></span>
+    </div>
+    <label>新密码</label>
+    <input type="password" name="new_password" required placeholder="至少4个字符">
+    <label>确认新密码</label>
+    <input type="password" name="new_password2" required>
+    <button type="submit" class="submit-btn">修改密码</button>
+  </form>
+  </div>
+
+<% } else if (tab === 'email') { %>
+  <h3>邮箱绑定</h3>
+  <% if (emailError) { %><div class="auth-error"><%= emailError %></div><% } %>
+  <% if (emailOk) { %><div style="color:var(--c);text-align:center;margin-bottom:8px"><%= emailOk %></div><% } %>
+  <p style="font-size:13px;color:#999;margin-bottom:12px">
+    当前邮箱：<strong><%= user.email || '未绑定' %></strong>
+  </p>
+  <div class="auth-form" style="margin-top:0">
+  <form method="POST" action="/settings/email">
+    <label>新邮箱</label>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <input type="email" name="new_email" required placeholder="输入新邮箱" style="flex:1;margin-bottom:0">
+      <button type="button" id="emailSendBtn" onclick="sendEmailCode()" style="background:var(--c);color:#fff;border:none;padding:7px 14px;border-radius:3px;cursor:pointer;font-size:12px;white-space:nowrap">发送验证码</button>
+      <span id="emailSendStatus" style="font-size:11px;color:#999;margin-left:4px"></span>
+    </div>
+    <label>验证码</label>
+    <input type="text" name="email_code" required placeholder="邮箱收到的6位验证码">
+    <button type="submit" class="submit-btn">绑定邮箱</button>
+  </form>
+  </div>
+  <script>
+  var cd = 0;
+  var st = document.getElementById('emailSendStatus');
+  function sendEmailCode(){
+    if(cd > 0) return;
+    var em = document.querySelector('[name=new_email]').value;
+    if(!em.includes('@')){ st.textContent='邮箱格式错误'; st.style.color='#c00'; return; }
+    var btn = document.getElementById('emailSendBtn');
+    btn.textContent = '发送中...'; btn.disabled = true; st.textContent = '';
+    fetch('/email/send', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:em}) })
+      .then(r=>r.json()).then(d=>{
+        if(d.ok){ cd=60; st.textContent='已发送'; st.style.color='var(--c)'; tick2(btn); }
+        else { btn.textContent='发送验证码'; btn.disabled=false; st.textContent=d.error||'失败'; st.style.color='#c00'; }
+      }).catch(function(){ btn.textContent='发送验证码'; btn.disabled=false; st.textContent='网络错误'; st.style.color='#c00'; });
+  }
+  function tick2(btn){
+    if(cd<=0){ btn.textContent='发送验证码'; btn.disabled=false; st.textContent=''; return; }
+    btn.textContent = cd+'s后重发'; btn.disabled=true;
+    cd--; setTimeout(function(){tick2(btn)},1000);
+  }
+  </script>
+
 <% } else { %>
   <h3>主题颜色</h3>
   <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">
@@ -30,20 +92,36 @@
 <% } %>
 
 <script>
+var pwdCd = 0;
+function sendPwdCode(){
+  if(pwdCd > 0) return;
+  var st = document.getElementById('pwdSendStatus');
+  <% if (user && user.email) { %>
+  var btn = document.getElementById('pwdSendBtn');
+  btn.textContent = '发送中...'; btn.disabled = true; st.textContent = '';
+  fetch('/email/send', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:'<%= user.email %>'}) })
+    .then(r=>r.json()).then(d=>{
+      if(d.ok){ pwdCd=60; st.textContent='已发送'; st.style.color='var(--c)'; pwdTick(btn); }
+      else { btn.textContent='发送验证码'; btn.disabled=false; st.textContent=d.error||'失败'; st.style.color='#c00'; }
+    }).catch(function(){ btn.textContent='发送验证码'; btn.disabled=false; st.textContent='网络错误'; st.style.color='#c00'; });
+  <% } %>
+}
+function pwdTick(btn){
+  if(pwdCd<=0){ btn.textContent='发送验证码'; btn.disabled=false; st.textContent=''; return; }
+  btn.textContent = pwdCd+'s后重发'; btn.disabled=true;
+  pwdCd--; setTimeout(function(){pwdTick(btn)},1000);
+}
 function setTheme(id){
   document.documentElement.className = 'theme-' + id;
   document.cookie = 'ntopia_theme=' + id + ';path=/;max-age=31536000';
-  // Update border highlights
   document.querySelectorAll('[onclick^="setTheme"]').forEach(function(el){
     el.style.borderColor = el.getAttribute('onclick').indexOf("'"+id+"'")>0 ? '#333' : '#ddd';
   });
 }
-// Highlight current theme
 (function(){
   var m = document.cookie.match(/ntopia_theme=([^;]+)/);
   var cur = m ? m[1] : 'green';
-  var items = document.querySelectorAll('[onclick^="setTheme"]');
-  items.forEach(function(el){
+  document.querySelectorAll('[onclick^="setTheme"]').forEach(function(el){
     if(el.getAttribute('onclick').indexOf("'"+cur+"'")>0) el.style.borderColor = '#333';
   });
 })();
