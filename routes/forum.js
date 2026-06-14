@@ -17,7 +17,7 @@ router.get('/', (req, res) => {
   const categories = db.prepare("SELECT * FROM categories WHERE type = 'forum' ORDER BY sort_order").all();
 
   let topics, total;
-  const baseQuery = `SELECT p.*, u.username, u.display_name, u.avatar, u.level,
+  const baseQuery = `SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role,
     (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
     FROM posts p JOIN users u ON p.author_id = u.id
     WHERE p.type = 'forum' AND p.is_deleted = 0`;
@@ -64,7 +64,7 @@ router.post('/new-topic', (req, res) => {
 // Full comments page for forum topic
 router.get('/:slug/comments', (req, res) => {
   const topic = db.prepare(`
-    SELECT p.*, u.username, u.display_name, u.avatar, u.level
+    SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role
     FROM posts p JOIN users u ON p.author_id = u.id
     WHERE p.slug = ? AND p.type = 'forum' AND p.is_deleted = 0
   `).get(req.params.slug);
@@ -73,7 +73,7 @@ router.get('/:slug/comments', (req, res) => {
   db.prepare('UPDATE posts SET view_count = view_count + 1 WHERE id = ?').run(topic.id);
 
   const comments = db.prepare(`
-    SELECT c.*, u.username, u.display_name, u.avatar, u.level,
+    SELECT c.*, u.username, u.display_name, u.avatar, u.level, u.role,
       p2.username as parent_username, p2.display_name as parent_display
     FROM comments c JOIN users u ON c.author_id = u.id
     LEFT JOIN comments pc ON c.parent_id = pc.id
@@ -98,21 +98,21 @@ router.get('/:slug/comments', (req, res) => {
 // Sub-thread for forum
 router.get('/:slug/comment/:id', (req, res) => {
   const topic = db.prepare(`
-    SELECT p.*, u.username, u.display_name, u.avatar, u.level
+    SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role
     FROM posts p JOIN users u ON p.author_id = u.id
     WHERE p.slug = ? AND p.type = 'forum' AND p.is_deleted = 0
   `).get(req.params.slug);
   if (!topic) return res.status(404).render('404', { title: '404' });
 
   const root = db.prepare(`
-    SELECT c.*, u.username, u.display_name, u.avatar, u.level
+    SELECT c.*, u.username, u.display_name, u.avatar, u.level, u.role
     FROM comments c JOIN users u ON c.author_id = u.id
     WHERE c.id = ? AND c.post_id = ?
   `).get(req.params.id, topic.id);
   if (!root) return res.status(404).render('404', { title: '404' });
 
   const allComments = db.prepare(`
-    SELECT c.*, u.username, u.display_name, u.avatar, u.level,
+    SELECT c.*, u.username, u.display_name, u.avatar, u.level, u.role,
       p2.username as parent_username, p2.display_name as parent_display
     FROM comments c JOIN users u ON c.author_id = u.id
     LEFT JOIN comments pc ON c.parent_id = pc.id
@@ -143,7 +143,7 @@ router.get('/:slug/comment/:id', (req, res) => {
 // Single forum topic — must be AFTER new-topic, comments, and comment sub-threads
 router.get('/:slug', (req, res) => {
   const topic = db.prepare(`
-    SELECT p.*, u.username, u.display_name, u.avatar, u.level
+    SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role
     FROM posts p JOIN users u ON p.author_id = u.id
     WHERE p.slug = ? AND p.type = 'forum' AND p.is_deleted = 0
   `).get(req.params.slug);
@@ -152,7 +152,7 @@ router.get('/:slug', (req, res) => {
   db.prepare('UPDATE posts SET view_count = view_count + 1 WHERE id = ?').run(topic.id);
 
   const comments = db.prepare(`
-    SELECT c.*, u.username, u.display_name, u.avatar, u.level,
+    SELECT c.*, u.username, u.display_name, u.avatar, u.level, u.role,
       p2.username as parent_username, p2.display_name as parent_display
     FROM comments c JOIN users u ON c.author_id = u.id
     LEFT JOIN comments pc ON c.parent_id = pc.id

@@ -64,7 +64,9 @@ a:hover{color:#046a04;text-decoration:underline}
 .title-wrap h2{font-size:18px;margin-bottom:2px;line-height:1.3}
 .title-wrap h2 a{color:#333}.title-wrap h2 a:hover{color:#058c05}
 .submitted{font-size:11px;color:#999}.submitted a{color:#058c05}
-.lv-badge{font-size:10px;background:#eaf0f8;color:#2b7cbe;padding:0 4px;border-radius:2px;font-weight:bold;margin-left:2px}
+.lv-badge{font-size:10px;padding:0 4px;border-radius:2px;font-weight:bold;margin-left:2px;cursor:help}
+.lv-badge[data-level]{position:relative}
+.lv-badge[data-level]:hover::after{content:attr(data-level);position:absolute;top:-18px;left:0;background:#333;color:#fff;font-size:10px;padding:1px 5px;border-radius:2px;white-space:nowrap;z-index:10}
 .PostContent{margin-top:8px;font-size:14px}
 .PostContent p{margin:6px 0}
 .tools{margin-top:6px;font-size:11px;color:#999;display:flex;gap:8px;flex-wrap:wrap}
@@ -208,6 +210,8 @@ a:hover{color:#046a04;text-decoration:underline}
 <% if (user) { %>
 <div id="UserBar">
   欢迎回来，<a href="/users/<%= user.username %>"><%= user.display_name || user.username %></a>
+  <% var b = roleBadge(user.role || 0); %>
+  <span class="lv-badge" data-level="LEVEL=<%= user.role %>" style="background:<%= b.bg %>;color:<%= b.color %>"><%= b.text %></span>
   <span class="xp-badge">Lv.<%= user.level || 1 %> (<%= user.xp || 0 %>/<%= user.xpNextTotal || 5 %> EXP)</span>
   <button class="checkin-btn" id="checkinBtn" onclick="doCheckin()">签到</button>
   |

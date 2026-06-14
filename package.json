@@ -5,6 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "stop": "fuser -k 3000/tcp || true",
+    "restart": "npm stop; sleep 1; npm start",
     "dev": "node --watch server.js"
   },
   "dependencies": {

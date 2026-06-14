@@ -13,9 +13,6 @@ router.post('/login', (req, res) => {
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     return res.render('login', { title: '登录', error: '用户名或密码错误' });
   }
-  if (user.banned) {
-    return res.render('login', { title: '登录', error: '账号已被封禁' });
-  }
   req.session.user = { id: user.id, username: user.username, display_name: user.display_name, role: user.role, avatar: user.avatar, xp: user.xp, level: user.level };
   res.redirect('/');
 });
@@ -32,8 +29,8 @@ router.post('/register', (req, res) => {
   if (exists) return res.render('register', { title: '注册', error: '用户名已被占用' });
   const hash = bcrypt.hashSync(password, 10);
   const isFirst = db.prepare('SELECT COUNT(*) as c FROM users').get().c === 0;
-  db.prepare('INSERT INTO users (username, password_hash, display_name, role) VALUES (?, ?, ?, ?)')
-    .run(username, hash, display_name || username, isFirst ? 128 : 1);
+  db.prepare('INSERT INTO users (username, password_hash, display_name, role, avatar) VALUES (?, ?, ?, ?, ?)')
+    .run(username, hash, display_name || username, isFirst ? 128 : 1, '/img/default-avatar.svg');
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
   req.session.user = { id: user.id, username: user.username, display_name: user.display_name, role: user.role, avatar: user.avatar, xp: user.xp, level: user.level };
   res.redirect('/');

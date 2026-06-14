@@ -33,41 +33,6 @@
   <% }); %>
 </table>
 
-<h3>用户管理</h3>
-<table class="admin-table">
-  <tr><th>ID</th><th>用户名</th><th>等级</th><th>XP</th><th>封禁</th><th>操作</th></tr>
-  <% users.forEach(function(u) { %>
-  <tr>
-    <td><%= u.id %></td>
-    <td><a href="/users/<%= u.username %>">@<%= u.username %></a></td>
-    <td><%= u.role >= 128 ? 'Owner' : u.role >= 32 ? 'Admin' : u.role >= 16 ? 'Mod' : u.role >= 1 ? 'User' : u.role === -1 ? 'Banned' : 'Guest' %> (<%= u.role %>)</td>
-    <td><%= u.xp||0 %> / Lv.<%= u.level||1 %></td>
-    <td><%= u.banned ? '是' : '否' %></td>
-    <td>
-      <% var myRole = user ? (user.role || 0) : 0; %>
-      <% if (myRole > u.role) { %>
-        <% if (!u.banned) { %>
-          <form method="POST" action="/admin/users/<%= u.id %>/ban" style="display:inline">
-            <button style="background:#c00;color:#fff;border:none;padding:2px 6px;border-radius:2px;cursor:pointer;font-size:10px">封禁</button>
-          </form>
-        <% } else { %>
-          <form method="POST" action="/admin/users/<%= u.id %>/unban" style="display:inline">
-            <button style="background:#058c05;color:#fff;border:none;padding:2px 6px;border-radius:2px;cursor:pointer;font-size:10px">解封</button>
-          </form>
-        <% } %>
-        <% if (myRole > u.role + 1 && u.role < myRole - 1) { %>
-          <form method="POST" action="/admin/users/<%= u.id %>/promote" style="display:inline">
-            <button style="background:#1a6fb5;color:#fff;border:none;padding:2px 6px;border-radius:2px;cursor:pointer;font-size:10px">提权</button>
-          </form>
-        <% } %>
-        <form method="POST" action="/admin/users/<%= u.id %>/demote" style="display:inline">
-          <button style="background:#f0a030;color:#fff;border:none;padding:2px 6px;border-radius:2px;cursor:pointer;font-size:10px">降权</button>
-        </form>
-      <% } %>
-    </td>
-  </tr>
-  <% }); %>
-</table>
 
 <% if (deletedPosts && deletedPosts.length) { %>
 <h3>已删除帖子</h3>

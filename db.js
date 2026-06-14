@@ -98,12 +98,14 @@ function initDB() {
     ['users', 'level', 'INTEGER DEFAULT 1'],
     ['users', 'consecutive_days', 'INTEGER DEFAULT 0'],
     ['users', 'last_checkin', 'DATE'],
+    ['users', 'avatar', "TEXT DEFAULT '/img/default-avatar.svg'"],
     ['users', 'banned', 'INTEGER DEFAULT 0'],
     ['users', 'role', 'INTEGER DEFAULT 1'],
     ['posts', 'is_deleted', 'INTEGER DEFAULT 0'],
   ]) {
     try { db.exec(`ALTER TABLE ${col[0]} ADD COLUMN ${col[1]} ${col[2]}`); } catch(e) {}
   }
+  
   try { db.exec(`CREATE TABLE IF NOT EXISTS xp_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id),
@@ -179,7 +181,17 @@ function addXP(userId, amount, reason, refId) {
   }
 }
 
-module.exports = { db, initDB, addXP, xpForLevel };
+const LEVEL = { GUEST: 0, USER: 1, MOD: 16, ADMIN: 32, SUPER: 64, OWNER: 128 };
+
+function roleBadge(role) {
+  if (role >= LEVEL.OWNER) return { text: 'Owner', bg: '#f3e5f5', color: '#8e44ad' };
+  if (role >= LEVEL.SUPER) return { text: 'Super', bg: '#fce4e4', color: '#c0392b' };
+  if (role >= LEVEL.ADMIN) return { text: 'Admin', bg: '#fef5e7', color: '#e67e22' };
+  if (role >= LEVEL.MOD)   return { text: 'Mod',   bg: '#eaf0f8', color: '#2b7cbe' };
+  return { text: 'User', bg: '#ecf0f1', color: '#7f8c8d' };
+}
+
+module.exports = { db, initDB, addXP, xpForLevel, LEVEL, roleBadge };
 
 
 

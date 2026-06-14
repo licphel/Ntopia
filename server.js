@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const sharp = require('sharp');
-const { initDB, db } = require('./db');
+const { initDB, db, LEVEL, roleBadge } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -82,15 +82,19 @@ app.use((req, res, next) => {
         req.session.user.xpProgress = nxt > cur ? Math.round((u.xp - cur) / (nxt - cur) * 100) : 100;
         req.session.user.xpNext = nxt - cur;
         req.session._touch = Date.now();
+        // Badge
+        var r = u.role || 0;
+        if (r >= LEVEL.OWNER) req.session.user.badge = 'Owner';
+        else if (r >= LEVEL.SUPER) req.session.user.badge = 'Super';
+        else if (r >= LEVEL.ADMIN) req.session.user.badge = 'Admin';
+        else if (r >=LEVEL.MOD) req.session.user.badge = 'Mod';
+        else req.session.user.badge = 'User';
+        req.session.user.badgeLevel = 'LEVEL=' + r;
         // Unread counts
         const unread = db.prepare('SELECT COUNT(*) as c FROM notifications WHERE user_id = ? AND is_read = 0').get(u.id);
         const unreadMsgs = db.prepare('SELECT COUNT(*) as c FROM messages WHERE to_id = ? AND is_read = 0').get(u.id);
         res.locals.unreadNotifs = unread.c;
         res.locals.unreadMessages = unreadMsgs.c;
-        if (u.banned) {
-          req.session.destroy();
-          return res.redirect('/auth/login?banned=1');
-        }
       }
       // If user not found, keep session — could be transient DB issue
     } catch(e) {
@@ -106,8 +110,12 @@ app.use((req, res, next) => {
     res.locals.user.xpNextTotal = nxt;
     res.locals.user.xpNext = nxt - cur;
     res.locals.user.xpProgress = res.locals.user.xpNext > 0 ? Math.round(((res.locals.user.xp || 0) - cur) / res.locals.user.xpNext * 100) : 100;
+    Object.assign(res.locals.user, roleBadge(res.locals.user.role || 0));
+    res.locals.user.badgeLevel = 'LEVEL=' + (res.locals.user.role || 0);
   }
   res.locals.path = req.path;
+  res.locals.LEVEL = LEVEL;
+  res.locals.roleBadge = roleBadge;
   if (!res.locals.unreadNotifs) { res.locals.unreadNotifs = 0; res.locals.unreadMessages = 0; }
 
   // Sidebar data (light queries, cached in DB)

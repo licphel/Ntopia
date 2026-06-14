@@ -21,7 +21,7 @@ router.get('/', (req, res) => {
   const limit = 10;
   const offset = (page - 1) * limit;
   const posts = db.prepare(`
-    SELECT p.*, u.username, u.display_name, u.avatar, u.level,
+    SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role,
       (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
     FROM posts p JOIN users u ON p.author_id = u.id
     WHERE p.type = 'post' AND p.is_deleted = 0
@@ -36,7 +36,7 @@ router.get('/', (req, res) => {
 // Single blog post
 router.get('/posts/:slug', (req, res) => {
   const post = db.prepare(`
-    SELECT p.*, u.username, u.display_name, u.avatar, u.level
+    SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role
     FROM posts p JOIN users u ON p.author_id = u.id
     WHERE p.slug = ? AND p.type = 'post' AND p.is_deleted = 0
   `).get(req.params.slug);
@@ -45,7 +45,7 @@ router.get('/posts/:slug', (req, res) => {
   db.prepare('UPDATE posts SET view_count = view_count + 1 WHERE id = ?').run(post.id);
 
   const comments = db.prepare(`
-    SELECT c.*, u.username, u.display_name, u.avatar, u.level,
+    SELECT c.*, u.username, u.display_name, u.avatar, u.level, u.role,
       p2.username as parent_username, p2.display_name as parent_display
     FROM comments c JOIN users u ON c.author_id = u.id
     LEFT JOIN comments pc ON c.parent_id = pc.id
@@ -164,7 +164,7 @@ router.post('/posts/:slug/comment', (req, res) => {
 // Full comments page
 router.get('/posts/:slug/comments', (req, res) => {
   const post = db.prepare(`
-    SELECT p.*, u.username, u.display_name, u.avatar, u.level
+    SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role
     FROM posts p JOIN users u ON p.author_id = u.id
     WHERE p.slug = ? AND p.type = 'post' AND p.is_deleted = 0
   `).get(req.params.slug);
@@ -173,7 +173,7 @@ router.get('/posts/:slug/comments', (req, res) => {
   db.prepare('UPDATE posts SET view_count = view_count + 1 WHERE id = ?').run(post.id);
 
   const comments = db.prepare(`
-    SELECT c.*, u.username, u.display_name, u.avatar, u.level,
+    SELECT c.*, u.username, u.display_name, u.avatar, u.level, u.role,
       p2.username as parent_username, p2.display_name as parent_display
     FROM comments c JOIN users u ON c.author_id = u.id
     LEFT JOIN comments pc ON c.parent_id = pc.id
@@ -198,14 +198,14 @@ router.get('/posts/:slug/comments', (req, res) => {
 // Sub-thread: single comment + all its replies
 router.get('/posts/:slug/comment/:id', (req, res) => {
   const post = db.prepare(`
-    SELECT p.*, u.username, u.display_name, u.avatar, u.level
+    SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role
     FROM posts p JOIN users u ON p.author_id = u.id
     WHERE p.slug = ? AND p.is_deleted = 0
   `).get(req.params.slug);
   if (!post) return res.status(404).render('404', { title: '404' });
 
   const root = db.prepare(`
-    SELECT c.*, u.username, u.display_name, u.avatar, u.level
+    SELECT c.*, u.username, u.display_name, u.avatar, u.level, u.role
     FROM comments c JOIN users u ON c.author_id = u.id
     WHERE c.id = ? AND c.post_id = ?
   `).get(req.params.id, post.id);
@@ -213,7 +213,7 @@ router.get('/posts/:slug/comment/:id', (req, res) => {
 
   // Get all descendants recursively
   const allComments = db.prepare(`
-    SELECT c.*, u.username, u.display_name, u.avatar, u.level,
+    SELECT c.*, u.username, u.display_name, u.avatar, u.level, u.role,
       p2.username as parent_username, p2.display_name as parent_display
     FROM comments c JOIN users u ON c.author_id = u.id
     LEFT JOIN comments pc ON c.parent_id = pc.id

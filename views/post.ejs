@@ -8,6 +8,8 @@
       <h2><%= post.title %></h2>
       <span class="submitted">
         By <a href="/users/<%= post.username %>"><%= post.display_name || post.username %></a>
+<% var b = roleBadge(post.role || 0); %>
+        <span class="lv-badge" data-level="LEVEL=<%= post.role %>" style="background:<%= b.bg %>;color:<%= b.color %>"><%= b.text %></span>
         <span class="lv-badge">Lv.<%= post.level || 1 %></span> |
         <%= post.created_at.slice(0, 10) %>
         <% if (post.category) { %> | <%= post.category %><% } %>

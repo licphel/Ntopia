@@ -4,8 +4,9 @@
   </div>
   <div class="profile-info">
     <h2><%= profile.display_name || profile.username %>
+      <% var b = roleBadge(profile.role || 0); %>
+      <span class="lv-badge" data-level="LEVEL=<%= profile.role %>" style="background:<%= b.bg %>;color:<%= b.color %>"><%= b.text %></span>
       <span class="lv-badge">Lv.<%= profile.level || 1 %></span>
-      <% if (profile.role >= 32) { %><span style="background:#058c05;color:#fff;padding:0 6px;border-radius:2px;font-size:10px;margin-left:4px">ADMIN</span><% } %>
     </h2>
     <div style="color:#999;font-size:13px">@<%= profile.username %> <span style="font-size:10px">(ID: <%= profile.id %>)</span>
       <span style="margin-left:8px"><%= profile.xp || 0 %> XP</span>
@@ -20,21 +21,31 @@
       注册于 <%= profile.created_at.slice(0, 10) %> |
       签到 <%= checkinCount %> 天 |
       连续 <%= profile.consecutive_days || 0 %> 天
-      <% if (user && user.id === profile.id && !todayCheckedIn) { %>
-        <button class="checkin-btn" onclick="doCheckin()" style="font-size:11px">今日签到</button>
-      <% } else if (user && user.id === profile.id) { %>
-        <span style="color:#999">今日已签到</span>
-      <% } %>
     </div>
     <% if (user && user.id === profile.id) { %>
       <a href="/users/<%= profile.username %>/edit" style="font-size:12px">编辑资料</a>
     <% } %>
-    <% if (user && (user.role || 0) >= 32 && profile.id !== user.id) { %>
-      <form method="POST" action="/admin/users/<%= profile.id %>/<%= profile.banned ? 'unban' : 'ban' %>" style="display:inline;margin-left:8px">
-        <button style="<%= profile.banned ? 'background:#058c05' : 'background:#c00' %>;color:#fff;border:none;padding:2px 8px;border-radius:2px;cursor:pointer;font-size:11px">
-          <%= profile.banned ? '解封' : '封禁' %>
-        </button>
-      </form>
+    <% var myRole = user ? (user.role || 0) : 0; %>
+    <% if (myRole > (profile.role || 0)) { %>
+      <div style="margin-top:6px;display:flex;gap:6px">
+        <% if (!profile.banned) { %>
+          <form method="POST" action="/admin/users/<%= profile.id %>/ban" style="display:inline">
+            <button style="background:#c00;color:#fff;border:none;padding:3px 10px;border-radius:2px;cursor:pointer;font-size:11px">封禁</button>
+          </form>
+        <% } else { %>
+          <form method="POST" action="/admin/users/<%= profile.id %>/unban" style="display:inline">
+            <button style="background:#058c05;color:#fff;border:none;padding:3px 10px;border-radius:2px;cursor:pointer;font-size:11px">解封</button>
+          </form>
+        <% } %>
+        <% if (myRole > (profile.role || 0) + 1 && (profile.role || 0) < myRole - 1) { %>
+          <form method="POST" action="/admin/users/<%= profile.id %>/promote" style="display:inline">
+            <button style="background:#1a6fb5;color:#fff;border:none;padding:3px 10px;border-radius:2px;cursor:pointer;font-size:11px">提权</button>
+          </form>
+        <% } %>
+        <form method="POST" action="/admin/users/<%= profile.id %>/demote" style="display:inline">
+          <button style="background:#f0a030;color:#fff;border:none;padding:3px 10px;border-radius:2px;cursor:pointer;font-size:11px">降权</button>
+        </form>
+      </div>
     <% } %>
   </div>
 </div>
