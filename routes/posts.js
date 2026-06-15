@@ -39,24 +39,25 @@ router.get('/', (req, res) => {
     (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
     FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.category = cat.slug
     WHERE (p.is_deleted = 0 OR p.is_deleted IS NULL) AND p.is_draft = 0`;
+  const catFilter = cat ? 'AND p.category = ?' : '';
+  const catParam = cat ? [cat] : [];
   if (cat) {
-    posts = db.prepare(`${baseQuery} AND p.category = ? ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT ? OFFSET ?`).all(cat, limit, offset);
     total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE category = ? AND is_deleted = 0").get(cat);
   } else {
-    posts = db.prepare(`${baseQuery} ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT ? OFFSET ?`).all(limit, offset);
     total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE is_deleted = 0").get();
   }
-  // replies: sort in SQL; hot: score by recency-weighted engagement in SQL
+
   if (sort === 'replies') {
-    posts = db.prepare(`${baseQuery} ORDER BY p.is_pinned DESC, comment_count DESC LIMIT ? OFFSET ?`).all(limit, offset);
+    posts = db.prepare(`${baseQuery} ${catFilter} ORDER BY p.is_pinned DESC, comment_count DESC LIMIT ? OFFSET ?`).all(...catParam, limit, offset);
   } else if (sort === 'hot') {
-    const hotNow = time.toSQL().split(' ')[0]; // YYYY-MM-DD for julianday
+    const hotNow = time.toSQL().split(' ')[0];
     posts = db.prepare(`
-      SELECT * FROM (${baseQuery})
+      SELECT * FROM (${baseQuery} ${catFilter})
       ORDER BY is_pinned DESC, (comment_count * 3.0 + view_count * 0.1) / ((julianday(?) - julianday(created_at)) * 24.0 + 4.0) DESC
       LIMIT ? OFFSET ?
-    `).all(hotNow, limit, offset);
-    total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE is_deleted = 0").get();
+    `).all(hotNow, ...catParam, limit, offset);
+  } else {
+    posts = db.prepare(`${baseQuery} ${catFilter} ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT ? OFFSET ?`).all(...catParam, limit, offset);
   }
 
   const totalPages = Math.ceil(total.c / limit);
