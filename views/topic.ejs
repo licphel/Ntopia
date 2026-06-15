@@ -10,7 +10,7 @@
         <img src="<%= topic.avatar || '/img/default-avatar.svg' %>" style="width:20px;height:20px;border-radius:2px;vertical-align:middle;margin-right:3px">
         <a href="/users/<%= topic.username %>"><%= topic.display_name || topic.username %></a>
         <span class="lv-badge">Lv.<%= topic.level || 1 %></span> |
-        <%= topic.created_at.slice(0, 10) %>
+        <%= topic.created_at.slice(0, 16) %>
         <% if (topic.forum_category) { %> | <a href="/forum?cat=<%= topic.category_name || topic.forum_category %>"><%= topic.category_name || topic.forum_category %></a><% } %>
         | <%= topic.view_count %> 浏览
         <% if (user && (user.role || 0) >= LEVEL.ADMIN) { %>

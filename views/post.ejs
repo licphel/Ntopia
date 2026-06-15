@@ -12,7 +12,7 @@
 <% var b = roleBadge(post.role || 0); %>
         <span class="lv-badge" data-level="LEVEL=<%= post.role %>" style="background:<%= b.bg %>;color:<%= b.color %>"><%= b.text %></span>
         <span class="lv-badge">Lv.<%= post.level || 1 %></span> |
-        <%= post.created_at.slice(0, 10) %>
+        <%= post.created_at.slice(0, 16) %>
         <% if (post.category) { %> | <%= post.category_name || post.category %><% } %>
         | <%= post.view_count %> 阅读
         | <a href="#" onclick="toggleLike(event, <%= post.id %>, null)" id="like-post-<%= post.id %>" style="font-size:11px;color:#999">点赞</a>

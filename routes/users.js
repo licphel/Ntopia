@@ -50,8 +50,9 @@ router.get('/:username', (req, res) => {
   const cmtPages = Math.ceil(cmtTotal.c / limit);
 
   const checkinCount = db.prepare('SELECT COUNT(*) as c FROM checkins WHERE user_id = ?').get(profile.id);
+  const { today } = require('../lib/time');
   const todayCheckin = db.prepare('SELECT id FROM checkins WHERE user_id = ? AND checkin_date = ?')
-    .get(profile.id, new Date().toISOString().slice(0, 10));
+    .get(profile.id, today());
 
   // XP progress
   const curXP = xpForLevel(profile.level);

@@ -70,7 +70,7 @@
     <% if (p.is_deleted) { %><span style="color:#c00;font-size:10px">[已删除]</span> <% } %>
     <a href="/<%= p.type === 'forum' ? 'forum' : 'posts' %>/<%= p.slug %>"><%= p.title %></a>
   </h3>
-  <div class="forum-meta"><%= p.type === 'forum' ? '论坛主题' : '博客文章' %> | <%= p.created_at.slice(0, 10) %> | <%= p.comment_count %> 回复</div>
+  <div class="forum-meta"><%= p.type === 'forum' ? '论坛主题' : '博客文章' %> | <%= p.created_at.slice(0, 16) %> | <%= p.comment_count %> 回复</div>
 </div>
 <% }); %>
 <% if (postPages > 1) { %>

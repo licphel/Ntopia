@@ -36,7 +36,7 @@
       </h3>
       <div class="forum-meta">
         <img src="<%= t.avatar || '/img/default-avatar.svg' %>" style="width:18px;height:18px;vertical-align:middle;margin-right:3px"><a href="/users/<%= t.username %>"><%= t.display_name || t.username %></a> |
-        <%= t.created_at.slice(0, 10) %> |
+        <%= t.created_at.slice(0, 16) %> |
         <%= t.comment_count %> 回复 |
         <%= t.view_count %> 浏览
       </div>

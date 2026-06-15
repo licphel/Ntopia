@@ -28,7 +28,7 @@
       <h3><a href="/posts/<%= p.slug %>"><%= p.title %></a></h3>
       <div class="forum-meta">
         <a href="/users/<%= p.username %>"><%= p.display_name || p.username %></a> |
-        <%= p.created_at.slice(0, 10) %> |
+        <%= p.created_at.slice(0, 16) %> |
         <%= p.comment_count %> 评论
       </div>
       <div style="font-size:12px;color:#666;margin-top:4px"><%= (p.excerpt || '').slice(0, 120) %></div>
@@ -45,7 +45,7 @@
       </h3>
       <div class="forum-meta">
         <a href="/users/<%= t.username %>"><%= t.display_name || t.username %></a> |
-        <%= t.created_at.slice(0, 10) %> |
+        <%= t.created_at.slice(0, 16) %> |
         <%= t.comment_count %> 回复
       </div>
     </div>

@@ -50,19 +50,20 @@ router.get('/logout', (req, res) => {
 router.post('/checkin', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: '请先登录' });
   const uid = req.session.user.id;
-  const today = new Date().toISOString().slice(0, 10);
-  const exists = db.prepare('SELECT id FROM checkins WHERE user_id = ? AND checkin_date = ?').get(uid, today);
+  const { today, yesterday } = require('../lib/time');
+  const todayStr = today();
+  const exists = db.prepare('SELECT id FROM checkins WHERE user_id = ? AND checkin_date = ?').get(uid, todayStr);
   if (exists) {
     const count = db.prepare('SELECT COUNT(*) as c FROM checkins WHERE user_id = ?').get(uid);
     return res.json({ ok: false, already: true, total: count.c });
   }
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  const yesterdayCheckin = db.prepare('SELECT id FROM checkins WHERE user_id = ? AND checkin_date = ?').get(uid, yesterday);
+  const yesterdayStr = yesterday();
+  const yesterdayCheckin = db.prepare('SELECT id FROM checkins WHERE user_id = ? AND checkin_date = ?').get(uid, yesterdayStr);
   const user = db.prepare('SELECT consecutive_days FROM users WHERE id = ?').get(uid);
   let streak = yesterdayCheckin ? user.consecutive_days + 1 : 1;
   const xpEarned = 1 + Math.floor(streak / 5);
-  db.prepare('INSERT INTO checkins (user_id, checkin_date, xp_earned) VALUES (?, ?, ?)').run(uid, today, xpEarned);
-  db.prepare('UPDATE users SET consecutive_days = ?, last_checkin = ? WHERE id = ?').run(streak, today, uid);
+  db.prepare('INSERT INTO checkins (user_id, checkin_date, xp_earned) VALUES (?, ?, ?)').run(uid, todayStr, xpEarned);
+  db.prepare('UPDATE users SET consecutive_days = ?, last_checkin = ? WHERE id = ?').run(streak, todayStr, uid);
   awardCheckinXP(uid, xpEarned, null);
   const updated = db.prepare('SELECT xp, level FROM users WHERE id = ?').get(uid);
   req.session.user.xp = updated.xp;

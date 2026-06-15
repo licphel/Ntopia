@@ -5,8 +5,8 @@
   <h3><a href="/posts/<%= p.slug %>"><%= p.title %></a></h3>
   <div class="forum-meta">
     By <a href="/users/<%= p.username %>"><%= p.display_name || p.username %></a> |
-    <%= p.created_at.slice(0, 10) %> |
-    收藏于 <%= p.bookmarked_at.slice(0, 10) %>
+    <%= p.created_at.slice(0, 16) %> |
+    收藏于 <%= p.bookmarked_at.slice(0, 16) %>
   </div>
 </div>
 <% }); %>

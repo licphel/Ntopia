@@ -35,7 +35,7 @@
       <span class="submitted">
         <img src="<%= post.avatar || '/img/default-avatar.svg' %>" style="width:18px;height:18px;vertical-align:middle;margin-right:3px"><a href="/users/<%= post.username %>"><%= post.display_name || post.username %></a>
         <span class="lv-badge">Lv.<%= post.level || 1 %></span> |
-        <%= post.created_at.slice(0, 10) %>
+        <%= post.created_at.slice(0, 16) %>
         <% if (post.category) { %> | <a href="/search?q=<%= encodeURIComponent(post.category) %>"><%= post.category_name || post.category %></a><% } %>
         | <%= post.comment_count %> 评论 | <%= post.view_count %> 阅读
       </span>
