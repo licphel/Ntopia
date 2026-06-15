@@ -5,7 +5,7 @@ title: 关于本站
 ## 技术架构
 
 - 后端：Node.js + Express
-- 数据库：SQLite（核心/易失双库分离）
+- 数据库：SQLite
 - 模板：EJS
 - 部署：Ubuntu + Nginx + PM2
 

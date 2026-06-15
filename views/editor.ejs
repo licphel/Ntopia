@@ -2,7 +2,7 @@
   <h2><%= post ? '编辑' : '撰写' %>文章</h2>
 
   <% if (typeof canPost !== 'undefined' && !canPost) { %>
-    <p style="color:#c00;margin-bottom:12px">每天只能发布一篇博客文章，你今天已经发布过了。</p>
+    <p style="color:#c00;margin-bottom:12px">每天只能发布一篇讨论文章，你今天已经发布过了。</p>
   <% } else { %>
 
   <form method="POST" action="<%= post ? '/posts/' + post.slug + '/edit' : '/new-post' %>">
