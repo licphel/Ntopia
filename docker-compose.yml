@@ -1,0 +1,46 @@
+services:
+  ntopia:
+    build: .
+    container_name: ntopia
+    restart: unless-stopped
+    init: true
+
+    ports:
+      - "127.0.0.1:3000:3000"
+
+    volumes:
+      - ./data:/app/data
+      - ./public/uploads:/app/public/uploads
+      - ./public/posters:/app/public/posters:ro
+      - ./pages:/app/pages:ro
+
+    env_file:
+      - .env
+
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+
+    tmpfs:
+      - /tmp:noexec,nosuid,size=64M
+
+    read_only: true
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+
+    cap_add:
+      - NET_BIND_SERVICE
+
+    mem_limit: 512M
+    memswap_limit: 512M
+    cpus: "1.0"
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
