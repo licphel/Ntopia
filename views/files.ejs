@@ -15,8 +15,12 @@
         <input type="file" name="file" id="upFile" required style="font-size:12px">
       </div>
       <div>
-        <label style="font-size:12px;color:#555">路径（可选，如 /docs）</label><br>
-        <input type="text" name="path" placeholder="/" value="/" style="padding:4px 8px;border:1px solid #ccc;font-size:12px;width:160px">
+        <label style="font-size:12px;color:#555">路径</label><br>
+        <input type="text" name="path" placeholder="/" value="/" list="pathList" style="padding:4px 8px;border:1px solid #ccc;font-size:12px;width:160px">
+        <datalist id="pathList">
+          <option value="/">
+          <% if (typeof paths !== 'undefined') { paths.forEach(function(p) { %><option value="<%= p.virtual_path %>"><% }); } %>
+        </datalist>
       </div>
       <div>
         <button type="submit" class="cmt-btn" style="margin:0">上传</button>
@@ -70,7 +74,7 @@ document.getElementById('upForm').addEventListener('submit', async function(e) {
   st.textContent = '上传中...'; st.style.color = '#999';
   var fd = new FormData();
   fd.append('file', file);
-  fd.append('path', this.path.value || '/');
+  fd.append('path', this.querySelector('[name=path]').value || '/');
   try {
     var r = await fetch('/files/upload', { method: 'POST', body: fd, headers: { 'x-csrf-token': window._csrf } });
     var d = await r.json();

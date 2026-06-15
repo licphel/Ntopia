@@ -25,6 +25,24 @@ function requireLogin(req, res, next) {
   next();
 }
 
+// Fix double-encoded filenames from browser multipart uploads.
+// Browsers encode non-ASCII filenames as UTF-8 in the Content-Disposition header,
+// but some multipart parsers (busboy/multer) treat the bytes as latin1 → double encoding.
+function fixFilename(name) {
+  if (!/[^\x00-\x7F]/.test(name)) return name;
+  try {
+    const decoded = Buffer.from(name, 'latin1').toString('utf8');
+    if (/[一-鿿぀-ゟ゠-ヿ]/.test(decoded)) return decoded;
+  } catch (_) {}
+  return name;
+}
+
+function cdFilename(fn) {
+  const latin1 = Buffer.from(fn, 'utf8').toString('latin1');
+  const encoded = encodeURIComponent(fn);
+  return `attachment; filename="${latin1}"; filename*=UTF-8''${encoded}`;
+}
+
 // Random stored name to prevent clashes and guessing
 function storedName(ext) { return crypto.randomBytes(12).toString('hex') + ext; }
 
@@ -68,9 +86,11 @@ router.get('/', requireLogin, (req, res) => {
     total = db.prepare('SELECT COUNT(*) as c FROM attachments').get();
   }
 
+  const paths = db.prepare("SELECT DISTINCT virtual_path FROM attachments WHERE virtual_path != '/' ORDER BY virtual_path").all();
+
   res.render('files', {
     title: '网盘',
-    files, page, query: q,
+    files, page, query: q, paths,
     totalPages: Math.ceil(total.c / limit),
   });
 });
@@ -99,12 +119,14 @@ router.post('/upload', requireLogin, upload.single('file'), async (req, res) => 
     fileSize = req.file.size;
   }
 
+  const filename = fixFilename(req.file.originalname);
+
   db.prepare(`INSERT INTO attachments (user_id, filename, stored_name, virtual_path, file_size, mime_type)
     VALUES (?, ?, ?, ?, ?, ?)`)
-    .run(req.session.user.id, req.file.originalname, storedNameVal,
+    .run(req.session.user.id, filename, storedNameVal,
          vpath || '/', fileSize, req.file.mimetype || '');
 
-  res.json({ ok: true, filename: req.file.originalname, id: db.prepare('SELECT last_insert_rowid() as id').get().id });
+  res.json({ ok: true, filename: filename, id: db.prepare('SELECT last_insert_rowid() as id').get().id });
 });
 
 // Download
@@ -125,7 +147,7 @@ router.get('/download/:id', async (req, res) => {
   const filePath = path.join(STORAGE_DIR, file.stored_name);
   if (!fs.existsSync(filePath)) return res.status(404).send('File missing');
   res.set('Content-Type', file.mime_type || 'application/octet-stream');
-  res.set('Content-Disposition', `attachment; filename="${file.filename}"`);
+  res.set('Content-Disposition', cdFilename(file.filename));
   res.set('Content-Length', file.file_size);
   res.set('X-Content-Type-Options', 'nosniff');
   fs.createReadStream(filePath).pipe(res);
