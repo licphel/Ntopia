@@ -1,60 +1,68 @@
 <div class="auth-form">
   <h2>注册</h2>
-  <% if (typeof error !== 'undefined' && error) { %>
-    <div class="auth-error"><%= error %></div>
-  <% } %>
-  <form method="POST" action="/auth/register">
-  <input type="hidden" name="_csrf" value="<%= csrf %>">
-    <label>邮箱</label>
-    <div style="display:flex;gap:8px;margin-bottom:12px">
-      <input type="email" name="email" maxlength="128" required placeholder="用于接收验证码" style="flex:1;margin-bottom:0">
-      <button type="button" id="sendBtn" onclick="sendCode()" style="background:var(--c);color:#fff;border:none;padding:7px 14px;border-radius:3px;cursor:pointer;font-size:12px;white-space:nowrap">发送验证码</button>
-      <span id="sendStatus" style="font-size:11px;color:#999;margin-left:4px"></span>
+  <% if (typeof error !=='undefined' && error) { %>
+    <div class="auth-error">
+      <%= error %>
     </div>
-    <label>验证码</label>
-    <input type="text" name="email_code" maxlength="6" required placeholder="邮箱收到的6位验证码">
-    <label>用户名</label>
-    <input type="text" name="username" maxlength="64" required placeholder="至少2个字符">
-    <label>显示名称</label>
-    <input type="text" name="display_name" maxlength="64" placeholder="可选，默认为用户名">
-    <label>密码</label>
-    <input type="password" name="password" maxlength="64" required placeholder="至少4个字符">
-    <label>确认密码</label>
-    <input type="password" name="password2" maxlength="64" required>
-    <label>图形验证码</label>
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-      <input type="text" name="captcha" maxlength="4" required placeholder="输入验证码" style="flex:1;margin-bottom:0;text-transform:lowercase">
-      <img src="/auth/captcha" id="captcha-img" onclick="this.src='/auth/captcha?'+Date.now()" style="height:32px;cursor:pointer;border:1px solid #ccc;border-radius:2px" title="点击刷新">
-    </div>
+    <% } %>
+      <form method="POST" action="/auth/register">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <label>邮箱</label>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <input type="email" name="email" maxlength="128" required placeholder="用于接收验证码"
+            style="flex:1;margin-bottom:0">
+          <button type="button" id="sendBtn" onclick="sendCode()"
+            style="background:var(--c);color:#fff;border:none;padding:7px 14px;border-radius:3px;cursor:pointer;font-size:12px;white-space:nowrap">发送验证码</button>
+          <span id="sendStatus" style="font-size:11px;color:#999;margin-left:4px"></span>
+        </div>
+        <label>验证码</label>
+        <input type="text" name="email_code" maxlength="6" required placeholder="邮箱收到的6位验证码">
+        <label>用户名</label>
+        <input type="text" name="username" maxlength="64" required placeholder="至少2个字符">
+        <label>显示名称</label>
+        <input type="text" name="display_name" maxlength="64" placeholder="可选，默认为用户名">
+        <label>密码</label>
+        <input type="password" name="password" maxlength="64" required placeholder="至少4个字符">
+        <label>确认密码</label>
+        <input type="password" name="password2" maxlength="64" required>
+        <label>图形验证码</label>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+          <input type="text" name="captcha" maxlength="4" required placeholder="输入验证码"
+            style="flex:1;margin-bottom:0;text-transform:lowercase">
+          <img src="/auth/captcha" id="captcha-img" onclick="this.src='/auth/captcha?'+Date.now()"
+            style="height:32px;cursor:pointer;border:1px solid #ccc;border-radius:2px" title="点击刷新">
+        </div>
 
-    <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:normal;color:#666;margin-bottom:10px">
-      <input type="checkbox" name="agree" value="1" required> 我已阅读并同意 <a href="/pages/privacy" target="_blank">用户须知</a>
-    </label>
-    <button type="submit" class="submit-btn">注册</button>
-  </form>
-  <p style="text-align:center;margin-top:12px;font-size:13px">已有账号？<a href="/auth/login">立即登录</a></p>
+        <label
+          style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:normal;color:#666;margin-bottom:10px">
+          <input type="checkbox" name="agree" value="1" required> 我已阅读并同意 <a href="/pages/user"
+            target="_blank">《用户协定》</a> 及 <a href="/pages/privacy" target="_blank">《隐私协议》</a>
+        </label>
+        <button type="submit" class="submit-btn">注册</button>
+      </form>
+      <p style="text-align:center;margin-top:12px;font-size:13px">已有账号？<a href="/auth/login">立即登录</a></p>
 </div>
 
 <script>
-var countdown = 0;
-var statusEl = document.getElementById('sendStatus');
-function sendCode(){
-  if(countdown > 0) return;
-  var email = document.querySelector('[name=email]').value;
-  if(!email.includes('@')){ statusEl.textContent='邮箱格式错误'; statusEl.style.color='#c00'; return; }
-  var btn = document.getElementById('sendBtn');
-  btn.textContent = '发送中...'; btn.disabled = true; statusEl.textContent = '';
-  fetch('/email/send', { method:'POST', headers:{'Content-Type':'application/json','x-csrf-token':'<%= csrf %>'}, body:JSON.stringify({email}) })
-    .then(r=>r.json()).then(d=>{
-      if(d.ok){ countdown=60; statusEl.textContent='已发送，若未收到，请检查垃圾邮件'; statusEl.style.color='var(--c)'; tick(btn); }
-      else { btn.textContent='发送验证码'; btn.disabled=false; statusEl.textContent=d.error||'发送失败'; statusEl.style.color='#c00'; }
-    }).catch(function(){ btn.textContent='发送验证码'; btn.disabled=false; statusEl.textContent='网络错误'; statusEl.style.color='#c00'; });
-}
-function tick(btn){
-  if(countdown<=0){ btn.textContent='发送验证码'; btn.disabled=false; statusEl.textContent=''; return; }
-  btn.textContent = countdown+'s后重发'; btn.disabled=true;
-  countdown--; setTimeout(function(){tick(btn)},1000);
-}
+  var countdown = 0;
+  var statusEl = document.getElementById('sendStatus');
+  function sendCode() {
+    if (countdown > 0) return;
+    var email = document.querySelector('[name=email]').value;
+    if (!email.includes('@')) { statusEl.textContent = '邮箱格式错误'; statusEl.style.color = '#c00'; return; }
+    var btn = document.getElementById('sendBtn');
+    btn.textContent = '发送中...'; btn.disabled = true; statusEl.textContent = '';
+    fetch('/email/send', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': '<%= csrf %>' }, body: JSON.stringify({ email }) })
+      .then(r => r.json()).then(d => {
+        if (d.ok) { countdown = 60; statusEl.textContent = '已发送，若未收到，请检查垃圾邮件'; statusEl.style.color = 'var(--c)'; tick(btn); }
+        else { btn.textContent = '发送验证码'; btn.disabled = false; statusEl.textContent = d.error || '发送失败'; statusEl.style.color = '#c00'; }
+      }).catch(function () { btn.textContent = '发送验证码'; btn.disabled = false; statusEl.textContent = '网络错误'; statusEl.style.color = '#c00'; });
+  }
+  function tick(btn) {
+    if (countdown <= 0) { btn.textContent = '发送验证码'; btn.disabled = false; statusEl.textContent = ''; return; }
+    btn.textContent = countdown + 's后重发'; btn.disabled = true;
+    countdown--; setTimeout(function () { tick(btn) }, 1000);
+  }
 </script>
 
 <input type="hidden" name="_csrf" value="<%= csrf %>">

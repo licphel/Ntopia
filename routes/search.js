@@ -23,13 +23,26 @@ router.get('/', (req, res) => {
     const like = `%${q}%`;
 
     if (type === 'all' || type === 'posts') {
-      postResults = db.prepare(`
-        SELECT p.*, u.username, u.display_name,
-          (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
-        FROM posts p JOIN users u ON p.author_id = u.id
-        WHERE p.is_deleted = 0 AND (p.title LIKE ? OR p.content_md LIKE ? OR p.tags LIKE ?)
-        ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT 10
-      `).all(like, like, like);
+      // Use FTS5 if available, fallback to LIKE
+      try {
+        postResults = db.prepare(`
+          SELECT p.*, u.username, u.display_name,
+            (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count,
+            rank
+          FROM posts_fts f JOIN posts p ON f.rowid = p.id JOIN users u ON p.author_id = u.id
+          WHERE posts_fts MATCH ? AND p.is_deleted = 0
+          ORDER BY rank LIMIT 10
+        `).all(q.split(/\s+/).map(w => `"${w}"`).join(' '));
+      } catch (_) {
+        // FTS5 not available — fallback to LIKE
+        postResults = db.prepare(`
+          SELECT p.*, u.username, u.display_name,
+            (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
+          FROM posts p JOIN users u ON p.author_id = u.id
+          WHERE p.is_deleted = 0 AND (p.title LIKE ? OR p.content_md LIKE ? OR p.tags LIKE ?)
+          ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT 10
+        `).all(like, like, like);
+      }
     }
 
     if (type === 'all' || type === 'users') {

@@ -24,6 +24,7 @@ router.get('/', requireLevel(LEVEL.ADMIN), (req, res) => {
     
     comments: db.prepare('SELECT COUNT(*) as c FROM comments').get().c,
     checkins: db.prepare('SELECT COUNT(*) as c FROM checkins').get().c,
+    reports: db.prepare("SELECT COUNT(*) as c FROM reports WHERE status = 'pending'").get().c,
   };
   const categories = db.prepare('SELECT * FROM categories ORDER BY sort_order').all();
   const deletedPosts = db.prepare("SELECT * FROM posts WHERE is_deleted = 1 ORDER BY updated_at DESC LIMIT 10").all();

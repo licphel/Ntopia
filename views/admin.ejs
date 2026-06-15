@@ -1,4 +1,6 @@
 <h2>管理后台</h2>
+<% var reportCount = (typeof stats !== 'undefined' && stats.reports) ? stats.reports : 0; %>
+<p style="margin-bottom:8px"><a href="/report/admin" style="color:var(--c)">举报管理<% if (reportCount > 0) { %><span style="color:#c00;font-weight:bold">（<%= reportCount %> 待处理）</span><% } %></a></p>
 
 <h3>统计</h3>
 <table class="admin-table">

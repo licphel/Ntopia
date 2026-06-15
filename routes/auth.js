@@ -38,7 +38,7 @@ router.get('/register', (req, res) => {
 
 router.post('/register', (req, res) => {
   const { username, password, password2, display_name, email, email_code, captcha, agree } = req.body;
-  if (!agree) return res.render('register', { title: '注册', error: '请先阅读并同意用户须知' });
+  if (!agree) return res.render('register', { title: '注册', error: '请先阅读并同意用户协定、隐私协议' });
   if (!captcha || captcha.toLowerCase() !== req.session._captcha) return res.render('register', { title: '注册', error: '验证码错误' });
   req.session._captcha = null;
   if (username.length > 64 || password.length > 64 || (display_name || '').length > 64) return res.render('register', { title: '注册', error: '输入过长' });

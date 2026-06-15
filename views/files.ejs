@@ -1,0 +1,81 @@
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+  <h2 style="margin:0;padding:0;border:none">网盘</h2>
+  <div>
+    <button onclick="document.getElementById('uploadForm').style.display='block'" style="background:var(--c);color:#fff;border:none;padding:5px 14px;border-radius:3px;cursor:pointer;font-size:13px">+ 上传</button>
+  </div>
+</div>
+
+<!-- Upload form -->
+<div id="uploadForm" style="display:none;margin-bottom:16px;padding:14px;border:1px solid #e0dbd0;background:#fafaf5;border-radius:3px">
+  <form id="upForm" enctype="multipart/form-data">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+      <div>
+        <label style="font-size:12px;color:#555">文件</label><br>
+        <input type="file" name="file" id="upFile" required style="font-size:12px">
+      </div>
+      <div>
+        <label style="font-size:12px;color:#555">路径（可选，如 /docs）</label><br>
+        <input type="text" name="path" placeholder="/" value="/" style="padding:4px 8px;border:1px solid #ccc;font-size:12px;width:160px">
+      </div>
+      <div>
+        <button type="submit" class="cmt-btn" style="margin:0">上传</button>
+        <button type="button" onclick="document.getElementById('uploadForm').style.display='none'" style="background:#999;color:#fff;border:none;padding:5px 14px;border-radius:3px;cursor:pointer;font-size:12px;margin-left:4px">取消</button>
+      </div>
+    </div>
+    <div id="upStatus" style="font-size:12px;color:#999;margin-top:6px"></div>
+  </form>
+</div>
+
+<!-- Search -->
+<form method="GET" action="/files" style="margin-bottom:12px;display:flex;gap:6px">
+  <input type="text" name="q" value="<%= typeof query !== 'undefined' ? query : '' %>" placeholder="搜索文件名..." style="flex:1;padding:5px 10px;border:1px solid #ccc;font-size:13px">
+  <button type="submit" style="background:var(--c);color:#fff;border:none;padding:5px 14px;cursor:pointer;font-size:13px">搜索</button>
+  <% if (query) { %><a href="/files" style="padding:5px 10px;font-size:13px;color:#999">清除</a><% } %>
+</form>
+
+<!-- File list -->
+<% if (files.length === 0) { %>
+  <p style="color:#999;text-align:center;padding:40px 0">暂无文件。</p>
+<% } %>
+
+<table style="width:100%;border-collapse:collapse;font-size:12px">
+<% files.forEach(function(f) { %>
+  <tr style="border-bottom:1px solid #eee">
+    <td style="padding:8px 6px;width:24px"><span style="color:#999;font-size:16px">#</span></td>
+    <td style="padding:8px 6px">
+      <a href="/files/download/<%= f.id %>" style="font-weight:bold;color:var(--c)"><%= f.filename %></a>
+      <div style="color:#999;font-size:10px"><%= f.virtual_path %> · <%= (f.file_size / 1024).toFixed(1) %> KB · <%= f.download_count %> 次下载 · <%= f.created_at.slice(0, 16) %> · <a href="/users/<%= f.username %>">@<%= f.display_name || f.username %></a></div>
+    </td>
+    <td style="padding:8px 6px;text-align:right;white-space:nowrap">
+      <% if (user && (user.id === f.user_id || (user.role || 0) >= 32)) { %>
+        <form method="POST" action="/files/delete/<%= f.id %>" style="display:inline" onsubmit="return confirm('确认删除？')">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <button style="background:none;border:none;color:#c00;cursor:pointer;font-size:10px;padding:0">删除</button>
+        </form>
+      <% } %>
+    </td>
+  </tr>
+<% }); %>
+</table>
+
+<%- include('pagination', { page: page, totalPages: totalPages, baseUrl: '/files' + (query ? '?q=' + encodeURIComponent(query) : ''), param: 'page' }) %>
+
+<script>
+document.getElementById('upForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  var st = document.getElementById('upStatus');
+  var file = document.getElementById('upFile').files[0];
+  if (!file) { st.textContent = '请选择文件'; st.style.color = '#c00'; return; }
+  st.textContent = '上传中...'; st.style.color = '#999';
+  var fd = new FormData();
+  fd.append('file', file);
+  fd.append('path', this.path.value || '/');
+  try {
+    var r = await fetch('/files/upload', { method: 'POST', body: fd, headers: { 'x-csrf-token': window._csrf } });
+    var d = await r.json();
+    if (d.ok) { location.reload(); }
+    else { st.textContent = d.error || '上传失败'; st.style.color = '#c00'; }
+  } catch(ex) { st.textContent = '网络错误'; st.style.color = '#c00'; }
+});
+</script>

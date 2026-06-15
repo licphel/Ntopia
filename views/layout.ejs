@@ -239,6 +239,7 @@ a:hover{color:var(--cd);text-decoration:underline}
         <li><a href="/users/<%= user.username %>">我的</a></li>
         <li><a href="/bookmarks">收藏</a></li>
         <li><a href="/drafts">草稿</a></li>
+        <li><a href="/files">网盘</a></li>
         <% if ((user.role || 0) >= LEVEL.ADMIN) { %><li><a href="/admin">管理</a></li><% } %>
         <li><a href="/notifications" style="position:relative">通知<% if (unreadNotifs) { %><span class="notif-badge"><%= unreadNotifs > 99 ? '99+' : unreadNotifs %></span><% } %></a></li>
         <li><a href="/messages" style="position:relative">私信<% if (unreadMessages) { %><span class="notif-badge"><%= unreadMessages > 99 ? '99+' : unreadMessages %></span><% } %></a></li>
@@ -341,6 +342,28 @@ async function doCheckin() {
 }
 </script>
 <script>
+async function submitReport(type, targetId) {
+  if(!<%= user ? 'true' : 'false' %>) return;
+  var reason = prompt('举报原因（可选）：');
+  if (reason === null) return;
+  var r = await fetch('/report/submit', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-csrf-token':window._csrf||''},
+    body:JSON.stringify({type:type, target_id:targetId, reason:reason||''})
+  });
+  var d = await r.json();
+  alert(d.ok ? '举报已提交，管理员会尽快处理。' : (d.error || '举报失败'));
+}
+async function toggleFollow(btn, username) {
+  if(!<%= user ? 'true' : 'false' %>) return;
+  var r = await fetch('/follow/' + username, { method:'POST', headers:{'x-csrf-token':window._csrf||''} });
+  var d = await r.json();
+  if (d.ok) {
+    btn.textContent = d.following ? '已关注' : '+ 关注';
+    var el = document.getElementById('followerCount');
+    if (el) { var n = parseInt(el.textContent) || 0; el.textContent = d.following ? n + 1 : Math.max(0, n - 1); }
+  }
+}
 async function toggleLike(e, postId, commentId) {
   e.preventDefault();
   if(!<%= user ? 'true' : 'false' %>) return;

@@ -33,14 +33,18 @@
         <div class="meta">
           注册于 <%= profile.created_at.slice(0, 10) %> |
             签到 <%= checkinCount %> 天 |
-              连续 <%= profile.consecutive_days || 0 %> 天
-                <% if (profile.email && (user && (user.role>= 128 || user.id === profile.id))) { %> | <%= profile.email
-                    %>
-                    <% } %>
+              连续 <%= profile.consecutive_days || 0 %> 天 |
+              <a href="/follow/<%= profile.username %>/followers"><span id="followerCount"><%= followerCount || 0 %></span> 粉丝</a> |
+              <a href="/follow/<%= profile.username %>/following"><%= followingCount || 0 %> 关注</a>
+                <% if (profile.email && (user && (user.role>= 128 || user.id === profile.id))) { %> | <%= profile.email %><% } %>
         </div>
-        <% if (user && user.id===profile.id) { %>
-          <a href="/users/<%= profile.username %>/edit" style="font-size:12px">编辑资料</a>
+        <div style="margin-top:6px">
+          <% if (user && user.id===profile.id) { %>
+            <a href="/users/<%= profile.username %>/edit" style="font-size:12px">编辑资料</a>
+          <% } else if (user && user.id !== profile.id) { %>
+            <button id="followBtn" onclick="toggleFollow(this, '<%= profile.username %>')" style="background:var(--c);color:#fff;border:none;padding:3px 12px;border-radius:3px;cursor:pointer;font-size:12px"><%= isFollowing ? '已关注' : '+ 关注' %></button>
           <% } %>
+        </div>
             <% var myRole=user ? (user.role || 0) : 0; %>
               <% if (myRole> (profile.role || 0)) { %>
                 <div style="margin-top:6px;display:flex;gap:6px">

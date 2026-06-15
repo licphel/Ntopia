@@ -58,6 +58,9 @@ router.get('/:username', (req, res) => {
   const cmtPages = Math.ceil(cmtTotal.c / limit);
 
   const checkinCount = db.prepare('SELECT COUNT(*) as c FROM checkins WHERE user_id = ?').get(profile.id);
+  const followerCount = db.prepare('SELECT COUNT(*) as c FROM follows WHERE follow_id = ?').get(profile.id);
+  const followingCount = db.prepare('SELECT COUNT(*) as c FROM follows WHERE user_id = ?').get(profile.id);
+  const isFollowing = req.session.user ? !!db.prepare('SELECT 1 FROM follows WHERE user_id = ? AND follow_id = ?').get(req.session.user.id, profile.id) : false;
   const { today } = require('../lib/time');
   const todayCheckin = db.prepare('SELECT id FROM checkins WHERE user_id = ? AND checkin_date = ?')
     .get(profile.id, today());
@@ -75,6 +78,7 @@ router.get('/:username', (req, res) => {
     profile, posts, comments,
     postPage, postPages, cmtPage, cmtPages,
     checkinCount: checkinCount.c,
+    followerCount: followerCount.c, followingCount: followingCount.c, isFollowing,
     todayCheckedIn: !!todayCheckin,
     xpProgress, xpNext, xpBase, xpNextTotal
   });
@@ -157,16 +161,24 @@ router.post('/:username/avatar', avatarUpload.single('avatar'), async (req, res)
     const left = Math.floor((meta.width - side) / 2);
     const top = Math.floor((meta.height - side) / 2);
 
-    const outName = 'avatar-' + req.session.user.id + '.webp';
-    const outPath = path.join(UPLOADS_DIR, outName);
-    await sharp(inPath)
+    const r2 = require('../lib/r2');
+    const outBuf = await sharp(inPath)
       .extract({ left, top, width: side, height: side })
       .resize(256, 256)
       .webp({ quality: 85 })
-      .toFile(outPath);
-
+      .toBuffer();
     fs.unlinkSync(inPath);
-    const url = '/uploads/' + outName + '?v=' + Date.now();
+
+    let url;
+    if (r2.enabled()) {
+      const key = r2.r2Key('avatar', 'avatar-' + req.session.user.id + '.webp');
+      url = await r2.upload(key, outBuf, 'image/webp');
+    } else {
+      const outName = 'avatar-' + req.session.user.id + '.webp';
+      const outPath = path.join(UPLOADS_DIR, outName);
+      fs.writeFileSync(outPath, outBuf);
+      url = '/uploads/' + outName + '?v=' + Date.now();
+    }
     db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(url, profile.id);
     req.session.user.avatar = url;
     res.json({ ok: true, url });
