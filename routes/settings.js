@@ -58,9 +58,11 @@ router.post('/email', (req, res) => {
   renderSettings(res, { tab: 'account', subtab: 'email', emailOk: '邮箱绑定成功' });
 });
 
-// Self account deletion
+// Account deletion — Super Admin+ only (content preserved for legal compliance)
 router.post('/delete-account', (req, res) => {
-  if (!req.session.user) return res.redirect('/auth/login');
+  if (!req.session.user || (req.session.user.role || 0) < 64) {
+    return res.redirect('/auth/login');
+  }
   const { email_code } = req.body;
   const uid = req.session.user.id;
   const email = req.session.user.email;

@@ -7,7 +7,7 @@ const { db, awardCommentXP } = require('../lib/db');
 const router = express.Router();
 
 // Add comment
-router.post('/:slug/comment', (req, res) => {
+router.post('/:slug/comment', async (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
   const user = db.prepare('SELECT banned, email FROM users WHERE id = ?').get(req.session.user.id);
   if (user && (user.banned || !user.email)) return res.status(403).render('error', { title: '错误', code: 403, message: '账号受限', detail: user.banned ? '你的账号已被管理员封禁' : '请前往设置页面绑定邮箱后再操作', back: '/' });
@@ -20,6 +20,17 @@ router.post('/:slug/comment', (req, res) => {
     const parent = db.prepare('SELECT id, is_deleted FROM comments WHERE id = ?').get(parent_id);
     if (!parent) return res.status(404).render('error', { title: '错误', code: 404, message: '评论不存在', detail: '', back: '/' });
     if (parent.is_deleted) return res.status(400).render('error', { title: '错误', code: 400, message: '无法回复', detail: '该评论已被删除，无法回复', back: '/' });
+  }
+
+  // AI moderation — illegal content only, admin+ exempt
+  if ((req.session.user.role || 0) < 32) {
+    const { reviewComment } = require('../lib/moderation');
+    const result = await reviewComment(content);
+    if (!result.pass) {
+      db.prepare("UPDATE users SET banned = 1, banned_until = datetime('now', '+1 minute') WHERE id = ?").run(req.session.user.id);
+      req.session.user = null;
+      return res.status(403).render('error', { title: '错误', code: 403, message: '评论审核未通过', detail: `你的评论未通过审核：${result.reason}。账号已被封禁1分钟。`, back: '/' });
+    }
   }
 
   // @mention processing

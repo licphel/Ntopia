@@ -102,7 +102,7 @@ router.get('/new-post', (req, res) => {
 });
 
 // Create post POST
-router.post('/new-post', (req, res) => {
+router.post('/new-post', async (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
   const user = db.prepare('SELECT banned, email FROM users WHERE id = ?').get(req.session.user.id);
   if (user && (user.banned || !user.email)) return res.status(403).render('error', { title: '错误', code: 403, message: '账号受限', detail: user.banned ? '你的账号已被管理员封禁' : '请前往设置页面绑定邮箱后再操作', back: '/' });
@@ -110,6 +110,20 @@ router.post('/new-post', (req, res) => {
   const is_draft = req.body.is_draft === '1' ? 1 : 0;
   const slug = slugify(title) + '-' + Date.now();
   const html = renderMarkdown(content);
+
+  // AI moderation on first publish (not draft). Admin+ exempt.
+  if (!is_draft && (req.session.user.role || 0) < LEVEL.ADMIN) {
+    const { review } = require('../lib/moderation');
+    const result = await review(title, content, category || '');
+    if (!result.pass) {
+      // Ban user for 1 day
+      db.prepare("UPDATE users SET banned = 1, banned_until = datetime('now', '+1 hour') WHERE id = ?").run(req.session.user.id);
+      // Force logout
+      req.session.user = null;
+      return res.status(403).render('error', { title: '错误', code: 403, message: '内容审核未通过', detail: `你的文章未通过审核：${result.reason}。账号已被封禁1小时。`, back: '/' });
+    }
+  }
+
   db.prepare(`INSERT INTO posts (title, slug, content_md, content_html, excerpt, category, tags, author_id, is_draft, license)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(title, slug, content, html, excerpt || '', category || '', tags || '', req.session.user.id, is_draft, license || '');

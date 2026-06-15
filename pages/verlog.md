@@ -42,3 +42,14 @@ title: 更新日志
 - 刷新保留滚动位置
 - 侧边栏缓存优化
 - 25 个自动化测试用例
+
+## 1.2.0 Alpha (2026.06.15)
+
+- DeepSeek AI 内容审核（ENABLE_MODERATION=true 启用）
+- 上传文件扩展名白名单校验，处理失败立即删除原文件
+- SVG 上传禁用
+- CSRF token 移除 query string 接受
+- Session cookie 添加 SameSite: Lax
+- Pages 路由防路径穿越
+- 自助注销权限收紧为 Super Admin+
+- 封禁改为限时制（banned_until），到期自动解封
