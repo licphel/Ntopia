@@ -1,4 +1,18 @@
 <div id="SideBar">
+  <% if (typeof posters !== 'undefined' && posters && posters.length) { %>
+  <div class="sb-box" style="padding:0;overflow:hidden">
+    <div id="PosterBar" style="aspect-ratio:7/2;background:#1a1a1a">
+      <% posters.forEach(function(p, i) { %>
+        <img src="<%= p %>" alt="" class="<%= i === 0 ? 'active' : '' %>" data-idx="<%= i %>">
+      <% }); %>
+      <% if (posters.length > 1) { %>
+        <button class="p-arrow left" onclick="posterPrev()">&#10094;</button>
+        <button class="p-arrow right" onclick="posterNext()">&#10095;</button>
+        <div class="p-dots"><% posters.forEach(function(p, i) { %><span class="<%= i === 0 ? 'active' : '' %>" data-idx="<%= i %>" onclick="posterGo(<%= i %>)"></span><% }); %></div>
+      <% } %>
+    </div>
+  </div>
+  <% } %>
   <div class="sb-box">
     <h3>关于站长</h3>
     <div class="sb-inner">

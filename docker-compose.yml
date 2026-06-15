@@ -12,7 +12,6 @@ services:
       - ./data:/app/data
       - ./public/uploads:/app/public/uploads
       - ./public/posters:/app/public/posters:ro
-      - ./pages:/app/pages:ro
 
     env_file:
       - .env
@@ -23,8 +22,6 @@ services:
 
     tmpfs:
       - /tmp:noexec,nosuid,size=64M
-
-    read_only: true
 
     security_opt:
       - no-new-privileges:true

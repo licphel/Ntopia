@@ -203,12 +203,18 @@ a:hover{color:var(--cd);text-decoration:underline}
 .theme-pink{--c:#9a6a80;--cd:#7a4a60;--cl:#e8a0c0;--cbg:#fce6f0}
 .theme-dark{--c:#5a7a5a;--cd:#4a5a4a;--cl:#90b898;--cbg:#e8f0e8}
 
-/* === Poster Carousel === */
-#PosterBar{height:140px;overflow:hidden;position:relative;border-bottom:1px solid #ddd;background:#1a1a1a}
-#PosterTrack{display:flex;width:max-content;animation:posterScroll 60s linear infinite}
-#PosterTrack img{height:140px;width:auto;display:block;flex-shrink:0}
-#PosterTrack:hover{animation-play-state:paused}
-@keyframes posterScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+/* === Poster Slideshow (sidebar) === */
+#PosterBar{position:relative;overflow:hidden;background:#1a1a1a;user-select:none}
+#PosterBar img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;opacity:0;transition:opacity .6s}
+#PosterBar img.active{opacity:1}
+#PosterBar .p-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:28px;height:28px;background:rgba(0,0,0,0.5);color:#fff;border:none;border-radius:50%;cursor:pointer;font-size:14px;line-height:28px;text-align:center;opacity:0;transition:opacity .3s}
+#PosterBar:hover .p-arrow{opacity:1}
+#PosterBar .p-arrow:hover{background:rgba(0,0,0,0.8)}
+#PosterBar .p-arrow.left{left:4px}
+#PosterBar .p-arrow.right{right:4px}
+#PosterBar .p-dots{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);z-index:2;display:flex;gap:4px}
+#PosterBar .p-dots span{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.4);cursor:pointer}
+#PosterBar .p-dots span.active{background:#fff}
 
 /* === Lightbox === */
 #lightbox{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:9999;cursor:zoom-out;align-items:center;justify-content:center}
@@ -290,13 +296,6 @@ a:hover{color:var(--cd);text-decoration:underline}
     </div>
   </div>
 
-<% if (posters && posters.length) { %>
-<div id="PosterBar"><div id="PosterTrack">
-  <% for (var pi = 0; pi < 2; pi++) { posters.forEach(function(p) { %>
-    <img src="<%= p %>" alt="" loading="lazy">
-  <% }); } %>
-</div></div>
-<% } %>
 
 <div id="MainBody"<%= (typeof hideSidebar !== 'undefined' && hideSidebar) ? ' style="max-width:860px;margin:0 auto"' : '' %>>
   <div id="content"><%- body %></div>
@@ -399,6 +398,29 @@ async function toggleBookmark(e, postId) {
 </script>
 
 <script>
+// ── Poster slideshow ──────────────────────────────────────────
+(function(){
+  var imgs = document.querySelectorAll('#PosterBar img');
+  var dots = document.querySelectorAll('#PosterBar .p-dots span');
+  if (!imgs.length) return;
+  var cur = 0, timer = null, total = imgs.length;
+  function show(i) {
+    imgs[cur].classList.remove('active');
+    if (dots.length) dots[cur].classList.remove('active');
+    cur = ((i % total) + total) % total;
+    imgs[cur].classList.add('active');
+    if (dots.length) dots[cur].classList.add('active');
+  }
+  function next() { show(cur + 1); }
+  window.posterNext = next;
+  window.posterPrev = function() { show(cur - 1); };
+  window.posterGo = function(i) { show(i); resetTimer(); };
+  function resetTimer() { clearInterval(timer); timer = setInterval(next, 5000); }
+  resetTimer();
+  document.getElementById('PosterBar').addEventListener('mouseenter', function(){ clearInterval(timer); });
+  document.getElementById('PosterBar').addEventListener('mouseleave', resetTimer);
+})();
+
 // Preserve scroll position across page reloads
 (function(){
   var key = 'ntopia_scroll_' + location.pathname;
