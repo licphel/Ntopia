@@ -18,17 +18,20 @@ a:hover{color:var(--cd);text-decoration:underline}
 #Container{max-width:960px;margin:10px auto;background:#fffef9;border:1px solid #ccc;box-shadow:0 1px 4px rgba(0,0,0,.06)}
 
 /* === Header === */
-#Header{display:flex;justify-content:space-between;padding:14px 20px 10px;border-bottom:3px solid var(--c);background:linear-gradient(to bottom,#fafaf5,#fffef9)}
-#HeadLeft{flex:1}
+#Header{display:flex;flex-wrap:wrap;justify-content:space-between;padding:14px 0 0;background:linear-gradient(to bottom,#fafaf5,#fffef9)}
+#HeadLeft{flex:1;padding:0 20px}
 #HeadLeft h1{font-size:22px;font-weight:bold;letter-spacing:1px}
 #HeadLeft h1 a{color:#333}#HeadLeft h1 a:hover{color:var(--c);text-decoration:none}
 #navigation{color:#999;font-size:12px;font-style:italic;margin-top:1px}
-#MenuTop{margin-top:6px}
-#MenuTop ul{list-style:none;display:flex;flex-wrap:wrap;gap:1px}
-#MenuTop a{font-size:12px;padding:2px 8px;border:1px solid #ccc;border-radius:2px;background:#fff;color:var(--c)}
-#MenuTop a:visited{color:var(--c)}
-#MenuTop a:hover,#MenuTop a.nav-active{background:var(--c);color:#fff;border-color:var(--c);text-decoration:none}
-#HeadRight{display:flex;gap:12px;text-align:center;font-size:11px;flex-shrink:0}
+#MenuTop{width:100%;margin:10px 0 0 0;padding:7px 20px;background:var(--c)}
+#MenuTop ul{list-style:none;display:flex;flex-wrap:wrap;gap:0;align-items:center}
+#MenuTop li{display:flex;align-items:center}
+#MenuTop li+li::before{content:"·";color:rgba(255,255,255,0.4);margin:0 7px;font-weight:bold}
+#MenuTop a,#MenuTop .nav-btn{font-size:12px;color:rgba(255,255,255,0.85);text-decoration:none}
+#MenuTop a:hover,#MenuTop a.nav-active,#MenuTop .nav-btn:hover{color:#fff;text-decoration:none}
+#MenuTop a.nav-active{font-weight:bold}
+#MenuTop .notif-badge{background:#fff;color:var(--c);top:-6px;right:-10px}
+#HeadRight{display:flex;gap:12px;text-align:center;font-size:11px;flex-shrink:0;padding:0 20px}
 #HeadRight a{color:#555;display:block;width:52px}
 #HeadRight a:hover{color:var(--c);text-decoration:none}
 #HeadRight .hr-icon{display:block;font-size:26px;line-height:1.2;margin-bottom:1px}
@@ -175,7 +178,13 @@ a:hover{color:var(--cd);text-decoration:underline}
 .notif-badge{position:absolute;top:-5px;right:-8px;background:#c00;color:#fff;border-radius:8px;padding:0 4px;font-size:9px;font-weight:bold;line-height:1.4}
 
 @media(max-width:768px){
-  #Header{flex-direction:column}#HeadRight{margin-top:8px;justify-content:flex-start}
+  #Header{flex-direction:column;padding:10px 0 0}
+  #HeadLeft{padding:0 12px}
+  #HeadRight{margin-top:8px;justify-content:flex-start;padding:0 12px}
+  #MenuTop{margin:6px 0 0 0;padding:5px 12px}
+  #MenuTop ul{gap:2px 0}
+  #MenuTop li+li::before{margin:0 5px}
+  #MenuTop a,#MenuTop .nav-btn{font-size:11px}
   #MainBody{flex-direction:column;padding:10px 14px}#SideBar{width:100%}
   .profile-header{flex-direction:column;gap:8px}
   .profile-info h2{font-size:16px}
@@ -210,30 +219,30 @@ a:hover{color:var(--cd);text-decoration:underline}
   <div id="HeadLeft">
     <h1><a href="/">Ntopia</a></h1>
     <div id="navigation">记录思考，分享技术，探索世界</div>
-    <div id="MenuTop">
-      <ul>
-        <li><a href="/" class="<%= path === '/' ? 'nav-active' : '' %>">首页</a></li>
-        <li><a href="/search" class="<%= path === '/search' ? 'nav-active' : '' %>">搜索</a></li>
-        <% if (user) { %>
-          <li><a href="/settings">设置</a></li>
-          <li><a href="/users/<%= user.username %>">我的</a></li>
-          <li><a href="/bookmarks">收藏</a></li>
-          <li><a href="/drafts">草稿</a></li>
-          <% if ((user.role || 0) >= LEVEL.ADMIN) { %><li><a href="/admin">管理</a></li><% } %>
-          <li><a href="/notifications" style="position:relative">通知<% if (unreadNotifs) { %><span class="notif-badge"><%= unreadNotifs > 99 ? '99+' : unreadNotifs %></span><% } %></a></li>
-          <li><a href="/messages" style="position:relative">私信<% if (unreadMessages) { %><span class="notif-badge"><%= unreadMessages > 99 ? '99+' : unreadMessages %></span><% } %></a></li>
-          <li><a href="/rss.xml" target="_blank">RSS</a></li>
-          <li><form method="POST" action="/auth/logout" style="display:inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><button type="submit" style="background:#fff;border:1px solid #ccc;color:var(--c);cursor:pointer;font-size:12px;padding:2px 8px;border-radius:2px;font-family:inherit">退出</button></form></li>
-        <% } else { %>
-          <li><a href="/auth/login">登录</a></li>
-        <% } %>
-      </ul>
-    </div>
   </div>
   <div id="HeadRight">
     <div id="Submissions">
       <p>欢迎访问 Ntopia！</p>
     </div>
+  </div>
+  <div id="MenuTop">
+    <ul>
+      <li><a href="/" class="<%= path === '/' ? 'nav-active' : '' %>">首页</a></li>
+      <li><a href="/search" class="<%= path === '/search' ? 'nav-active' : '' %>">搜索</a></li>
+      <% if (user) { %>
+        <li><a href="/settings">设置</a></li>
+        <li><a href="/users/<%= user.username %>">我的</a></li>
+        <li><a href="/bookmarks">收藏</a></li>
+        <li><a href="/drafts">草稿</a></li>
+        <% if ((user.role || 0) >= LEVEL.ADMIN) { %><li><a href="/admin">管理</a></li><% } %>
+        <li><a href="/notifications" style="position:relative">通知<% if (unreadNotifs) { %><span class="notif-badge"><%= unreadNotifs > 99 ? '99+' : unreadNotifs %></span><% } %></a></li>
+        <li><a href="/messages" style="position:relative">私信<% if (unreadMessages) { %><span class="notif-badge"><%= unreadMessages > 99 ? '99+' : unreadMessages %></span><% } %></a></li>
+        <li><a href="/rss.xml" target="_blank">RSS</a></li>
+        <li><form method="POST" action="/auth/logout" style="display:inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><button type="submit" class="nav-btn" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0">退出</button></form></li>
+      <% } else { %>
+        <li><a href="/auth/login">登录</a></li>
+      <% } %>
+    </ul>
   </div>
 </div>
 
