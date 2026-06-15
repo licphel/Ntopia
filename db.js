@@ -221,11 +221,12 @@ function initDB() {
   }
 }
 
-// Periodic WAL checkpoint — prevents unbounded WAL growth during long runs
-// PASSIVE: non-blocking, safe under concurrent reads; skips if a writer is active
+// Periodic WAL checkpoint — TRUNCATE blocks briefly but guarantees the WAL
+// is flushed and the file truncated to 0 bytes. PASSIVE would silently skip
+// under concurrent reads, causing unbounded WAL growth on a live server.
 const walInterval = setInterval(() => {
-  coreDb.pragma('wal_checkpoint(PASSIVE)');
-  volatileDb.pragma('wal_checkpoint(PASSIVE)');
+  coreDb.pragma('wal_checkpoint(TRUNCATE)');
+  volatileDb.pragma('wal_checkpoint(TRUNCATE)');
 }, 30 * 60 * 1000);
 walInterval.unref(); // don't keep the process alive just for this timer
 
