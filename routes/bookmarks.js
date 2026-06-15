@@ -1,5 +1,5 @@
 const express = require('express');
-const { db, awardBookmarkReceivedXP } = require('../db');
+const { db, awardBookmarkReceivedXP } = require('../lib/db');
 const router = express.Router();
 
 // Toggle bookmark

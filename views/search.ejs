@@ -9,7 +9,6 @@
   <div class="search-tabs">
     <a href="/search?q=<%= encodeURIComponent(query) %>&type=all" class="<%= type === 'all' ? 'active' : '' %>">全部</a>
     <a href="/search?q=<%= encodeURIComponent(query) %>&type=posts" class="<%= type === 'posts' ? 'active' : '' %>">文章</a>
-    <a href="/search?q=<%= encodeURIComponent(query) %>&type=forum" class="<%= type === 'forum' ? 'active' : '' %>">论坛</a>
     <a href="/search?q=<%= encodeURIComponent(query) %>&type=users" class="<%= type === 'users' ? 'active' : '' %>">用户</a>
   </div>
 
@@ -17,7 +16,7 @@
     <p style="color:#999;text-align:center;padding:40px 0">输入关键词开始搜索。</p>
   <% } %>
 
-  <% if (query && postResults.length + forumResults.length + userResults.length === 0) { %>
+  <% if (query && postResults.length + userResults.length === 0) { %>
     <p style="color:#999;text-align:center;padding:40px 0">没有找到相关内容。</p>
   <% } %>
 
@@ -36,21 +35,6 @@
     <% }); %>
   <% } %>
 
-  <% if (forumResults.length) { %>
-    <h3>论坛主题 (<%= forumResults.length %>)</h3>
-    <% forumResults.forEach(function(t) { %>
-    <div class="forum-topic">
-      <h3><a href="/forum/<%= t.slug %>"><%= t.title %></a>
-        <% if (t.forum_category) { %><span class="forum-cat"><%= t.forum_category %></span><% } %>
-      </h3>
-      <div class="forum-meta">
-        <a href="/users/<%= t.username %>"><%= t.display_name || t.username %></a> |
-        <%= t.created_at.slice(0, 16) %> |
-        <%= t.comment_count %> 回复
-      </div>
-    </div>
-    <% }); %>
-  <% } %>
 
   <% if (userResults.length) { %>
     <h3>用户 (<%= userResults.length %>)</h3>

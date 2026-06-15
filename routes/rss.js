@@ -1,5 +1,5 @@
 const express = require('express');
-const { db } = require('../db');
+const { db } = require('../lib/db');
 const router = express.Router();
 
 router.get('/', (req, res) => {
@@ -7,22 +7,24 @@ router.get('/', (req, res) => {
   const posts = db.prepare(`
     SELECT p.*, u.display_name, u.username
     FROM posts p JOIN users u ON p.author_id = u.id
-    WHERE p.type = 'post' AND p.is_deleted = 0
+    WHERE p.is_deleted = 0
     ORDER BY p.created_at DESC LIMIT 20
   `).all();
 
   let items = '';
+  const xmlEsc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
   posts.forEach(p => {
-    const desc = (p.excerpt || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const title = p.title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const desc = xmlEsc(p.excerpt || '');
+    const title = xmlEsc(p.title);
+    const author = xmlEsc(p.display_name || p.username);
     const date = new Date(p.created_at).toUTCString();
     items += `<item>
       <title>${title}</title>
       <link>${siteUrl}/posts/${p.slug}</link>
       <description>${desc}</description>
-      <author>${p.display_name || p.username}</author>
+      <author>${author}</author>
       <pubDate>${date}</pubDate>
-      <guid>${siteUrl}/posts/${p.slug}</guid>
+      <guid>${siteUrl}/posts/${xmlEsc(p.slug)}</guid>
     </item>\n`;
   });
 

@@ -2,30 +2,30 @@
 
 <h3>统计</h3>
 <table class="admin-table">
-  <tr><th>用户</th><th>文章</th><th>论坛主题</th><th>评论</th><th>签到</th></tr>
-  <tr><td><%= stats.users %></td><td><%= stats.posts %></td><td><%= stats.forumTopics %></td><td><%= stats.comments %></td><td><%= stats.checkins %></td></tr>
+  <tr><th>用户</th><th>文章</th><th>评论</th><th>签到</th></tr>
+  <tr><td><%= stats.users %></td><td><%= stats.posts %></td><td><%= stats.comments %></td><td><%= stats.checkins %></td></tr>
 </table>
 
 <h3>分类管理</h3>
 <form method="POST" action="/admin/categories" style="display:flex;gap:8px;margin-bottom:12px">
+<input type="hidden" name="_csrf" value="<%= csrf %>">
   <input type="text" name="name" placeholder="分类名称" required style="flex:1">
   <input type="text" name="description" placeholder="描述" style="flex:2">
   <select name="type" style="padding:4px 8px;border:1px solid #ddd;border-radius:3px;font-size:12px">
-    <option value="forum">论坛分类</option>
     <option value="blog">博客分类</option>
   </select>
   <button type="submit" class="cmt-btn" style="margin:0;white-space:nowrap">添加</button>
 </form>
 
 <table class="admin-table">
-  <tr><th>名称</th><th>Slug</th><th>类型</th><th>描述</th><th>操作</th></tr>
+  <tr><th>名称</th><th>Slug</th><th>描述</th><th>操作</th></tr>
   <% categories.forEach(function(c) { %>
   <tr>
     <td><%= c.name %></td><td><%= c.slug.slice(0,20) %></td>
-    <td><span style="<%= c.type === 'blog' ? 'color:#1a6fb5' : 'color:var(--c)' %>"><%= c.type %></span></td>
     <td><%= c.description || '-' %></td>
     <td>
       <form method="POST" action="/admin/categories/<%= c.id %>/delete" style="display:inline" onsubmit="return confirm('确认删除？')">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
         <button style="background:#c00;color:#fff;border:none;padding:2px 8px;border-radius:2px;cursor:pointer;font-size:11px">删除</button>
       </form>
     </td>
@@ -48,17 +48,21 @@
       <% if (myRole > u.role) { %>
         <% if (!u.banned) { %>
           <form method="POST" action="/admin/users/<%= u.id %>/ban" style="display:inline">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
             <button style="background:#c00;color:#fff;border:none;padding:2px 6px;border-radius:2px;cursor:pointer;font-size:10px">封禁</button>
           </form>
         <% } else { %>
           <form method="POST" action="/admin/users/<%= u.id %>/unban" style="display:inline">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
             <button style="background:#058c05;color:#fff;border:none;padding:2px 6px;border-radius:2px;cursor:pointer;font-size:10px">解封</button>
           </form>
         <% } %>
         <form method="POST" action="/admin/users/<%= u.id %>/promote" style="display:inline">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
           <button style="background:#1a6fb5;color:#fff;border:none;padding:2px 6px;border-radius:2px;cursor:pointer;font-size:10px">提权</button>
         </form>
         <form method="POST" action="/admin/users/<%= u.id %>/demote" style="display:inline">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
           <button style="background:#f0a030;color:#fff;border:none;padding:2px 6px;border-radius:2px;cursor:pointer;font-size:10px">降权</button>
         </form>
       <% } %>
@@ -74,3 +78,5 @@
   <% } %>
 </div>
 <% } %>
+
+<input type="hidden" name="_csrf" value="<%= csrf %>">

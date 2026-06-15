@@ -1,7 +1,7 @@
 const { LEVEL, canPost, canEdit, canDelete, canManageUser } = require('../lib/perm');
 const express = require('express');
 const { renderMarkdown, slugify, computeDepth, extractTOC, injectHeadingIds } = require('../lib/helpers');
-const { db, awardPostXP } = require('../db');
+const { db, awardPostXP } = require('../lib/db');
 const router = express.Router();
 
 
@@ -29,23 +29,30 @@ router.get('/', (req, res) => {
   const limit = 10;
   const offset = (page - 1) * limit;
 
-  const categories = db.prepare("SELECT * FROM categories WHERE type = 'blog' ORDER BY sort_order").all();
+  const categories = db.prepare("SELECT * FROM categories ORDER BY sort_order").all();
 
   let posts, total;
   const baseQuery = `SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role,
         COALESCE(cat.name, p.category) as category_name,
     (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
-    FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.category = cat.slug AND cat.type = 'blog'
-    WHERE p.type = 'post' AND (p.is_deleted = 0 OR p.is_deleted IS NULL) AND p.is_draft = 0`;
+    FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.category = cat.slug
+    WHERE (p.is_deleted = 0 OR p.is_deleted IS NULL) AND p.is_draft = 0`;
   if (cat) {
     posts = db.prepare(`${baseQuery} AND p.category = ? ORDER BY p.created_at DESC LIMIT ? OFFSET ?`).all(cat, limit, offset);
-    total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE type = 'post' AND category = ? AND is_deleted = 0").get(cat);
+    total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE category = ? AND is_deleted = 0").get(cat);
   } else {
     posts = db.prepare(`${baseQuery} ORDER BY p.created_at DESC LIMIT ? OFFSET ?`).all(limit, offset);
-    total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE type = 'post' AND is_deleted = 0").get();
+    total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE is_deleted = 0").get();
   }
-  if (sort === 'replies') posts.sort((a, b) => b.comment_count - a.comment_count);
-  else if (sort === 'hot') posts.sort((a, b) => { let ha = a.comment_count / Math.max((Date.now() - new Date(a.created_at).getTime()) / 3600000, 1); let hb = b.comment_count / Math.max((Date.now() - new Date(b.created_at).getTime()) / 3600000, 1); return hb - ha; });
+	  // replies: sort in SQL; hot: fetch all, score, then slice
+	  if (sort === 'replies') {
+	    posts = db.prepare(`${baseQuery} ORDER BY comment_count DESC LIMIT ? OFFSET ?`).all(limit, offset);
+	  } else if (sort === 'hot') {
+	    const allPosts = db.prepare(`${baseQuery} ORDER BY p.created_at DESC`).all();
+	    allPosts.sort((a, b) => { let ha = a.comment_count / Math.max((Date.now() - new Date(a.created_at).getTime()) / 3600000, 1); let hb = b.comment_count / Math.max((Date.now() - new Date(b.created_at).getTime()) / 3600000, 1); return hb - ha; });
+	    total = { c: allPosts.length };
+	    posts = allPosts.slice(offset, offset + limit);
+	  }
 
   const totalPages = Math.ceil(total.c / limit);
 
@@ -56,8 +63,8 @@ router.get('/', (req, res) => {
 router.get('/posts/:slug', (req, res) => {
   const post = db.prepare(`
     SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role
-    FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.category = cat.slug AND cat.type = 'blog'
-    WHERE p.slug = ? AND p.type = 'post' AND p.is_draft = 0
+    FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.category = cat.slug
+    WHERE p.slug = ? AND p.is_draft = 0
   `).get(req.params.slug);
   if (!post) return res.status(404).render('404', { title: '404' });
   if (post.is_deleted && post.author_id !== (req.session.user ? req.session.user.id : 0) && (req.session.user ? (req.session.user.role || 0) : 0) < 128) return res.status(404).render('404', { title: '404' });
@@ -87,8 +94,8 @@ router.get('/new-post', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
   const user = db.prepare('SELECT banned, email FROM users WHERE id = ?').get(req.session.user.id);
   if (user && (user.banned || !user.email)) return res.status(403).render('error', { title: '错误', code: 403, message: '账号受限', detail: user.banned ? '你的账号已被管理员封禁' : '请前往设置页面绑定邮箱后再操作', back: '/' });
-  const blogCats = db.prepare("SELECT * FROM categories WHERE type = 'blog' ORDER BY sort_order").all();
-  res.render('editor', { title: '撰写文章', post: null, type: 'post', categories: blogCats, canPost: true });
+  const categories = db.prepare("SELECT * FROM categories ORDER BY sort_order").all();
+  res.render('editor', { title: '撰写文章', post: null, type: 'post', categories, canPost: true });
 });
 
 // Create post POST
@@ -100,8 +107,8 @@ router.post('/new-post', (req, res) => {
   const is_draft = req.body.is_draft === '1' ? 1 : 0;
   const slug = slugify(title) + '-' + Date.now();
   const html = renderMarkdown(content);
-  db.prepare(`INSERT INTO posts (title, slug, content_md, content_html, excerpt, category, tags, author_id, type, is_draft)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'post', ?)`)
+  db.prepare(`INSERT INTO posts (title, slug, content_md, content_html, excerpt, category, tags, author_id, is_draft)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(title, slug, content, html, excerpt || '', category || '', tags || '', req.session.user.id, is_draft);
   const post = db.prepare('SELECT id FROM posts WHERE slug = ?').get(slug);
   if (is_draft) {
@@ -120,8 +127,8 @@ router.get('/posts/:slug/edit', (req, res) => {
   if (!post || (post.author_id !== req.session.user.id && (req.session.user.role || 0) <= LEVEL.MOD)) {
     return res.status(403).render('error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
   }
-  const blogCats = db.prepare("SELECT * FROM categories WHERE type = 'blog' ORDER BY sort_order").all();
-  res.render('editor', { title: '编辑文章', post, type: 'post', categories: blogCats, canPost: true });
+  const categories = db.prepare("SELECT * FROM categories ORDER BY sort_order").all();
+  res.render('editor', { title: '编辑文章', post, type: 'post', categories, canPost: true });
 });
 
 router.post('/posts/:slug/edit', (req, res) => {
@@ -130,11 +137,7 @@ router.post('/posts/:slug/edit', (req, res) => {
   if (!post || (post.author_id !== req.session.user.id && (req.session.user.role || 0) <= LEVEL.MOD)) {
     return res.status(403).render('error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
   }
-  const isForum = post.type === 'forum';
-  const { title, content } = req.body;
-  const category = req.body[isForum ? 'forum_category' : 'category'] || '';
-  const tags = isForum ? '' : (req.body.tags || '');
-  const excerpt = isForum ? '' : (req.body.excerpt || '');
+  const { title, content, category, tags, excerpt } = req.body;
   const is_draft = req.body.is_draft === '1' ? 1 : 0;
   const html = renderMarkdown(content);
 
@@ -142,19 +145,13 @@ router.post('/posts/:slug/edit', (req, res) => {
   db.prepare(`INSERT INTO post_revisions (post_id, title, content_md, content_html, excerpt, category, tags, revised_by)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(post.id, post.title, post.content_md, post.content_html, post.excerpt || '', post.category || '', post.tags || '', req.session.user.id);
-  // Keep only last 10 revisions per post
   db.prepare(`DELETE FROM post_revisions WHERE id IN (
     SELECT id FROM post_revisions WHERE post_id = ? ORDER BY created_at DESC LIMIT -1 OFFSET 10
   )`).run(post.id);
 
-  if (isForum) {
-    db.prepare(`UPDATE posts SET title=?, content_md=?, content_html=?, forum_category=?, is_draft=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-      .run(title, content, html, category, is_draft, post.id);
-  } else {
-    db.prepare(`UPDATE posts SET title=?, content_md=?, content_html=?, excerpt=?, category=?, tags=?, is_draft=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-      .run(title, content, html, excerpt, category, tags, is_draft, post.id);
-  }
-  res.redirect(is_draft ? '/drafts' : (isForum ? '/forum/' : '/posts/') + post.slug);
+  db.prepare(`UPDATE posts SET title=?, content_md=?, content_html=?, excerpt=?, category=?, tags=?, is_draft=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+    .run(title, content, html, excerpt || '', category || '', tags || '', is_draft, post.id);
+  res.redirect(is_draft ? '/drafts' : '/posts/' + post.slug);
 });
 
 
@@ -168,7 +165,7 @@ router.post('/posts/:slug/delete-self', (req, res) => {
     return res.status(403).render('error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
   }
   db.prepare("UPDATE posts SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(post.id);
-  res.redirect(post.type === 'forum' ? '/forum' : '/');
+  res.redirect('/');
 });
 
 

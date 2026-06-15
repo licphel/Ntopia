@@ -21,6 +21,7 @@
   </div>
   <div style="margin-top:4px;font-size:11px">
     <form method="POST" action="/posts/<%= post.slug %>/restore/<%= r.id %>" style="display:inline" onsubmit="return confirm('恢复到该版本？当前内容将被保存为历史记录。')">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
       <button style="background:var(--c);color:#fff;border:none;padding:2px 8px;border-radius:2px;cursor:pointer;font-size:11px">恢复此版本</button>
     </form>
   </div>
@@ -28,3 +29,4 @@
 <% }); %>
 
 <p style="margin-top:12px"><a href="/posts/<%= post.slug %>">返回文章</a></p>
+

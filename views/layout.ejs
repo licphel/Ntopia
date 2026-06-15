@@ -104,7 +104,7 @@ a:hover{color:var(--cd);text-decoration:underline}
 #content th{background:#f5f2eb;font-weight:bold}
 #content ul,#content ol{margin:4px 0;padding-left:22px}
 
-/* === Forum === */
+/* === List Items === */
 .forum-topic{padding:8px 12px;margin-bottom:6px;border:1px solid #e0dbd0;background:#fafaf5}
 .forum-topic:hover{border-color:var(--c)}
 .forum-topic h3{font-size:14px;margin-bottom:2px}
@@ -213,7 +213,6 @@ a:hover{color:var(--cd);text-decoration:underline}
     <div id="MenuTop">
       <ul>
         <li><a href="/" class="<%= path === '/' ? 'nav-active' : '' %>">首页</a></li>
-        <li><a href="/forum" class="<%= path.startsWith('/forum') ? 'nav-active' : '' %>">论坛</a></li>
         <li><a href="/search" class="<%= path === '/search' ? 'nav-active' : '' %>">搜索</a></li>
         <% if (user) { %>
           <li><a href="/settings">设置</a></li>
@@ -258,10 +257,10 @@ a:hover{color:var(--cd);text-decoration:underline}
     <div style="display:flex;gap:20px">
       <div style="flex:1">
         <h3>关于本站</h3>
-        <p>Ntopia 是由 Licphel 创建的博客、论坛一体站。请勿发布违法违规内容。
+        <p>Ntopia 是由 Licphel 创建的博客社区。请勿发布违法违规内容。
           支持 Markdown 与 LaTeX，内容遵循 CC BY-NC-SA 4.0。
           注册即可发文章、讨论、私信，签到升级。
-          感谢所有参与讨论、分享知识的朋友们。欢迎通过论坛或私信进行交流。</p>
+          感谢所有参与讨论、分享知识的朋友们。欢迎通过评论或私信进行交流。</p>
       </div>
       <div style="flex:1">
         <h3>站务信息（重要）</h3>
@@ -312,7 +311,7 @@ async function doCheckin() {
   if (!btn || btn.classList.contains('done')) return;
   try {
     btn.textContent = '签到中...';
-    var resp = await fetch('/auth/checkin', { method: 'POST' });
+    var resp = await fetch('/auth/checkin', { method: 'POST', headers: {'x-csrf-token':'<%= csrf %>'} });
     var data = await resp.json();
     if (data.ok) {
       btn.textContent = '已签到(' + data.total + '天) +' + data.xpEarned + 'XP';
@@ -331,7 +330,7 @@ async function doCheckin() {
 async function toggleLike(e, postId, commentId) {
   e.preventDefault();
   if(!<%= user ? 'true' : 'false' %>) return;
-  var resp = await fetch('/likes/toggle', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({post_id:postId||null, comment_id:commentId||null}) });
+  var resp = await fetch('/likes/toggle', { method:'POST', headers:{'Content-Type':'application/json','x-csrf-token':'<%= csrf %>'}, body:JSON.stringify({post_id:postId||null, comment_id:commentId||null}) });
   var d = await resp.json();
   var elId = 'like-' + (postId ? 'post-' + postId : 'comment-' + commentId);
   var el = document.getElementById(elId);
@@ -340,7 +339,7 @@ async function toggleLike(e, postId, commentId) {
 async function toggleBookmark(e, postId) {
   e.preventDefault();
   if(!<%= user ? 'true' : 'false' %>) return;
-  var resp = await fetch('/bookmarks/toggle', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({post_id:postId}) });
+  var resp = await fetch('/bookmarks/toggle', { method:'POST', headers:{'Content-Type':'application/json','x-csrf-token':'<%= csrf %>'}, body:JSON.stringify({post_id:postId}) });
   var d = await resp.json();
   var el = document.getElementById('bookmark-' + postId);
   if(el) el.textContent = d.bookmarked ? '已收藏' : '收藏';

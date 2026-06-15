@@ -1,6 +1,6 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const { sendCode, generateCode, setCode } = require('../mail');
+const { sendCode, generateCode, setCode } = require('../lib/mail');
 const router = express.Router();
 
 const limiter = rateLimit({ windowMs: 60 * 1000, max: 1, message: { error: '60秒内只能发送一次' } });

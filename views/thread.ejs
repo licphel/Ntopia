@@ -1,5 +1,5 @@
 <div style="margin-bottom:16px">
-  <a href="/<%= post.type === 'forum' ? 'forum' : 'posts' %>/<%= post.slug %>" style="font-size:13px">返回 <%= post.type === 'forum' ? '主题' : '文章' %></a>
+  <a href="/<%= 'posts' %>/<%= post.slug %>" style="font-size:13px">返回 <%= '文章' %></a>
   <span style="color:#999;font-size:13px;margin-left:8px"><%= post.title %></span>
 </div>
 
@@ -11,8 +11,9 @@
   </div>
   <div style="font-size:14px;line-height:1.7"><%- root.content_html %></div>
   <div style="margin-top:8px">
-    <% if (user && (user.id === root.author_id || user.role === 'admin')) { %>
-      <form method="POST" action="/<%= post.type === 'forum' ? 'forum' : 'posts' %>/comments/<%= root.id %>/delete" style="display:inline" onsubmit="return confirm('确认删除？')">
+    <% if (user && (user.id === root.author_id || (user.role || 0) >= 32)) { %>
+      <form method="POST" action="/<%= 'posts' %>/comments/<%= root.id %>/delete" style="display:inline" onsubmit="return confirm('确认删除？')">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
         <button style="background:none;border:none;color:#c00;cursor:pointer;font-size:11px;padding:0">删除</button>
       </form>
     <% } %>
@@ -35,15 +36,17 @@
     <% if (user) { %>
       <button onclick="var f=document.getElementById('reply-<%= c.id %>');f.style.display=f.style.display==='none'?'block':'none';var ta=f.querySelector('textarea');ta.value='@<%= c.username %> ';ta.focus()" style="background:none;border:none;color:var(--c);cursor:pointer;font-size:11px">回复</button>
     <% } %>
-    <% if (user && (user.id === c.author_id || user.role === 'admin')) { %>
-      <form method="POST" action="/<%= post.type === 'forum' ? 'forum' : 'posts' %>/comments/<%= c.id %>/delete" style="display:inline" onsubmit="return confirm('确认删除？')">
+    <% if (user && (user.id === c.author_id || (user.role || 0) >= 32)) { %>
+      <form method="POST" action="/<%= 'posts' %>/comments/<%= c.id %>/delete" style="display:inline" onsubmit="return confirm('确认删除？')">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
         <button style="background:none;border:none;color:#c00;cursor:pointer;font-size:10px;padding:0">删除</button>
       </form>
     <% } %>
   </div>
   <% if (user) { %>
   <div id="reply-<%= c.id %>" style="display:none;margin-top:4px">
-    <form method="POST" action="/<%= post.type === 'forum' ? 'forum' : 'posts' %>/<%= post.slug %>/comment">
+    <form method="POST" action="/<%= 'posts' %>/<%= post.slug %>/comment">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
       <input type="hidden" name="parent_id" value="<%= c.id %>">
       <%- include('comment-toolbar') %>
       <textarea name="content" placeholder="回复 @<%= c.username %>..." style="width:100%;min-height:40px;padding:4px;border:1px solid #ddd;border-radius:3px;font-size:12px;font-family:inherit"></textarea>
@@ -57,7 +60,8 @@
 <% if (user) { %>
 <div class="comment-form" style="margin-top:16px">
   <h4>回复此帖</h4>
-  <form method="POST" action="/<%= post.type === 'forum' ? 'forum' : 'posts' %>/<%= post.slug %>/comment">
+  <form method="POST" action="/<%= 'posts' %>/<%= post.slug %>/comment">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
     <input type="hidden" name="parent_id" value="<%= root.id %>">
     <%- include('comment-toolbar') %>
     <textarea name="content" placeholder="回复楼主..."></textarea>
@@ -67,3 +71,5 @@
 <% } else { %>
 <p style="color:#999;margin-top:16px">请<a href="/auth/login">登录</a>后回复。</p>
 <% } %>
+
+<input type="hidden" name="_csrf" value="<%= csrf %>">

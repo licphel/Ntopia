@@ -1,6 +1,7 @@
 const { LEVEL, canPost, canEdit, canDelete, canManageUser } = require('../lib/perm');
 const express = require('express');
-const { db } = require('../db');
+const bcrypt = require('bcryptjs');
+const { db } = require('../lib/db');
 const router = express.Router();
 
 function requireLevel(level) {
@@ -18,12 +19,12 @@ router.get('/', requireLevel(LEVEL.ADMIN), (req, res) => {
   const limit = 20;
   const stats = {
     users: db.prepare('SELECT COUNT(*) as c FROM users').get().c,
-    posts: db.prepare("SELECT COUNT(*) as c FROM posts WHERE type = 'post' AND (is_deleted = 0 OR is_deleted IS NULL)").get().c,
-    forumTopics: db.prepare("SELECT COUNT(*) as c FROM posts WHERE type = 'forum' AND (is_deleted = 0 OR is_deleted IS NULL)").get().c,
+    posts: db.prepare('SELECT COUNT(*) as c FROM posts WHERE is_deleted = 0 OR is_deleted IS NULL').get().c,
+    
     comments: db.prepare('SELECT COUNT(*) as c FROM comments').get().c,
     checkins: db.prepare('SELECT COUNT(*) as c FROM checkins').get().c,
   };
-  const categories = db.prepare('SELECT * FROM categories ORDER BY type, sort_order').all();
+  const categories = db.prepare('SELECT * FROM categories ORDER BY sort_order').all();
   const deletedPosts = db.prepare("SELECT * FROM posts WHERE is_deleted = 1 ORDER BY updated_at DESC LIMIT 10").all();
   const users = db.prepare('SELECT * FROM users ORDER BY role DESC, created_at ASC LIMIT ? OFFSET ?').all(limit, (page-1)*limit);
   const userTotal = db.prepare('SELECT COUNT(*) as c FROM users').get();
@@ -33,12 +34,11 @@ router.get('/', requireLevel(LEVEL.ADMIN), (req, res) => {
 
 // Add category (>=32)
 router.post('/categories', requireLevel(LEVEL.ADMIN), (req, res) => {
-  const { name, description, type } = req.body;
-  const catType = type || 'forum';
+  const { name, description } = req.body;
   const slug = name.toLowerCase().replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now();
-  const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM categories WHERE type = ?').get(catType);
-  db.prepare('INSERT INTO categories (name, slug, description, type, sort_order) VALUES (?, ?, ?, ?, ?)')
-    .run(name, slug, description || '', catType, (maxOrder.m || 0) + 1);
+  const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM categories').get();
+  db.prepare('INSERT INTO categories (name, slug, description, sort_order) VALUES (?, ?, ?, ?)')
+    .run(name, slug, description || '', (maxOrder.m || 0) + 1);
   res.redirect('/admin');
 });
 
@@ -46,12 +46,6 @@ router.post('/categories', requireLevel(LEVEL.ADMIN), (req, res) => {
 router.post('/categories/:id/delete', requireLevel(LEVEL.ADMIN), (req, res) => {
   db.prepare('DELETE FROM categories WHERE id = ?').run(req.params.id);
   res.redirect('/admin');
-});
-
-// Pin topic (>=32)
-router.post('/forum/:slug/pin', requireLevel(LEVEL.ADMIN), (req, res) => {
-  db.prepare('UPDATE posts SET is_pinned = 1 - is_pinned WHERE slug = ?').run(req.params.slug);
-  res.redirect('/forum/' + req.params.slug);
 });
 
 // Soft-delete post (>16)
@@ -131,10 +125,10 @@ router.post('/users/:id/demote', (req, res) => {
 
 // Soft-delete any comment (>16), never truly delete
 router.post('/comments/:id/delete-mod', requireLevel(LEVEL.MOD + 1), (req, res) => {
-  const cmt = db.prepare('SELECT c.*, p.slug, p.type FROM comments c JOIN posts p ON c.post_id = p.id WHERE c.id = ?').get(req.params.id);
+  const cmt = db.prepare('SELECT c.*, p.slug FROM comments c JOIN posts p ON c.post_id = p.id WHERE c.id = ?').get(req.params.id);
   if (!cmt) return res.status(404).render('error', { title: '错误', code: 404, message: '评论不存在', detail: '', back: '/' });
   db.prepare("UPDATE comments SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?").run(req.params.id);
-  res.redirect((cmt.type === 'forum' ? '/forum/' : '/posts/') + cmt.slug);
+  res.redirect('/posts/' + cmt.slug);
 });
 
 // Hard delete user (must be strictly higher level)
@@ -150,7 +144,7 @@ router.post('/users/:id/delete', (req, res) => {
   db.prepare('DELETE FROM notifications WHERE user_id = ?').run(target.id);
   db.prepare('DELETE FROM checkins WHERE user_id = ?').run(target.id);
   db.prepare('DELETE FROM xp_log WHERE user_id = ?').run(target.id);
-  db.prepare('UPDATE users SET banned = 1, password_hash = ? WHERE id = ?').run(require('bcryptjs').hashSync(Math.random().toString(), 10), target.id);
+  db.prepare('UPDATE users SET banned = 1, password_hash = ? WHERE id = ?').run(bcrypt.hashSync(Math.random().toString(), 10), target.id);
   res.redirect('/');
 });
 

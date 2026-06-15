@@ -4,11 +4,20 @@
     <div class="auth-error"><%= error %></div>
   <% } %>
   <form method="POST" action="/auth/login">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
     <label>用户名</label>
     <input type="text" name="username" required maxlength="64">
     <label>密码</label>
     <input type="password" name="password" required maxlength="64">
+
+    <label>验证码</label>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+      <input type="text" name="captcha" maxlength="4" required placeholder="输入验证码" style="flex:1;margin-bottom:0;text-transform:lowercase">
+      <img src="/auth/captcha" id="captcha-img" onclick="this.src='/auth/captcha?'+Date.now()" style="height:32px;cursor:pointer;border:1px solid #ccc;border-radius:2px" title="点击刷新">
+    </div>
+
     <button type="submit" class="submit-btn">登录</button>
   </form>
   <p style="text-align:center;margin-top:12px;font-size:13px">还没有账号？<a href="/auth/register">立即注册</a></p>
 </div>
+

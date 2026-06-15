@@ -13,6 +13,7 @@
   </div>
 
   <form method="POST" action="/users/<%= profile.username %>/edit">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
     <label>用户名</label>
     <input type="text" name="new_username" value="<%= (typeof formData !== 'undefined' && formData && formData.new_username) || profile.username %>">
 
@@ -41,7 +42,7 @@ async function uploadAvatar() {
   var form = new FormData();
   form.append('avatar', file);
   try {
-    var resp = await fetch('/users/<%= profile.username %>/avatar', { method: 'POST', body: form });
+    var resp = await fetch('/users/<%= profile.username %>/avatar', { method: 'POST', body: form, headers: {'x-csrf-token':'<%= csrf %>'} });
     var data = await resp.json();
     if (data.ok) {
       document.getElementById('avatar-img').src = data.url;
@@ -52,3 +53,5 @@ async function uploadAvatar() {
   } catch(e) { status.textContent = '网络错误，请重试'; }
 }
 </script>
+
+<input type="hidden" name="_csrf" value="<%= csrf %>">

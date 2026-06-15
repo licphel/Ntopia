@@ -1,5 +1,5 @@
 const express = require('express');
-const { db } = require('../db');
+const { db } = require('../lib/db');
 const router = express.Router();
 
 function requireLogin(req, res, next) {

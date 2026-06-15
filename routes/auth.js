@@ -1,22 +1,35 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { db, awardCheckinXP } = require('../db');
-const { verifyCode } = require('../mail');
+const svgCaptcha = require('svg-captcha');
+const { db, awardCheckinXP } = require('../lib/db');
+const { verifyCode } = require('../lib/mail');
 const router = express.Router();
+
+// CAPTCHA endpoint
+router.get('/captcha', (req, res) => {
+  const captcha = svgCaptcha.create({ size: 4, noise: 2, ignoreChars: '0o1il', color: true, background: '#fafaf5' });
+  req.session._captcha = captcha.text.toLowerCase();
+  req.session.save(() => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.type('svg').send(captcha.data);
+  });
+});
 
 router.get('/login', (req, res) => {
   res.render('login', { title: '登录', error: null });
 });
 
 router.post('/login', (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, captcha } = req.body;
   if (username.length > 64 || password.length > 64) return res.render('login', { title: '登录', error: '用户名或密码过长' });
+  if (!captcha || captcha.toLowerCase() !== req.session._captcha) return res.render('login', { title: '登录', error: '验证码错误' });
+  req.session._captcha = null;
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username.toLowerCase());
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     return res.render('login', { title: '登录', error: '用户名或密码错误' });
   }
   req.session.user = { id: user.id, username: user.username, display_name: user.display_name, role: user.role, avatar: user.avatar, xp: user.xp, level: user.level, email: user.email, needsEmail: !user.email };
-  res.redirect('/');
+  req.session.save(() => res.redirect('/'));
 });
 
 router.get('/register', (req, res) => {
@@ -24,8 +37,10 @@ router.get('/register', (req, res) => {
 });
 
 router.post('/register', (req, res) => {
-  const { username, password, password2, display_name, email, email_code, agree } = req.body;
+  const { username, password, password2, display_name, email, email_code, captcha, agree } = req.body;
   if (!agree) return res.render('register', { title: '注册', error: '请先阅读并同意用户须知' });
+  if (!captcha || captcha.toLowerCase() !== req.session._captcha) return res.render('register', { title: '注册', error: '验证码错误' });
+  req.session._captcha = null;
   if (username.length > 64 || password.length > 64 || (display_name||'').length > 64) return res.render('register', { title: '注册', error: '输入过长' });
   if (!email || !email_code) return res.render('register', { title: '注册', error: '请先验证邮箱' });
   if (!verifyCode(email, email_code)) return res.render('register', { title: '注册', error: '验证码错误或已过期' });
@@ -39,7 +54,7 @@ router.post('/register', (req, res) => {
     .run(uname, hash, display_name || uname, '/img/default-avatar.svg', email);
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(uname);
   req.session.user = { id: user.id, username: user.username, display_name: user.display_name, role: user.role, avatar: user.avatar, xp: user.xp, level: user.level, email: user.email, needsEmail: !user.email };
-  res.redirect('/');
+  req.session.save(() => res.redirect('/'));
 });
 
 router.get('/logout', (req, res) => {

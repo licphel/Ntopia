@@ -12,6 +12,7 @@
   <% if (accountOk) { %><div style="color:var(--c);text-align:center;margin-bottom:8px"><%= accountOk %></div><% } %>
   <div class="auth-form" style="margin-top:0">
   <form method="POST" action="/settings/account">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
     <label>邮箱验证码</label>
     <p style="font-size:12px;color:#999;margin-bottom:6px">验证码将发送至：<strong><%= user.email || '未绑定' %></strong></p>
     <div style="display:flex;gap:8px;margin-bottom:10px">
@@ -36,6 +37,7 @@
   </p>
   <div class="auth-form" style="margin-top:0">
   <form method="POST" action="/settings/email">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
     <label>新邮箱</label>
     <div style="display:flex;gap:8px;margin-bottom:10px">
       <input type="email" name="new_email" required placeholder="输入新邮箱" style="flex:1;margin-bottom:0">
@@ -56,7 +58,7 @@
     if(!em.includes('@')){ st.textContent='邮箱格式错误'; st.style.color='#c00'; return; }
     var btn = document.getElementById('emailSendBtn');
     btn.textContent = '发送中...'; btn.disabled = true; st.textContent = '';
-    fetch('/email/send', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:em}) })
+    fetch('/email/send', { method:'POST', headers:{'Content-Type':'application/json','x-csrf-token':'<%= csrf %>'}, body:JSON.stringify({email:em}) })
       .then(r=>r.json()).then(d=>{
         if(d.ok){ cd=60; st.textContent='已发送'; st.style.color='var(--c)'; tick2(btn); }
         else { btn.textContent='发送验证码'; btn.disabled=false; st.textContent=d.error||'失败'; st.style.color='#c00'; }
@@ -99,7 +101,7 @@ function sendPwdCode(){
   <% if (user && user.email) { %>
   var btn = document.getElementById('pwdSendBtn');
   btn.textContent = '发送中...'; btn.disabled = true; st.textContent = '';
-  fetch('/email/send', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:'<%= user.email %>'}) })
+  fetch('/email/send', { method:'POST', headers:{'Content-Type':'application/json','x-csrf-token':'<%= csrf %>'}, body:JSON.stringify({email:'<%= user.email %>'}) })
     .then(r=>r.json()).then(d=>{
       if(d.ok){ pwdCd=60; st.textContent='已发送'; st.style.color='var(--c)'; pwdTick(btn); }
       else { btn.textContent='发送验证码'; btn.disabled=false; st.textContent=d.error||'失败'; st.style.color='#c00'; }
@@ -126,3 +128,5 @@ function setTheme(id){
   });
 })();
 </script>
+
+<input type="hidden" name="_csrf" value="<%= csrf %>">

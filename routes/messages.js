@@ -1,6 +1,6 @@
 const express = require('express');
 const { renderMarkdown } = require('../lib/helpers');
-const { db } = require('../db');
+const { db } = require('../lib/db');
 const router = express.Router();
 
 // Require login

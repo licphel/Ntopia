@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { db } = require('../db');
-const { verifyCode } = require('../mail');
+const { db } = require('../lib/db');
+const { verifyCode } = require('../lib/mail');
 const router = express.Router();
 
 const vars = { accountError: null, accountOk: null, emailError: null, emailOk: null };

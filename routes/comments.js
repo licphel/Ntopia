@@ -1,9 +1,9 @@
-// Shared comment routes — used by both blog posts and forum topics
-// Mounted at /posts and /forum in server.js
+// Comment routes
+// Mounted at /posts in lib/app.js
 
 const express = require('express');
 const { renderMarkdown, extractMentions, linkMentions } = require('../lib/helpers');
-const { db, awardCommentXP } = require('../db');
+const { db, awardCommentXP } = require('../lib/db');
 const router = express.Router();
 
 // Add comment
@@ -11,7 +11,7 @@ router.post('/:slug/comment', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
   const user = db.prepare('SELECT banned, email FROM users WHERE id = ?').get(req.session.user.id);
   if (user && (user.banned || !user.email)) return res.status(403).render('error', { title: '错误', code: 403, message: '账号受限', detail: user.banned ? '你的账号已被管理员封禁' : '请前往设置页面绑定邮箱后再操作', back: '/' });
-  const post = db.prepare('SELECT id, slug, type, author_id FROM posts WHERE slug = ? AND is_deleted = 0').get(req.params.slug);
+  const post = db.prepare('SELECT id, slug, author_id FROM posts WHERE slug = ? AND is_deleted = 0').get(req.params.slug);
   if (!post) return res.status(404).render('error', { title: '错误', code: 404, message: '内容不存在', detail: '该内容可能已被删除或链接错误', back: '/' });
   const { content, parent_id } = req.body;
 
@@ -31,20 +31,18 @@ router.post('/:slug/comment', (req, res) => {
   }
   const linkedContent = linkMentions(content, mentionUsers.map(u => u.username));
   const html = renderMarkdown(linkedContent);
-  db.prepare('INSERT INTO comments (post_id, author_id, content_md, content_html, parent_id) VALUES (?, ?, ?, ?, ?)')
+  const info = db.prepare('INSERT INTO comments (post_id, author_id, content_md, content_html, parent_id) VALUES (?, ?, ?, ?, ?)')
     .run(post.id, req.session.user.id, content, html, parent_id || null);
-  const cmt = db.prepare('SELECT id FROM comments ORDER BY id DESC LIMIT 1').get();
-  awardCommentXP(req.session.user.id, cmt.id);
+  awardCommentXP(req.session.user.id, info.lastInsertRowid);
   req.session.user.xp = (req.session.user.xp || 0) + 1;
 
   const myName = req.session.user.display_name || req.session.user.username;
-  const isForum = post.type === 'forum';
-  const base = isForum ? '/forum/' : '/posts/';
+  const base = '/posts/';
 
   // Notify post author (unless commenting on own post)
   if (post.author_id !== req.session.user.id) {
     db.prepare(`INSERT INTO notifications (user_id, type, content, link) VALUES (?, 'reply', ?, ?)`)
-      .run(post.author_id, `${myName} 评论了你的${isForum ? '主题' : '文章'}`, base + post.slug);
+      .run(post.author_id, `${myName} 评论了你的文章`, base + post.slug);
   }
 
   // Notify @mentioned users
@@ -120,12 +118,12 @@ router.get('/:slug/comment/:id', (req, res) => {
 // Delete own comment (author or admin)
 router.post('/comments/:id/delete', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
-  const cmt = db.prepare('SELECT c.*, p.slug, p.type FROM comments c JOIN posts p ON c.post_id = p.id WHERE c.id = ?').get(req.params.id);
+  const cmt = db.prepare('SELECT c.*, p.slug FROM comments c JOIN posts p ON c.post_id = p.id WHERE c.id = ?').get(req.params.id);
   if (!cmt) return res.status(404).render('error', { title: '错误', code: 404, message: '内容不存在', detail: '该内容可能已被删除或链接错误', back: '/' });
   if (cmt.author_id !== req.session.user.id && (req.session.user.role || 0) <= 16) // LEVEL.MOD = 16
     return res.status(403).render('error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
   db.prepare("UPDATE comments SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?").run(req.params.id);
-  const base = cmt.type === 'forum' ? '/forum/' : '/posts/';
+  const base = '/posts/';
   res.redirect(cmt.parent_id ? base + cmt.slug + '/comment/' + cmt.parent_id : base + cmt.slug);
 });
 

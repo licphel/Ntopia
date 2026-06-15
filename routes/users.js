@@ -5,7 +5,7 @@ const sharp = require('sharp');
 const fs = require('fs');
 const { renderMarkdown } = require('../lib/helpers');
 const { LEVEL } = require('../lib/perm');
-const { db, xpForLevel } = require('../db');
+const { db, xpForLevel } = require('../lib/db');
 const router = express.Router();
 
 const UPLOADS_DIR = path.join(__dirname, '..', 'public', 'uploads');
@@ -41,7 +41,7 @@ router.get('/:username', (req, res) => {
 
   const cmtFilter = isOwner ? '' : 'AND (c.is_deleted = 0 OR c.is_deleted IS NULL)';
   const comments = db.prepare(`
-    SELECT c.*, p.title as post_title, p.slug as post_slug, p.type as post_type
+    SELECT c.*, p.title as post_title, p.slug as post_slug
     FROM comments c JOIN posts p ON c.post_id = p.id
     WHERE c.author_id = ? AND ((p.is_deleted = 0 OR p.is_deleted IS NULL) OR ?) ${cmtFilter}
     ORDER BY c.created_at DESC LIMIT ? OFFSET ?

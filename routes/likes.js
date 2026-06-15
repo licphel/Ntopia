@@ -1,5 +1,5 @@
 const express = require('express');
-const { db, awardLikeReceivedXP } = require('../db');
+const { db, awardLikeReceivedXP } = require('../lib/db');
 const router = express.Router();
 
 router.post('/toggle', (req, res) => {
