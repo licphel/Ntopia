@@ -170,6 +170,17 @@ app.use((req, res, next) => {
     });
   } catch(e) { res.locals.infoPages = []; }
 
+  // Posters for banner carousel
+  try {
+    const postersDir = path.join(__dirname, 'public', 'posters');
+    if (fs.existsSync(postersDir)) {
+      res.locals.posters = fs.readdirSync(postersDir)
+        .filter(f => /\.(jpg|jpeg|png|webp|gif)$/i.test(f))
+        .map(f => '/posters/' + f);
+    }
+  } catch(e) {}
+  if (!res.locals.posters || !res.locals.posters.length) res.locals.posters = null;
+
 // Sidebar data (light queries, cached in DB)
   try {
     // Admin info for sidebar

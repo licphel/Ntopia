@@ -22,8 +22,8 @@ const avatarUpload = multer({
 router.get('/:username', (req, res) => {
   const profile = db.prepare('SELECT * FROM users WHERE username = ?').get(req.params.username);
   if (!profile) return res.status(404).render('404', { title: '404' });
-  // Render bio markdown
-  profile.bio_html = renderMarkdown(profile.bio || '');
+  // Render desc as markdown; bio is plain-text tagline
+  profile.desc_html = renderMarkdown(profile.desc || '');
 
   const postPage = parseInt(req.query.pp) || 1;
   const cmtPage = parseInt(req.query.cp) || 1;
@@ -85,11 +85,11 @@ router.post('/:username/edit', (req, res) => {
   const profile = db.prepare('SELECT * FROM users WHERE username = ?').get(req.params.username);
   if (!profile || profile.id !== req.session.user.id) return res.status(403).render('error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
 
-  const { display_name, bio, new_username, new_password, new_password2 } = req.body;
+  const { display_name, bio, desc, new_username, new_password, new_password2 } = req.body;
   const bcrypt = require('bcryptjs');
 
   // Build form data for re-rendering on error
-  const formData = { display_name, bio, new_username, new_password: '', new_password2: '' };
+  const formData = { display_name, bio, desc, new_username, new_password: '', new_password2: '' };
 
   // Change username
   if (new_username && new_username !== profile.username) {
@@ -117,8 +117,10 @@ router.post('/:username/edit', (req, res) => {
     db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, profile.id);
   }
 
-  db.prepare('UPDATE users SET display_name = ?, bio = ? WHERE id = ?').run(display_name, bio, profile.id);
+  db.prepare('UPDATE users SET display_name = ?, bio = ?, desc = ? WHERE id = ?').run(display_name, (bio || '').slice(0, 64), desc || '', profile.id);
   req.session.user.display_name = display_name;
+  req.session.user.bio = (bio || '').slice(0, 64);
+  req.session.user.desc = desc || '';
   res.redirect('/users/' + (new_username || profile.username));
 });
 

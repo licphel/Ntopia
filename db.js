@@ -137,6 +137,7 @@ function initDB() {
     ['users', 'email', "TEXT DEFAULT ''"],
     ['users', 'banned', 'INTEGER DEFAULT 0'],
     ['users', 'role', 'INTEGER DEFAULT 1'],
+    ['users', 'desc', "TEXT DEFAULT ''"],
     ['posts', 'deleted_at', 'DATETIME'],
     ['comments', 'is_deleted', 'INTEGER DEFAULT 0'],
     ['comments', 'deleted_at', 'DATETIME'],

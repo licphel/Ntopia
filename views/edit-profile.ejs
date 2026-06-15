@@ -1,3 +1,35 @@
+<div class="auth-form" style="max-width:480px">
+  <h2>编辑资料</h2>
+
+  <% if (typeof error !== 'undefined' && error) { %><div class="auth-error"><%= error %></div><% } %>
+
+  <div style="text-align:center;margin-bottom:12px">
+    <img id="avatar-img" src="<%= profile.avatar || '/img/default-avatar.svg' %>" style="width:64px;height:64px;border:2px solid #e0dbd0">
+    <div style="margin-top:4px">
+      <input type="file" id="avatar-input" accept="image/*" style="font-size:11px">
+      <button type="button" onclick="uploadAvatar()" style="font-size:11px;background:var(--c);color:#fff;border:none;padding:2px 8px;cursor:pointer;margin-left:4px">上传头像</button>
+      <span id="avatar-status" style="font-size:10px;color:#999;margin-left:4px"></span>
+    </div>
+  </div>
+
+  <form method="POST" action="/users/<%= profile.username %>/edit">
+    <label>用户名</label>
+    <input type="text" name="new_username" value="<%= (typeof formData !== 'undefined' && formData && formData.new_username) || profile.username %>">
+
+    <label>显示名称</label>
+    <input type="text" name="display_name" value="<%= (typeof formData !== 'undefined' && formData && formData.display_name) || profile.display_name || '' %>">
+
+    <label>Bio <span style="font-weight:normal;color:#999;font-size:11px">（最多64字）</span></label>
+    <input type="text" name="bio" maxlength="64" value="<%= (typeof formData !== 'undefined' && formData && formData.bio) || profile.bio || '' %>" placeholder="简短介绍自己...">
+
+    <label>个人简介 <span style="font-weight:normal;color:#999;font-size:11px">（支持 Markdown，最多2048字）</span></label>
+    <%- include('comment-toolbar') %>
+    <textarea name="desc" maxlength="2048" style="width:100%;min-height:140px;padding:7px;border:1px solid #ccc;font-family:inherit;font-size:13px"><%= (typeof formData !== 'undefined' && formData && formData.desc) || profile.desc || '' %></textarea>
+
+    <button type="submit" class="submit-btn">保存</button>
+  </form>
+</div>
+
 <script>
 async function uploadAvatar() {
   var input = document.getElementById('avatar-input');

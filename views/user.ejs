@@ -16,6 +16,9 @@
       EXP: <%= profile.xp || 0 %> / <%= xpNextTotal %>
       <% if (xpProgress < 100) { %>(<%= xpProgress %>%; 到 Lv.<%= profile.level + 1 %>)<% } else { %>(已满级)<% } %>
     </div>
+    <% if (profile.bio) { %>
+    <div style="margin:4px 0;font-size:13px;color:#555;font-style:italic;max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= profile.bio %></div>
+    <% } %>
     <div class="meta">
       注册于 <%= profile.created_at.slice(0, 10) %> |
       签到 <%= checkinCount %> 天 |
@@ -53,9 +56,9 @@
   </div>
 </div>
 
-<% if (profile.bio) { %>
+<% if (profile.desc) { %>
 <div style="margin-bottom:16px;padding:10px 14px;border:1px solid #e0dbd0;background:#fafaf5;font-size:13px;line-height:1.7;overflow:hidden">
-  <%- profile.bio_html %>
+  <%- profile.desc_html %>
 </div>
 <% } %>
 

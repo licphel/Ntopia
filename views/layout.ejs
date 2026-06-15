@@ -145,8 +145,10 @@ a:hover{color:var(--cd);text-decoration:underline}
 
 /* === Profile === */
 .profile-header{display:flex;gap:14px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #e0dbd0}
+.profile-avatar{flex-shrink:0}
 .profile-avatar img{width:48px;height:48px;border:2px solid #e0dbd0}
-.profile-info h2{font-size:18px;margin-bottom:2px;border:none;padding:0}
+.profile-info{min-width:0;flex:1;overflow:hidden}
+.profile-info h2{font-size:18px;margin-bottom:2px;border:none;padding:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .profile-info .bio{color:#666;font-size:12px;margin:2px 0}
 .profile-info .meta{font-size:11px;color:#999}
 
@@ -175,6 +177,8 @@ a:hover{color:var(--cd);text-decoration:underline}
 @media(max-width:768px){
   #Header{flex-direction:column}#HeadRight{margin-top:8px;justify-content:flex-start}
   #MainBody{flex-direction:column;padding:10px 14px}#SideBar{width:100%}
+  .profile-header{flex-direction:column;gap:8px}
+  .profile-info h2{font-size:16px}
 }
 .theme-green{--c:#5a8a5a;--cd:#4a6a4a;--cl:#8ccd8c;--cbg:#e6f7e6}
 .theme-blue{--c:#5a8aaa;--cd:#4a6a8a;--cl:#8ab8e8;--cbg:#e4effa}
@@ -184,6 +188,13 @@ a:hover{color:var(--cd);text-decoration:underline}
 .theme-teal{--c:#5a8a7a;--cd:#3a6a5a;--cl:#8ad0c0;--cbg:#e6f5f2}
 .theme-pink{--c:#9a6a80;--cd:#7a4a60;--cl:#e8a0c0;--cbg:#fce6f0}
 .theme-dark{--c:#5a7a5a;--cd:#4a5a4a;--cl:#90b898;--cbg:#e8f0e8}
+
+/* === Poster Carousel === */
+#PosterBar{height:140px;overflow:hidden;position:relative;border-bottom:1px solid #ddd;background:#1a1a1a}
+#PosterTrack{display:flex;width:max-content;animation:posterScroll 60s linear infinite}
+#PosterTrack img{height:140px;width:auto;display:block;flex-shrink:0}
+#PosterTrack:hover{animation-play-state:paused}
+@keyframes posterScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 </style>
 <script>(function(){var m=document.cookie.match(/ntopia_theme=([^;]+)/);document.documentElement.className="theme-"+(m?m[1]:"green");})();</script>
 </head>
@@ -258,6 +269,14 @@ a:hover{color:var(--cd);text-decoration:underline}
       </div>
     </div>
   </div>
+
+<% if (posters && posters.length) { %>
+<div id="PosterBar"><div id="PosterTrack">
+  <% for (var pi = 0; pi < 2; pi++) { posters.forEach(function(p) { %>
+    <img src="<%= p %>" alt="" loading="lazy">
+  <% }); } %>
+</div></div>
+<% } %>
 
 <div id="MainBody">
   <div id="content"><%- body %></div>
