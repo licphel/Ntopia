@@ -32,7 +32,9 @@
     <%- include('comment-toolbar') %>
     <textarea name="content" style="min-height:400px"><%= post ? post.content_md : '' %></textarea>
 
+    <input type="hidden" name="is_draft" value="0" id="is-draft-field">
     <button type="submit" class="cmt-btn" style="padding:10px 24px;font-size:15px">发布</button>
+    <button type="button" class="cmt-btn" onclick="document.getElementById('is-draft-field').value='1';this.form.submit()" style="padding:10px 24px;font-size:15px;background:#999">保存草稿</button>
   </form>
 
   <% } %>

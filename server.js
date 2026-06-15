@@ -205,6 +205,14 @@ app.use((req, res, next) => {
       }
     }
     res.locals.tagList = tagList.slice(0, 20);
+
+    // Site stats
+    res.locals.stats = {
+      posts: db.prepare("SELECT COUNT(*) as c FROM posts WHERE type = 'post' AND is_deleted = 0 AND is_draft = 0").get().c,
+      topics: db.prepare("SELECT COUNT(*) as c FROM posts WHERE type = 'forum' AND is_deleted = 0").get().c,
+      comments: db.prepare("SELECT COUNT(*) as c FROM comments WHERE is_deleted = 0 OR is_deleted IS NULL").get().c,
+      users: db.prepare('SELECT COUNT(*) as c FROM users').get().c,
+    };
   } catch(e) {
     res.locals.recentPosts = [];
     res.locals.recentComments = [];

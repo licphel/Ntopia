@@ -22,12 +22,15 @@ router.post('/toggle', (req, res) => {
 // View user's bookmarks
 router.get('/', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
+  const page = parseInt(req.query.page) || 1;
+  const limit = 20;
   const posts = db.prepare(`
     SELECT p.*, u.username, u.display_name, b.created_at as bookmarked_at
     FROM bookmarks b JOIN posts p ON b.post_id = p.id JOIN users u ON p.author_id = u.id
-    WHERE b.user_id = ? AND p.is_deleted = 0 ORDER BY b.created_at DESC LIMIT 50
-  `).all(req.session.user.id);
-  res.render('bookmarks', { title: '收藏', posts });
+    WHERE b.user_id = ? AND p.is_deleted = 0 ORDER BY b.created_at DESC LIMIT ? OFFSET ?
+  `).all(req.session.user.id, limit, (page - 1) * limit);
+  const total = db.prepare('SELECT COUNT(*) as c FROM bookmarks WHERE user_id = ?').get(req.session.user.id);
+  res.render('bookmarks', { title: '收藏', posts, bmPage: page, bmTotalPages: Math.ceil(total.c / limit) });
 });
 
 module.exports = router;

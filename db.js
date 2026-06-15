@@ -189,6 +189,21 @@ function initDB() {
     UNIQUE(user_id, post_id)
   )`);
 
+  // Post revision history
+  coreDb.exec(`CREATE TABLE IF NOT EXISTS post_revisions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    content_md TEXT NOT NULL,
+    content_html TEXT NOT NULL,
+    excerpt TEXT DEFAULT '',
+    category TEXT DEFAULT '',
+    tags TEXT DEFAULT '',
+    revised_by INTEGER NOT NULL REFERENCES users(id),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+  coreDb.exec('CREATE INDEX IF NOT EXISTS idx_revisions_post ON post_revisions(post_id)');
+
   // Cleanup posts soft-deleted over 60 days ago (core)
   coreDb.prepare("DELETE FROM comments WHERE post_id IN (SELECT id FROM posts WHERE is_deleted = 1 AND deleted_at < datetime('now', '-60 days'))").run();
   coreDb.prepare("DELETE FROM comments WHERE is_deleted = 1 AND deleted_at < datetime('now', '-60 days')").run();

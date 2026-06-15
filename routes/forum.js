@@ -1,6 +1,6 @@
 const { LEVEL, canPost, canEdit, canDelete, canManageUser } = require('../lib/perm');
 const express = require('express');
-const { renderMarkdown, slugify, computeDepth } = require('../lib/helpers');
+const { renderMarkdown, slugify, computeDepth, extractTOC, injectHeadingIds } = require('../lib/helpers');
 const { db, awardForumXP, awardCommentXP } = require('../db');
 const router = express.Router();
 
@@ -49,16 +49,21 @@ router.post('/new-topic', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
   const user = db.prepare('SELECT banned, email FROM users WHERE id = ?').get(req.session.user.id);
   if (user && (user.banned || !user.email)) return res.status(403).render('error', { title: '错误', code: 403, message: '账号受限', detail: user.banned ? '你的账号已被管理员封禁' : '请前往设置页面绑定邮箱后再操作', back: '/' });
-  const { title, forum_category, content } = req.body;
+  const { title, forum_category, content, is_draft } = req.body;
+  const isDraft = is_draft === '1' ? 1 : 0;
   const slug = slugify(title) + '-' + Date.now();
   const html = renderMarkdown(content || '');
-  db.prepare(`INSERT INTO posts (title, slug, content_md, content_html, author_id, type, forum_category)
-    VALUES (?, ?, ?, ?, ?, 'forum', ?)`)
-    .run(title, slug, content, html, req.session.user.id, forum_category || 'general');
+  db.prepare(`INSERT INTO posts (title, slug, content_md, content_html, author_id, type, forum_category, is_draft)
+    VALUES (?, ?, ?, ?, ?, 'forum', ?, ?)`)
+    .run(title, slug, content, html, req.session.user.id, forum_category || 'general', isDraft);
   const post = db.prepare('SELECT id FROM posts WHERE slug = ?').get(slug);
-  awardForumXP(req.session.user.id, post.id);
-  req.session.user.xp = (req.session.user.xp || 0) + 3;
-  res.redirect('/forum/' + slug);
+  if (isDraft) {
+    res.redirect('/drafts');
+  } else {
+    awardForumXP(req.session.user.id, post.id);
+    req.session.user.xp = (req.session.user.xp || 0) + 3;
+    res.redirect('/forum/' + slug);
+  }
 });
 
 // Sub-thread for forum
@@ -130,8 +135,11 @@ router.get('/:slug', (req, res) => {
   `).all(topic.id, (req.session.user ? (req.session.user.role || 0) : 0));
 
   computeDepth(comments);
+  const toc = extractTOC(topic.content_html);
+  if (toc.length) topic.content_html = injectHeadingIds(topic.content_html);
 
-  res.render('topic', { title: topic.title, topic, comments });
+  const cmtPage = parseInt(req.query.cp) || 1;
+  res.render('topic', { title: topic.title, topic, comments, toc: toc.length > 1 ? toc : null, cmtPage });
 });
 
 module.exports = router;

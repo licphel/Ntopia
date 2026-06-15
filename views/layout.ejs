@@ -195,6 +195,11 @@ a:hover{color:var(--cd);text-decoration:underline}
 #PosterTrack img{height:140px;width:auto;display:block;flex-shrink:0}
 #PosterTrack:hover{animation-play-state:paused}
 @keyframes posterScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* === Lightbox === */
+#lightbox{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:9999;cursor:zoom-out;align-items:center;justify-content:center}
+#lightbox img{max-width:95vw;max-height:95vh;object-fit:contain;box-shadow:0 0 40px rgba(0,0,0,.5)}
+#lightbox .lb-close{position:absolute;top:16px;right:24px;color:#fff;font-size:32px;cursor:pointer;line-height:1}
 </style>
 <script>(function(){var m=document.cookie.match(/ntopia_theme=([^;]+)/);document.documentElement.className="theme-"+(m?m[1]:"green");})();</script>
 </head>
@@ -214,6 +219,7 @@ a:hover{color:var(--cd);text-decoration:underline}
           <li><a href="/settings">设置</a></li>
           <li><a href="/users/<%= user.username %>">我的</a></li>
           <li><a href="/bookmarks">收藏</a></li>
+          <li><a href="/drafts">草稿</a></li>
           <% if ((user.role || 0) >= LEVEL.ADMIN) { %><li><a href="/admin">管理</a></li><% } %>
           <li><a href="/notifications" style="position:relative">通知<% if (unreadNotifs) { %><span class="notif-badge"><%= unreadNotifs > 99 ? '99+' : unreadNotifs %></span><% } %></a></li>
           <li><a href="/messages" style="position:relative">私信<% if (unreadMessages) { %><span class="notif-badge"><%= unreadMessages > 99 ? '99+' : unreadMessages %></span><% } %></a></li>
@@ -340,5 +346,21 @@ async function toggleBookmark(e, postId) {
   if(el) el.textContent = d.bookmarked ? '已收藏' : '收藏';
 }
 </script>
+
+<div id="lightbox" onclick="this.style.display='none'"><span class="lb-close">&times;</span><img id="lightbox-img" src=""></div>
+<script>
+(function(){
+  var lb=document.getElementById('lightbox');
+  var lbImg=document.getElementById('lightbox-img');
+  document.addEventListener('click',function(e){
+    var t=e.target;
+    if(t.tagName==='IMG'&&t.closest('.PostContent')){
+      lb.style.display='flex';lbImg.src=t.src;
+    }
+  });
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')lb.style.display='none';});
+})();
+</script>
+
 </body>
 </html>

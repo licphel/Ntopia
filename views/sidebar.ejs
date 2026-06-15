@@ -64,7 +64,16 @@
   </div>
   <% } %>
 
-  <div class="sb-box">
+  <% if (typeof stats !== 'undefined' && stats) { %>
+<div class="sb-box">
+  <h3>站点统计</h3>
+  <div class="sb-inner" style="font-size:12px;line-height:1.8">
+    文章 <%= stats.posts %> 篇 | 主题 <%= stats.topics %> 个<br>
+    评论 <%= stats.comments %> 条 | 用户 <%= stats.users %> 人
+  </div>
+</div>
+<% } %>
+<div class="sb-box">
     <h3>友情链接</h3>
     <div class="sb-inner">
       <ul>
