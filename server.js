@@ -256,6 +256,12 @@ app.post('/upload', (req, res, next) => {
 });
 
 // Routes
+// Comment routes — shared between blog and forum
+const comments = require('./routes/comments');
+app.use('/posts', comments);
+app.use('/forum', comments);
+
+// Content routes
 app.use('/', require('./routes/posts'));
 app.use('/forum', require('./routes/forum'));
 app.use('/auth', require('./routes/auth'));

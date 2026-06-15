@@ -70,7 +70,7 @@
         <button onclick="var f=document.getElementById('reply-<%= c.id %>');f.style.display=f.style.display==='none'?'block':'none';var ta=f.querySelector('textarea');ta.value='@<%= c.username %> ';ta.focus()" style="background:none;border:none;color:var(--c);cursor:pointer;font-size:11px;margin-left:8px">快速回复</button>
       <% } %>
       <% if (user && (user.id === c.author_id || (user.role || 0) >= LEVEL.ADMIN)) { %>
-        <form method="POST" action="/comments/<%= c.id %>/delete" style="display:inline;margin-left:8px" onsubmit="return confirm('确认删除？')">
+        <form method="POST" action="/posts/comments/<%= c.id %>/delete" style="display:inline;margin-left:8px" onsubmit="return confirm('确认删除？')">
           <button style="background:none;border:none;color:#c00;cursor:pointer;font-size:11px;padding:0">删除</button>
         </form>
       <% } %>

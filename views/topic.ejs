@@ -67,14 +67,14 @@
         <button onclick="var f=document.getElementById('reply-<%= c.id %>');f.style.display=f.style.display==='none'?'block':'none';var ta=f.querySelector('textarea');ta.value='@<%= c.username %> ';ta.focus()" style="background:none;border:none;color:var(--c);cursor:pointer;font-size:11px;margin-left:8px">快速回复</button>
       <% } %>
       <% if (user && (user.id === c.author_id || (user.role || 0) >= LEVEL.ADMIN)) { %>
-        <form method="POST" action="/comments/<%= c.id %>/delete" style="display:inline;margin-left:8px" onsubmit="return confirm('确认删除？')">
+        <form method="POST" action="/forum/comments/<%= c.id %>/delete" style="display:inline;margin-left:8px" onsubmit="return confirm('确认删除？')">
           <button style="background:none;border:none;color:#c00;cursor:pointer;font-size:11px;padding:0">删除</button>
         </form>
       <% } %>
     </div>
     <% if (user) { %>
     <div id="reply-<%= c.id %>" style="display:none;margin-top:6px">
-      <form method="POST" action="/posts/<%= topic.slug %>/comment">
+      <form method="POST" action="/forum/<%= topic.slug %>/comment">
         <input type="hidden" name="parent_id" value="<%= c.id %>">
         <%- include('comment-toolbar') %>
         <textarea name="content" placeholder="回复 @<%= c.username %>..." style="width:100%;min-height:40px;padding:4px;border:1px solid #ddd;border-radius:3px;font-size:12px;font-family:inherit"></textarea>
@@ -97,7 +97,7 @@
 <% } %>
 <% if (user) { %>
 <div style="margin-top:4px;padding:10px 0">
-  <form method="POST" action="/posts/<%= topic.slug %>/comment">
+  <form method="POST" action="/forum/<%= topic.slug %>/comment">
     <%- include('comment-toolbar') %>
     <textarea name="content" placeholder="发表新回复..." style="width:100%;min-height:60px;padding:6px;border:1px solid #ddd;border-radius:3px;font-size:13px;font-family:inherit"></textarea>
     <button type="submit" class="cmt-btn" style="margin-top:4px">发表回复</button>
