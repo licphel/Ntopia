@@ -48,8 +48,8 @@ router.post('/categories/:id/delete', requireLevel(LEVEL.ADMIN), (req, res) => {
   res.redirect('/admin');
 });
 
-// Soft-delete post (>16)
-router.post('/posts/:slug/delete', requireLevel(LEVEL.MOD + 1), (req, res) => {
+// Soft-delete post (mod and above)
+router.post('/posts/:slug/delete', requireLevel(LEVEL.MOD), (req, res) => {
   db.prepare("UPDATE posts SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE slug = ?").run(req.params.slug);
   res.redirect('/');
 });
@@ -95,7 +95,7 @@ router.post('/users/:id/unban', requireLevel(LEVEL.ADMIN), (req, res) => {
 router.post('/users/:id/promote', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
   const myRole = req.session.user.role || 0;
-  const target = db.prepare('SELECT id, role, username FROM users WHERE id = ?').get(req.params.id);
+  const target = db.prepare('SELECT id, role, username, banned FROM users WHERE id = ?').get(req.params.id);
   if (!target || target.banned) return res.redirect('/users/' + (target ? target.username : ''));
   if (myRole <= target.role + 1) return res.status(400).render('error', { title: '错误', code: 400, message: '权限不足', detail: '只能提升权限低于你的用户', back: '/users/' + target.username });
   // Step up through levels, must stay strictly below myRole
@@ -123,8 +123,8 @@ router.post('/users/:id/demote', (req, res) => {
   res.redirect('/users/' + target.username);
 });
 
-// Soft-delete any comment (>16), never truly delete
-router.post('/comments/:id/delete-mod', requireLevel(LEVEL.MOD + 1), (req, res) => {
+// Soft-delete any comment (mod and above), never truly delete
+router.post('/comments/:id/delete-mod', requireLevel(LEVEL.MOD), (req, res) => {
   const cmt = db.prepare('SELECT c.*, p.slug FROM comments c JOIN posts p ON c.post_id = p.id WHERE c.id = ?').get(req.params.id);
   if (!cmt) return res.status(404).render('error', { title: '错误', code: 404, message: '评论不存在', detail: '', back: '/' });
   db.prepare("UPDATE comments SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?").run(req.params.id);
@@ -135,7 +135,7 @@ router.post('/comments/:id/delete-mod', requireLevel(LEVEL.MOD + 1), (req, res) 
 router.post('/users/:id/delete', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
   const myRole = req.session.user.role || 0;
-  const target = db.prepare('SELECT id, role, username FROM users WHERE id = ?').get(req.params.id);
+  const target = db.prepare('SELECT id, role, username, banned FROM users WHERE id = ?').get(req.params.id);
   if (!target) return res.redirect('/');
   if (myRole <= target.role) return res.status(400).render('error', { title: '错误', code: 400, message: '权限不足', detail: '只能删除权限低于你的用户', back: '/users/' + target.username });
   db.prepare("UPDATE comments SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE author_id = ?").run(target.id);

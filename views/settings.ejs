@@ -153,7 +153,7 @@ function sendPwdCode(){
   <% if (user && user.email) { %>
   var btn = document.getElementById('pwdSendBtn');
   btn.textContent = '发送中...'; btn.disabled = true; st.textContent = '';
-  fetch('/email/send', { method:'POST', headers:{'Content-Type':'application/json','x-csrf-token':'<%= csrf %>'}, body:JSON.stringify({email:'<%= user.email %>'}) })
+  fetch('/email/send', { method:'POST', headers:{'Content-Type':'application/json','x-csrf-token':'<%= csrf %>'}, body:JSON.stringify({email:<%- JSON.stringify(user.email) %>}) })
     .then(r=>r.json()).then(d=>{
       if(d.ok){ pwdCd=60; st.textContent='已发送'; st.style.color='var(--c)'; pwdTick(btn); }
       else { btn.textContent='发送验证码'; btn.disabled=false; st.textContent=d.error||'失败'; st.style.color='#c00'; }
@@ -172,7 +172,7 @@ function sendDelCode(){
   <% if (user && user.email) { %>
   var btn = document.getElementById('delSendBtn');
   btn.textContent = '发送中...'; btn.disabled = true; st.textContent = '';
-  fetch('/email/send', { method:'POST', headers:{'Content-Type':'application/json','x-csrf-token':'<%= csrf %>'}, body:JSON.stringify({email:'<%= user.email %>'}) })
+  fetch('/email/send', { method:'POST', headers:{'Content-Type':'application/json','x-csrf-token':'<%= csrf %>'}, body:JSON.stringify({email:<%- JSON.stringify(user.email) %>}) })
     .then(r=>r.json()).then(d=>{
       if(d.ok){ delCd=60; st.textContent='已发送'; st.style.color='var(--c)'; delTick(btn); }
       else { btn.textContent='发送验证码'; btn.disabled=false; st.textContent=d.error||'失败'; st.style.color='#c00'; }

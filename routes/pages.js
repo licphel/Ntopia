@@ -7,8 +7,10 @@ const router = express.Router();
 const PAGES_DIR = path.join(__dirname, '..', 'pages');
 
 router.get('/:slug', (req, res) => {
-  const filePath = path.join(PAGES_DIR, req.params.slug + '.md');
-  if (!fs.existsSync(filePath)) return res.status(404).render('404', { title: '404' });
+  // Sanitize slug: strip .. and /
+  const slug = req.params.slug.replace(/\.\./g, '').replace(/[/\\]/g, '');
+  const filePath = path.resolve(PAGES_DIR, slug + '.md');
+  if (!filePath.startsWith(path.resolve(PAGES_DIR) + path.sep) || !fs.existsSync(filePath)) return res.status(404).render('404', { title: '404' });
   const raw = fs.readFileSync(filePath, 'utf8');
   // Parse YAML frontmatter
   let title = req.params.slug, body = raw;

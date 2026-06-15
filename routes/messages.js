@@ -40,7 +40,7 @@ router.get('/send/:username?', requireLogin, (req, res) => {
 // Send message POST
 router.post('/send', requireLogin, (req, res) => {
   const { to_username, content } = req.body;
-  const toUser = db.prepare('SELECT id, username, display_name FROM users WHERE username = ?').get(to_username);
+  const toUser = db.prepare('SELECT id, username, display_name FROM users WHERE username = ?').get((to_username || '').toLowerCase());
   if (!toUser) {
     return res.render('send-message', { title: '发送私信', toUser: null, error: '用户不存在' });
   }
