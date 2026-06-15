@@ -103,7 +103,7 @@ router.post('/:username/edit', (req, res) => {
       return res.render('edit-profile', { title: '编辑资料', profile, error: '用户名已被占用', formData });
     }
     db.prepare('UPDATE users SET username = ? WHERE id = ?').run(uname, profile.id);
-    req.session.user.username = new_username;
+    req.session.user.username = uname;
   }
 
   // Change password
