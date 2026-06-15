@@ -64,35 +64,96 @@ const upload = multer({
   }
 });
 
-// List all attachments (paginated, searchable)
+// List attachments with folder view
 router.get('/', requireLogin, (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const q = (req.query.q || '').trim();
+  const vpath = (req.query.path || '/').replace(/\/+/g, '/').replace(/\/$/, '') || '/';
   const limit = 20;
   const offset = (page - 1) * limit;
 
-  let files, total;
+  let files, total, folders = [];
+  const vpathEscaped = vpath === '/' ? '/' : vpath;
+
   if (q) {
+    // Global search
     files = db.prepare(`
       SELECT a.*, u.username, u.display_name FROM attachments a JOIN users u ON a.user_id = u.id
       WHERE a.filename LIKE ? ORDER BY a.created_at DESC LIMIT ? OFFSET ?
     `).all('%' + q + '%', limit, offset);
     total = db.prepare('SELECT COUNT(*) as c FROM attachments WHERE filename LIKE ?').get('%' + q + '%');
   } else {
+    // Folders: .folder markers + intermediate paths from deeper files
+    const prefix = vpath === '/' ? '/' : vpath + '/';
+    const prefixLen = prefix.length;
+    const seen = new Set();
+    folders = [];
+
+    // 1. Explicit .folder markers under current path
+    const markers = db.prepare("SELECT DISTINCT virtual_path FROM attachments WHERE virtual_path LIKE ? AND filename = '.folder'").all(prefix + '%');
+    for (const m of markers) {
+      const name = m.virtual_path.slice(prefixLen);
+      const slash = name.indexOf('/');
+      const dir = slash >= 0 ? name.slice(0, slash) : name;
+      if (dir && !seen.has(dir)) { seen.add(dir); folders.push({ name: dir }); }
+    }
+
+    // 2. Intermediate folders from deeper real files (e.g. /docs/manual/a.pdf → folder /docs)
+    const deepPaths = db.prepare("SELECT DISTINCT virtual_path FROM attachments WHERE virtual_path LIKE ? AND filename != '.folder'").all(prefix + '%');
+    for (const p of deepPaths) {
+      const sub = p.virtual_path.slice(prefixLen);
+      const slash = sub.indexOf('/');
+      if (slash >= 0) {
+        const dir = sub.slice(0, slash);
+        if (dir && !seen.has(dir)) { seen.add(dir); folders.push({ name: dir }); }
+      }
+    }
+
+    // Files in current path
     files = db.prepare(`
       SELECT a.*, u.username, u.display_name FROM attachments a JOIN users u ON a.user_id = u.id
-      ORDER BY a.created_at DESC LIMIT ? OFFSET ?
-    `).all(limit, offset);
-    total = db.prepare('SELECT COUNT(*) as c FROM attachments').get();
+      WHERE a.virtual_path = ? AND a.filename != '.folder' ORDER BY a.created_at DESC LIMIT ? OFFSET ?
+    `).all(vpathEscaped, limit, offset);
+    total = db.prepare("SELECT COUNT(*) as c FROM attachments WHERE virtual_path = ? AND filename != '.folder'").get(vpathEscaped);
   }
 
-  const paths = db.prepare("SELECT DISTINCT virtual_path FROM attachments WHERE virtual_path != '/' ORDER BY virtual_path").all();
+  // Breadcrumb
+  const crumbs = [{ name: '根目录', path: '/' }];
+  if (vpath !== '/') {
+    const parts = vpath.slice(1).split('/');
+    let acc = '';
+    for (const part of parts) {
+      acc += '/' + part;
+      crumbs.push({ name: part, path: acc });
+    }
+  }
+
+  const baseQuery = q ? '?q=' + encodeURIComponent(q) : '?path=' + encodeURIComponent(vpath);
 
   res.render('files', {
-    title: '网盘',
-    files, page, query: q, paths,
+    title: q ? '搜索: ' + q : '网盘' + (vpath !== '/' ? ': ' + vpath : ''),
+    files, page, query: q, vpath, folders, crumbs, baseQuery,
     totalPages: Math.ceil(total.c / limit),
   });
+
+// List all folder paths (for toolbar picker)
+router.get('/folders', requireLogin, (req, res) => {
+  const paths = db.prepare("SELECT DISTINCT virtual_path FROM attachments WHERE virtual_path != '/' ORDER BY virtual_path").all();
+  res.json({ folders: ['/', ...paths.map(p => p.virtual_path)] });
+});
+
+// Create folder (sentinel record so folder appears in listings)
+router.post('/mkdir', requireLogin, (req, res) => {
+  const parent = (req.body.parent || '/').replace(/\/+/g, '/');
+  const name = (req.body.name || '').replace(/[/\\]/g, '').trim();
+  if (!name) return res.json({ ok: false, error: '请输入文件夹名' });
+  const fullPath = (parent === '/' ? '/' + name : parent + '/' + name);
+  const exists = db.prepare('SELECT 1 FROM attachments WHERE virtual_path = ? AND filename = ?').get(fullPath, '.folder');
+  if (exists) return res.json({ ok: false, error: '文件夹已存在' });
+  db.prepare("INSERT INTO attachments (user_id, filename, stored_name, virtual_path, file_size, mime_type) VALUES (?, '.folder', '', ?, 0, 'inode/directory')")
+    .run(req.session.user.id, fullPath);
+  res.json({ ok: true, path: fullPath });
+});
 });
 
 // Upload
@@ -120,11 +181,12 @@ router.post('/upload', requireLogin, upload.single('file'), async (req, res) => 
   }
 
   const filename = fixFilename(req.file.originalname);
+  const upPath = vpath || '/';
 
   db.prepare(`INSERT INTO attachments (user_id, filename, stored_name, virtual_path, file_size, mime_type)
     VALUES (?, ?, ?, ?, ?, ?)`)
     .run(req.session.user.id, filename, storedNameVal,
-         vpath || '/', fileSize, req.file.mimetype || '');
+         upPath, fileSize, req.file.mimetype || '');
 
   res.json({ ok: true, filename: filename, id: db.prepare('SELECT last_insert_rowid() as id').get().id });
 });
