@@ -31,9 +31,9 @@
   <% } %>
 
     <% posts.forEach(function(post) { %>
-      <div class="Post">
+      <div class="Post<%= post.is_pinned ? ' pinned' : '' %>">
         <div class="PostHead">
-          <div class="date-wrap">
+          <div class="date-wrap<%= post.is_pinned ? ' forum-date' : '' %>">
             <span class="date-day">
               <%= new Date(post.created_at).getDate() %>
             </span>
@@ -71,7 +71,7 @@
         <% if (post.tags) { %>
           <div class="tools">
             标签: <% post.tags.split(',').forEach(function(t) { %>
-              <a href="/search?q=<%= encodeURIComponent(t.trim()) %>&type=posts">
+              <a href="/tags/<%= encodeURIComponent(t.trim()) %>">
                 <%= t.trim() %>
               </a>
               <% }); %>

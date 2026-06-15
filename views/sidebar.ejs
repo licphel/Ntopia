@@ -61,7 +61,7 @@
               <h3>热门标签</h3>
               <div class="sb-inner tag-cloud">
                 <% tagList.forEach(function(t) { %>
-                  <a href="/search?q=<%= encodeURIComponent(t) %>&type=posts">
+                  <a href="/tags/<%= encodeURIComponent(t) %>">
                     <%= t %>
                   </a>
                   <% }); %>

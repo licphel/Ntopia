@@ -2,6 +2,7 @@ const { LEVEL, canPost, canEdit, canDelete, canManageUser } = require('../lib/pe
 const express = require('express');
 const { renderMarkdown, slugify, computeDepth, extractTOC, injectHeadingIds } = require('../lib/helpers');
 const { db, awardPostXP } = require('../lib/db');
+const { LICENSES, licenseText } = require('../lib/license');
 const router = express.Router();
 
 
@@ -38,19 +39,19 @@ router.get('/', (req, res) => {
     FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.category = cat.slug
     WHERE (p.is_deleted = 0 OR p.is_deleted IS NULL) AND p.is_draft = 0`;
   if (cat) {
-    posts = db.prepare(`${baseQuery} AND p.category = ? ORDER BY p.created_at DESC LIMIT ? OFFSET ?`).all(cat, limit, offset);
+    posts = db.prepare(`${baseQuery} AND p.category = ? ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT ? OFFSET ?`).all(cat, limit, offset);
     total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE category = ? AND is_deleted = 0").get(cat);
   } else {
-    posts = db.prepare(`${baseQuery} ORDER BY p.created_at DESC LIMIT ? OFFSET ?`).all(limit, offset);
+    posts = db.prepare(`${baseQuery} ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT ? OFFSET ?`).all(limit, offset);
     total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE is_deleted = 0").get();
   }
   // replies: sort in SQL; hot: score by recency-weighted engagement in SQL
   if (sort === 'replies') {
-    posts = db.prepare(`${baseQuery} ORDER BY comment_count DESC LIMIT ? OFFSET ?`).all(limit, offset);
+    posts = db.prepare(`${baseQuery} ORDER BY p.is_pinned DESC, comment_count DESC LIMIT ? OFFSET ?`).all(limit, offset);
   } else if (sort === 'hot') {
     posts = db.prepare(`
       SELECT * FROM (${baseQuery})
-      ORDER BY (comment_count * 3.0 + view_count * 0.1) / ((julianday('now') - julianday(created_at)) * 24.0 + 4.0) DESC
+      ORDER BY is_pinned DESC, (comment_count * 3.0 + view_count * 0.1) / ((julianday('now') - julianday(created_at)) * 24.0 + 4.0) DESC
       LIMIT ? OFFSET ?
     `).all(limit, offset);
     total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE is_deleted = 0").get();
@@ -97,7 +98,7 @@ router.get('/new-post', (req, res) => {
   const user = db.prepare('SELECT banned, email FROM users WHERE id = ?').get(req.session.user.id);
   if (user && (user.banned || !user.email)) return res.status(403).render('error', { title: '错误', code: 403, message: '账号受限', detail: user.banned ? '你的账号已被管理员封禁' : '请前往设置页面绑定邮箱后再操作', back: '/' });
   const categories = db.prepare("SELECT * FROM categories ORDER BY sort_order").all();
-  res.render('editor', { title: '撰写文章', post: null, type: 'post', categories, canPost: true });
+  res.render('editor', { title: '撰写文章', post: null, type: 'post', categories, canPost: true, hideSidebar: true, licenses: LICENSES });
 });
 
 // Create post POST
@@ -105,13 +106,13 @@ router.post('/new-post', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
   const user = db.prepare('SELECT banned, email FROM users WHERE id = ?').get(req.session.user.id);
   if (user && (user.banned || !user.email)) return res.status(403).render('error', { title: '错误', code: 403, message: '账号受限', detail: user.banned ? '你的账号已被管理员封禁' : '请前往设置页面绑定邮箱后再操作', back: '/' });
-  const { title, category, tags, excerpt, content } = req.body;
+  const { title, category, tags, excerpt, content, license } = req.body;
   const is_draft = req.body.is_draft === '1' ? 1 : 0;
   const slug = slugify(title) + '-' + Date.now();
   const html = renderMarkdown(content);
-  db.prepare(`INSERT INTO posts (title, slug, content_md, content_html, excerpt, category, tags, author_id, is_draft)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(title, slug, content, html, excerpt || '', category || '', tags || '', req.session.user.id, is_draft);
+  db.prepare(`INSERT INTO posts (title, slug, content_md, content_html, excerpt, category, tags, author_id, is_draft, license)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(title, slug, content, html, excerpt || '', category || '', tags || '', req.session.user.id, is_draft, license || '');
   const post = db.prepare('SELECT id FROM posts WHERE slug = ?').get(slug);
   if (is_draft) {
     res.redirect('/drafts');
@@ -130,7 +131,7 @@ router.get('/posts/:slug/edit', (req, res) => {
     return res.status(403).render('error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
   }
   const categories = db.prepare("SELECT * FROM categories ORDER BY sort_order").all();
-  res.render('editor', { title: '编辑文章', post, type: 'post', categories, canPost: true });
+  res.render('editor', { title: '编辑文章', post, type: 'post', categories, canPost: true, hideSidebar: true, licenses: LICENSES });
 });
 
 router.post('/posts/:slug/edit', (req, res) => {
@@ -139,7 +140,7 @@ router.post('/posts/:slug/edit', (req, res) => {
   if (!post || (post.author_id !== req.session.user.id && (req.session.user.role || 0) <= LEVEL.MOD)) {
     return res.status(403).render('error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
   }
-  const { title, content, category, tags, excerpt } = req.body;
+  const { title, content, category, tags, excerpt, license } = req.body;
   const is_draft = req.body.is_draft === '1' ? 1 : 0;
   const html = renderMarkdown(content);
 
@@ -151,12 +152,28 @@ router.post('/posts/:slug/edit', (req, res) => {
     SELECT id FROM post_revisions WHERE post_id = ? ORDER BY created_at DESC LIMIT -1 OFFSET 10
   )`).run(post.id);
 
-  db.prepare(`UPDATE posts SET title=?, content_md=?, content_html=?, excerpt=?, category=?, tags=?, is_draft=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-    .run(title, content, html, excerpt || '', category || '', tags || '', is_draft, post.id);
+  db.prepare(`UPDATE posts SET title=?, content_md=?, content_html=?, excerpt=?, category=?, tags=?, is_draft=?, license=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+    .run(title, content, html, excerpt || '', category || '', tags || '', is_draft, license || '', post.id);
   res.redirect(is_draft ? '/drafts' : '/posts/' + post.slug);
 });
 
-
+// Download post as Markdown
+router.get('/posts/:slug/download', (req, res) => {
+  const post = db.prepare(`
+    SELECT p.title, p.content_md, p.license, p.created_at, u.display_name, u.username
+    FROM posts p JOIN users u ON p.author_id = u.id
+    WHERE p.slug = ? AND p.is_deleted = 0 AND p.is_draft = 0
+  `).get(req.params.slug);
+  if (!post) return res.status(404).render('404', { title: '404' });
+  const author = post.display_name || post.username;
+  const siteUrl = process.env.SITE_URL || 'https://ntopia.top';
+  const header = `---\ntitle: ${post.title}\nauthor: ${author}\ndate: ${post.created_at}\n---\n\n`;
+  const footer = '\n\n---\n\n' + licenseText(post.license || '', { author, year: new Date(post.created_at).getFullYear(), url: siteUrl + '/posts/' + req.params.slug });
+  const filename = encodeURIComponent(post.title.slice(0, 40).replace(/[/\\?*:|"<>]/g, '')) + '.md';
+  res.set('Content-Type', 'text/markdown; charset=utf-8');
+  res.set('Content-Disposition', `attachment; filename*=UTF-8''${filename}`);
+  res.send(header + post.content_md + footer);
+});
 
 // Delete own post (author or admin)
 router.post('/posts/:slug/delete-self', (req, res) => {

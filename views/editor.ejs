@@ -1,3 +1,22 @@
+<style>
+.editor-split{display:flex;gap:0}
+.editor-split .ed-left{flex:1;min-width:0;overflow:hidden}
+.editor-split .ed-right{flex:1;min-width:0;max-height:600px;overflow-y:auto;border:1px solid #e0dbd0;padding:10px 14px;background:#fafaf5;font-size:13px;line-height:1.7}
+.editor-split .ed-right h2{font-size:17px !important;margin:6px 0 8px !important;padding-bottom:3px !important;border-bottom:1px solid #e0dbd0 !important}
+.editor-split .ed-right h3{font-size:14px !important;margin:10px 0 4px !important}
+.editor-split .ed-right p{margin:4px 0}
+.editor-split .ed-right pre{background:#2d2d2d;color:#ccc;padding:10px;overflow-x:auto;font-size:12px;border-radius:3px}
+.editor-split .ed-right code{font-family:"Fira Code",Consolas,monospace;font-size:.9em}
+.editor-split .ed-right blockquote{border-left:3px solid var(--c);padding:3px 10px;margin:6px 0;color:#666;background:#f8f7f4}
+.editor-split .ed-right img{max-width:100%}
+.editor-split .ed-right table{border-collapse:collapse;width:100%;margin:6px 0}
+.editor-split .ed-right th,.ed-split .ed-right td{border:1px solid #ddd;padding:3px 6px}
+.editor-split .ed-right ul,.ed-split .ed-right ol{padding-left:20px}
+.ed-gutter{width:8px;cursor:col-resize;background:#e0dbd0;flex-shrink:0;transition:background .2s}
+.ed-gutter:hover,.ed-gutter.active{background:var(--c)}
+@media(max-width:768px){.editor-split{flex-direction:column}.ed-gutter{width:100%;height:6px;cursor:row-resize}}
+</style>
+
 <div class="editor-wrap">
   <h2><%= post ? '编辑' : '撰写' %>文章</h2>
 
@@ -11,32 +30,134 @@
     <label>标题</label>
     <input type="text" name="title" value="<%= post ? post.title : '' %>" required>
 
-    <label>分类</label>
-    <select name="<%= 'category' %>">
-      <% if (categories && categories.length) {
-        categories.forEach(function(c) { %>
-          <option value="<%= c.slug %>" <%= post && post.category === c.slug ? 'selected' : '' %>><%= c.name %></option>
-        <% });
-      } else { %>
-        <option value="">默认</option>
-      <% } %>
-    </select>
+    <div style="display:flex;gap:12px">
+      <div style="flex:1">
+        <label>分类</label>
+        <select name="category">
+          <% if (categories && categories.length) {
+            categories.forEach(function(c) { %>
+              <option value="<%= c.slug %>" <%= post && post.category === c.slug ? 'selected' : '' %>><%= c.name %></option>
+            <% });
+          } else { %>
+            <option value="">默认</option>
+          <% } %>
+        </select>
+      </div>
+      <div style="flex:2">
+        <label>标签（逗号分隔）</label>
+        <input type="text" name="tags" value="<%= post ? post.tags : '' %>" placeholder="技术, Python">
+      </div>
+    </div>
 
-    <label>标签（逗号分隔）</label>
-    <input type="text" name="tags" value="<%= post ? post.tags : '' %>" placeholder="技术, Python">
-    <label>摘要</label>
-    <input type="text" name="excerpt" value="<%= post ? post.excerpt : '' %>" placeholder="简短描述...">
+    <div style="display:flex;gap:12px">
+      <div style="flex:1">
+        <label>摘要</label>
+        <input type="text" name="excerpt" value="<%= post ? post.excerpt : '' %>" placeholder="简短描述...">
+      </div>
+      <div style="width:180px">
+        <label>许可协议</label>
+        <select name="license">
+          <% (typeof licenses !== 'undefined' ? licenses : []).forEach(function(l){ %>
+            <option value="<%= l.key %>" <%= post && post.license === l.key ? 'selected' : '' %>><%= l.name %></option>
+          <% }); %>
+        </select>
+      </div>
+    </div>
 
     <label>正文（Markdown 格式，支持 $...$ 数学公式）</label>
     <%- include('comment-toolbar') %>
-    <textarea name="content" style="min-height:400px"><%= post ? post.content_md : '' %></textarea>
+    <div class="editor-split" id="edSplit">
+      <div class="ed-left" id="edLeft">
+        <textarea name="content" id="edContent" style="min-height:400px"><%= post ? post.content_md : '' %></textarea>
+      </div>
+      <div class="ed-gutter" id="edGutter"></div>
+      <div class="ed-right" id="edPreview"><em style="color:#999">输入内容后自动预览...</em></div>
+    </div>
 
     <input type="hidden" name="is_draft" value="0" id="is-draft-field">
-    <button type="submit" class="cmt-btn" style="padding:10px 24px;font-size:15px">发布</button>
-    <button type="button" class="cmt-btn" onclick="document.getElementById('is-draft-field').value='1';this.form.submit()" style="padding:10px 24px;font-size:15px;background:#999">保存草稿</button>
+    <button type="submit" class="cmt-btn" style="padding:10px 24px;font-size:15px;margin-top:8px">发布</button>
+    <button type="button" class="cmt-btn" onclick="document.getElementById('is-draft-field').value='1';this.form.submit()" style="padding:10px 24px;font-size:15px;background:#999;margin-top:8px">保存草稿</button>
   </form>
 
   <% } %>
 </div>
 
 <input type="hidden" name="_csrf" value="<%= csrf %>">
+
+<script>
+(function(){
+  var ta = document.getElementById('edContent');
+  var preview = document.getElementById('edPreview');
+  var timer = null;
+  var lastVal = '';
+
+  function renderTex(){
+    if (window.MathJax && MathJax.typesetPromise) {
+      MathJax.typesetPromise([preview]).catch(function(){});
+    }
+  }
+
+  function update(){
+    var val = ta.value;
+    if (val === lastVal) return;
+    lastVal = val;
+    if (!val.trim()) { preview.innerHTML = '<em style="color:#999">输入内容后自动预览...</em>'; return; }
+    preview.innerHTML = '<em style="color:#999">渲染中...</em>';
+    fetch('/preview', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','x-csrf-token':'<%= csrf %>'},
+      body: JSON.stringify({content: val})
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if (d.html) { preview.innerHTML = d.html; renderTex(); }
+    }).catch(function(){ preview.innerHTML = '<em style="color:#c00">预览失败</em>'; });
+  }
+
+  ta.addEventListener('input', function(){
+    clearTimeout(timer);
+    timer = setTimeout(update, 300);
+  });
+  if (ta.value.trim()) update();
+
+  // ── Draggable gutter ──────────────────────────────────────────
+  var gutter = document.getElementById('edGutter');
+  var split = document.getElementById('edSplit');
+  var left = document.getElementById('edLeft');
+  var right = document.getElementById('edPreview');
+  var dragging = false;
+
+  gutter.addEventListener('mousedown', function(e){
+    e.preventDefault();
+    dragging = true;
+    gutter.classList.add('active');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+
+  document.addEventListener('mousemove', function(e){
+    if (!dragging) return;
+    var rect = split.getBoundingClientRect();
+    var x = e.clientX - rect.left;
+    var total = rect.width - 8; // gutter width
+    var pct = Math.max(20, Math.min(80, x / total * 100));
+    left.style.flex = pct;
+    right.style.flex = (100 - pct);
+    // Persist ratio
+    sessionStorage.setItem('ntopia_editor_ratio', pct);
+  });
+
+  document.addEventListener('mouseup', function(){
+    if (!dragging) return;
+    dragging = false;
+    gutter.classList.remove('active');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+
+  // Restore saved ratio
+  var saved = parseFloat(sessionStorage.getItem('ntopia_editor_ratio'));
+  if (saved && saved >= 20 && saved <= 80) {
+    left.style.flex = saved;
+    right.style.flex = (100 - saved);
+  }
+})();
+</script>

@@ -7,6 +7,16 @@ router.get('/', (req, res) => {
   const q = (req.query.q || '').trim();
   const type = req.query.type || 'all'; // all, posts, users
 
+  // #tag: syntax — redirect to tag page
+  if (q.startsWith('#tag:') || q.startsWith('#t:')) {
+    const tag = q.replace(/^#(tag|t):/, '').trim();
+    if (tag) return res.redirect('/tags/' + encodeURIComponent(tag));
+  }
+  // Bare #tag — also redirect to tag page
+  if (q.startsWith('#') && !q.includes(' ')) {
+    return res.redirect('/tags/' + encodeURIComponent(q.slice(1)));
+  }
+
   let postResults = [], userResults = [];
 
   if (q) {
@@ -18,10 +28,9 @@ router.get('/', (req, res) => {
           (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
         FROM posts p JOIN users u ON p.author_id = u.id
         WHERE p.is_deleted = 0 AND (p.title LIKE ? OR p.content_md LIKE ? OR p.tags LIKE ?)
-        ORDER BY p.created_at DESC LIMIT 20
+        ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT 20
       `).all(like, like, like);
     }
-
 
     if (type === 'all' || type === 'users') {
       userResults = db.prepare(`

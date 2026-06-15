@@ -70,6 +70,15 @@ router.post('/posts/:slug/restore', requireLevel(LEVEL.ADMIN), (req, res) => {
   res.redirect('/admin');
 });
 
+// Toggle pin post (>=16)
+router.post('/posts/:slug/pin', requireLevel(LEVEL.MOD), (req, res) => {
+  const post = db.prepare('SELECT id, is_pinned FROM posts WHERE slug = ?').get(req.params.slug);
+  if (post) {
+    db.prepare('UPDATE posts SET is_pinned = ? WHERE id = ?').run(post.is_pinned ? 0 : 1, post.id);
+  }
+  res.redirect('back');
+});
+
 // Ban user (must be strictly higher level than target)
 router.post('/users/:id/ban', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');

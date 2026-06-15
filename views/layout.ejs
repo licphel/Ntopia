@@ -58,6 +58,7 @@ a:hover{color:var(--cd);text-decoration:underline}
 
 /* === Post === */
 .Post{margin-bottom:24px;padding-bottom:20px;border-bottom:2px solid #e0dbd0}
+.Post.pinned{border-left:3px solid var(--c);padding-left:12px}
 .Post:last-child,.Post:only-child{border-bottom:none}
 .PostHead{display:flex;gap:12px;align-items:flex-start}
 .date-wrap{text-align:center;background:var(--c);color:#fff;padding:3px 8px 4px;border-radius:2px;min-width:44px;flex-shrink:0;box-shadow:1px 1px 2px rgba(0,0,0,.1)}
@@ -210,7 +211,7 @@ a:hover{color:var(--cd);text-decoration:underline}
 #lightbox img{max-width:95vw;max-height:95vh;object-fit:contain;box-shadow:0 0 40px rgba(0,0,0,.5)}
 #lightbox .lb-close{position:absolute;top:16px;right:24px;color:#fff;font-size:32px;cursor:pointer;line-height:1}
 </style>
-<script>(function(){var m=document.cookie.match(/ntopia_theme=([^;]+)/);document.documentElement.className="theme-"+(m?m[1]:"green");})();</script>
+<script>window._csrf='<%= csrf %>';(function(){var m=document.cookie.match(/ntopia_theme=([^;]+)/);document.documentElement.className="theme-"+(m?m[1]:"green");})();</script>
 </head>
 <body>
 <div id="Container">
@@ -292,9 +293,9 @@ a:hover{color:var(--cd);text-decoration:underline}
 </div></div>
 <% } %>
 
-<div id="MainBody">
+<div id="MainBody"<%= (typeof hideSidebar !== 'undefined' && hideSidebar) ? ' style="max-width:860px;margin:0 auto"' : '' %>>
   <div id="content"><%- body %></div>
-  <%- include('sidebar') %>
+  <% if (typeof hideSidebar === 'undefined' || !hideSidebar) { %><%- include('sidebar') %><% } %>
 </div>
 
 <div id="Footer">

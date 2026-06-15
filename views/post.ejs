@@ -33,6 +33,7 @@
                       style="font-size:11px;color:#999">点赞</a>
                     | <a href="#" onclick="toggleBookmark(event, <%= post.id %>)" id="bookmark-<%= post.id %>"
                       style="font-size:11px;color:#999">收藏</a>
+                    | <a href="/posts/<%= post.slug %>/download" style="font-size:11px;color:#999">下载 MD</a>
                     <% if (user && (user.id===post.author_id || (user.role || 0)>= LEVEL.ADMIN)) { %>
                       | <a href="/posts/<%= post.slug %>/edit">编辑</a>
                       | <a href="/posts/<%= post.slug %>/revisions">历史</a>
@@ -41,6 +42,12 @@
                         <input type="hidden" name="_csrf" value="<%= csrf %>">
                         <button
                           style="background:none;border:none;color:#c00;cursor:pointer;font-size:11px;padding:0">删除</button>
+                      </form>
+                      <% } %>
+                      <% if (user && (user.role || 0) >= LEVEL.MOD) { %>
+                      | <form method="POST" action="/admin/posts/<%= post.slug %>/pin" style="display:inline">
+                        <input type="hidden" name="_csrf" value="<%= csrf %>">
+                        <button style="background:none;border:none;color:var(--c);cursor:pointer;font-size:11px;padding:0"><%= post.is_pinned ? '取消置顶' : '置顶' %></button>
                       </form>
                       <% } %>
       </span>
@@ -62,11 +69,14 @@
       <div class="PostContent"><%- post.content_html %></div>
       <% if (post.tags) { %>
         <div class="tools">标签: <% post.tags.split(',').forEach(function(t) { %><a
-              href="/search?q=<%= encodeURIComponent(t.trim()) %>">
+              href="/tags/<%= encodeURIComponent(t.trim()) %>">
               <%= t.trim() %>
             </a>
             <% }); %>
         </div>
+        <% } %>
+        <% if (post.license) { %>
+        <div class="tools">许可: <%- post.license %></div>
         <% } %>
 </div>
 
