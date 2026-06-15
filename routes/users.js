@@ -93,8 +93,9 @@ router.post('/:username/edit', (req, res) => {
   const formData = { display_name, bio, desc, new_username, new_password: '', new_password2: '' };
 
   // Change username
+  let uname = profile.username;
   if (new_username && new_username !== profile.username) {
-    const uname = new_username.toLowerCase();
+    uname = new_username.toLowerCase();
     if (uname.length < 2) {
       return res.render('edit-profile', { title: '编辑资料', profile, error: '用户名至少2个字符', formData });
     }
@@ -122,7 +123,7 @@ router.post('/:username/edit', (req, res) => {
   req.session.user.display_name = display_name;
   req.session.user.bio = (bio || '').slice(0, 64);
   req.session.user.desc = desc || '';
-  res.redirect('/users/' + (new_username || profile.username));
+  res.redirect('/users/' + uname);
 });
 
 // Avatar upload with center-crop to square
