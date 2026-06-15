@@ -44,15 +44,17 @@ router.get('/', (req, res) => {
     posts = db.prepare(`${baseQuery} ORDER BY p.created_at DESC LIMIT ? OFFSET ?`).all(limit, offset);
     total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE is_deleted = 0").get();
   }
-	  // replies: sort in SQL; hot: fetch all, score, then slice
-	  if (sort === 'replies') {
-	    posts = db.prepare(`${baseQuery} ORDER BY comment_count DESC LIMIT ? OFFSET ?`).all(limit, offset);
-	  } else if (sort === 'hot') {
-	    const allPosts = db.prepare(`${baseQuery} ORDER BY p.created_at DESC`).all();
-	    allPosts.sort((a, b) => { let ha = a.comment_count / Math.max((Date.now() - new Date(a.created_at).getTime()) / 3600000, 1); let hb = b.comment_count / Math.max((Date.now() - new Date(b.created_at).getTime()) / 3600000, 1); return hb - ha; });
-	    total = { c: allPosts.length };
-	    posts = allPosts.slice(offset, offset + limit);
-	  }
+  // replies: sort in SQL; hot: score by recency-weighted engagement in SQL
+  if (sort === 'replies') {
+    posts = db.prepare(`${baseQuery} ORDER BY comment_count DESC LIMIT ? OFFSET ?`).all(limit, offset);
+  } else if (sort === 'hot') {
+    posts = db.prepare(`
+      SELECT * FROM (${baseQuery})
+      ORDER BY (comment_count * 3.0 + view_count * 0.1) / ((julianday('now') - julianday(created_at)) * 24.0 + 4.0) DESC
+      LIMIT ? OFFSET ?
+    `).all(limit, offset);
+    total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE is_deleted = 0").get();
+  }
 
   const totalPages = Math.ceil(total.c / limit);
 

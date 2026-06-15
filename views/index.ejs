@@ -1,70 +1,97 @@
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
   <h2 style="margin:0;padding:0;border:none">博客</h2>
   <% if (user) { %>
-    <a href="/new-post" style="background:var(--c);color:#fff;padding:6px 14px;border-radius:3px;font-size:13px;text-decoration:none">+ 发布新文章</a>
-  <% } %>
+    <a href="/new-post"
+      style="background:var(--c);color:#fff;padding:6px 14px;border-radius:3px;font-size:13px;text-decoration:none">+
+      发布新文章</a>
+    <% } %>
 </div>
 <!-- Category tabs -->
 <div class="search-tabs" style="margin-bottom:8px">
   <a href="/?sort=<%= sort || 'newest' %>" class="<%= !currentCat ? 'active' : '' %>">全部</a>
   <% categories.forEach(function(cat) { %>
-    <a href="/?cat=<%= cat.slug %>&sort=<%= sort || 'newest' %>" class="<%= currentCat === cat.slug ? 'active' : '' %>"><%= cat.name %></a>
-  <% }); %>
+    <a href="/?cat=<%= cat.slug %>&sort=<%= sort || 'newest' %>" class="<%= currentCat === cat.slug ? 'active' : '' %>">
+      <%= cat.name %>
+    </a>
+    <% }); %>
 </div>
 
 <div style="display:flex;gap:0;font-size:12px;margin-bottom:12px">
-  <% var base = '/?' + (currentCat ? 'cat=' + currentCat + '&' : ''); %>
-  <a href="<%= base %>sort=newest" style="padding:3px 10px;border:1px solid #ccc;<%= (sort||'newest')==='newest'?'background:var(--c);color:#fff;':'' %>">最新</a>
-  <a href="<%= base %>sort=replies" style="padding:3px 10px;border:1px solid #ccc;border-left:none;<%= sort==='replies'?'background:var(--c);color:#fff;':'' %>">回复</a>
-  <a href="<%= base %>sort=hot" style="padding:3px 10px;border:1px solid #ccc;border-left:none;<%= sort==='hot'?'background:var(--c);color:#fff;':'' %>">热门</a>
+  <% var base='/?' + (currentCat ? 'cat=' + currentCat + '&' : '' ); %>
+    <a href="<%= base %>sort=newest"
+      style="padding:3px 10px;border:1px solid #ccc;<%= (sort||'newest')==='newest'?'background:var(--c);color:#fff;':'' %>">最新</a>
+    <a href="<%= base %>sort=replies"
+      style="padding:3px 10px;border:1px solid #ccc;border-left:none;<%= sort==='replies'?'background:var(--c);color:#fff;':'' %>">回复</a>
+    <a href="<%= base %>sort=hot"
+      style="padding:3px 10px;border:1px solid #ccc;border-left:none;<%= sort==='hot'?'background:var(--c);color:#fff;':'' %>">热门</a>
 </div>
 
-<% if (posts.length === 0) { %>
+<% if (posts.length===0) { %>
   <p style="color:#999;text-align:center;padding:40px 0">还没有文章。</p>
-<% } %>
-
-<% posts.forEach(function(post) { %>
-<div class="Post">
-  <div class="PostHead">
-    <div class="date-wrap">
-      <span class="date-day"><%= new Date(post.created_at).getDate() %></span>
-      <span class="date-month"><%= ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][new Date(post.created_at).getMonth()] %></span>
-    </div>
-    <div class="title-wrap">
-      <h2><a href="/posts/<%= post.slug %>"><%= post.title %></a></h2>
-      <span class="submitted">
-        <img src="<%= post.avatar || '/img/default-avatar.svg' %>" style="width:18px;height:18px;vertical-align:middle;margin-right:3px"><a href="/users/<%= post.username %>"><%= post.display_name || post.username %></a>
-        <span class="lv-badge">Lv.<%= post.level || 1 %></span> |
-        <%= post.created_at.slice(0, 16) %>
-        <% if (post.category) { %> | <a href="/search?q=<%= encodeURIComponent(post.category) %>"><%= post.category_name || post.category %></a><% } %>
-        | <%= post.comment_count %> 评论 | <%= post.view_count %> 阅读
-      </span>
-    </div>
-  </div>
-  <div class="PostContent">
-    <%- post.excerpt || post.content_html.slice(0, 300) %>
-    <% if (post.content_html.length > 300 || post.excerpt) { %>
-      <p><a href="/posts/<%= post.slug %>">阅读全文...</a></p>
-    <% } %>
-  </div>
-  <% if (post.tags) { %>
-  <div class="tools">
-    标签: <% post.tags.split(',').forEach(function(t) { %>
-      <a href="/search?q=<%= encodeURIComponent(t.trim()) %>&type=posts"><%= t.trim() %></a>
-    <% }); %>
-  </div>
   <% } %>
-</div>
-<% }); %>
 
-<% if (totalPages > 1) { %>
-<div class="pages-nav">
-  <% for (var i = 1; i <= totalPages; i++) { %>
-    <% if (i === page) { %>
-      <span class="current"><%= i %></span>
-    <% } else { %>
-      <a href="<%= base %>sort=<%= sort %>&page=<%= i %>"><%= i %></a>
-    <% } %>
-  <% } %>
-</div>
-<% } %>
+    <% posts.forEach(function(post) { %>
+      <div class="Post">
+        <div class="PostHead">
+          <div class="date-wrap">
+            <span class="date-day">
+              <%= new Date(post.created_at).getDate() %>
+            </span>
+            <span class="date-month">
+              <%= ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][new
+                Date(post.created_at).getMonth()] %>
+            </span>
+          </div>
+          <div class="title-wrap">
+            <h2><a href="/posts/<%= post.slug %>">
+                <%= post.title %>
+              </a></h2>
+            <span class="submitted">
+              <img src="<%= post.avatar || '/img/default-avatar.png' %>"
+                style="width:18px;height:18px;vertical-align:middle;margin-right:3px"><a
+                href="/users/<%= post.username %>">
+                <%= post.display_name || post.username %>
+              </a>
+              <span class="lv-badge">Lv.<%= post.level || 1 %></span> |
+              <%= post.created_at.slice(0, 16) %>
+                <% if (post.category) { %> | <a href="/search?q=<%= encodeURIComponent(post.category) %>">
+                    <%= post.category_name || post.category %>
+                  </a>
+                  <% } %>
+                    | <%= post.comment_count %> 评论 | <%= post.view_count %> 阅读
+            </span>
+          </div>
+        </div>
+        <div class="PostContent">
+          <%- post.excerpt || post.content_html.slice(0, 300) %>
+            <% if (post.content_html.length> 300 || post.excerpt) { %>
+              <p><a href="/posts/<%= post.slug %>">阅读全文...</a></p>
+              <% } %>
+        </div>
+        <% if (post.tags) { %>
+          <div class="tools">
+            标签: <% post.tags.split(',').forEach(function(t) { %>
+              <a href="/search?q=<%= encodeURIComponent(t.trim()) %>&type=posts">
+                <%= t.trim() %>
+              </a>
+              <% }); %>
+          </div>
+          <% } %>
+      </div>
+      <% }); %>
+
+        <% if (totalPages> 1) { %>
+          <div class="pages-nav">
+            <% for (var i=1; i <=totalPages; i++) { %>
+              <% if (i===page) { %>
+                <span class="current">
+                  <%= i %>
+                </span>
+                <% } else { %>
+                  <a href="<%= base %>sort=<%= sort %>&page=<%= i %>">
+                    <%= i %>
+                  </a>
+                  <% } %>
+                    <% } %>
+          </div>
+          <% } %>

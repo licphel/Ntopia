@@ -3,10 +3,17 @@
     <h3>关于站长</h3>
     <div class="sb-inner">
       <div style="overflow:hidden;margin-bottom:6px">
-        <a href="/users/<%= admin.username %>"><img src="<%= admin.avatar || '/img/default-avatar.svg' %>" style="width:48px;height:48px;border:2px solid #e0dbd0;float:left;margin:2px 10px 6px 0" alt=""></a>
-        <a href="/users/<%= admin.username %>" style="font-weight:bold;font-size:14px"><%= admin.display_name || admin.username %></a>
+        <a href="/users/<%= admin.username %>"><img src="<%= admin.avatar || '/img/default-avatar.png' %>"
+            style="width:48px;height:48px;border:2px solid #e0dbd0;float:left;margin:2px 10px 6px 0" alt=""></a>
+        <a href="/users/<%= admin.username %>" style="font-weight:bold;font-size:14px">
+          <%= admin.display_name || admin.username %>
+        </a>
         <span style="font-size:10px;color:#999;margin-left:4px">@<%= admin.username %></span>
-        <% if (admin.bio) { %><div style="font-size:12px;color:#666;margin-top:3px;line-height:1.5"><%= admin.bio.slice(0, 64) %></div><% } %>
+        <% if (admin.bio) { %>
+          <div style="font-size:12px;color:#666;margin-top:3px;line-height:1.5">
+            <%= admin.bio.slice(0, 64) %>
+          </div>
+          <% } %>
       </div>
       <div style="font-size:11px;color:#999;line-height:1.6;clear:both">
         创建于 Ntopia，致力于构建一个自由、理性的知识交流社区。欢迎所有热爱思考的朋友。
@@ -18,69 +25,79 @@
     <h3>站内搜索</h3>
     <div class="sb-inner">
       <form method="GET" action="/search" style="display:flex;gap:2px">
-        <input type="text" name="q" placeholder="输入关键词..." style="flex:1;padding:3px 6px;border:1px solid #ccc;font-size:12px;font-family:inherit">
-        <button type="submit" style="background:var(--c);color:#fff;border:none;padding:3px 8px;cursor:pointer;font-size:11px">搜索</button>
+        <input type="text" name="q" placeholder="输入关键词..."
+          style="flex:1;padding:3px 6px;border:1px solid #ccc;font-size:12px;font-family:inherit">
+        <button type="submit"
+          style="background:var(--c);color:#fff;border:none;padding:3px 8px;cursor:pointer;font-size:11px">搜索</button>
       </form>
     </div>
   </div>
 
   <% if (recentPosts && recentPosts.length) { %>
-  <div class="sb-box">
-    <h3>最新文章</h3>
-    <div class="sb-inner">
-      <ul>
-        <% recentPosts.forEach(function(p) { %>
-          <li><a href="/posts/<%= p.slug %>"><%= p.title %></a></li>
-        <% }); %>
-      </ul>
+    <div class="sb-box">
+      <h3>最新文章</h3>
+      <div class="sb-inner">
+        <ul>
+          <% recentPosts.forEach(function(p) { %>
+            <li><a href="/posts/<%= p.slug %>">
+                <%= p.title %>
+              </a></li>
+            <% }); %>
+        </ul>
+      </div>
     </div>
-  </div>
-  <% } %>
+    <% } %>
 
-  <% if (recentComments && recentComments.length) { %>
-  <div class="sb-box">
-    <h3>最近评论</h3>
-    <div class="sb-inner">
-      <ul>
-        <% recentComments.forEach(function(c) { %>
-          <li style="margin-bottom:6px;padding-bottom:4px;border-bottom:1px dotted #eee">
-            <a href="/<%= 'posts' %>/<%= c.post_slug %>" style="color:#adcb83"><%= c.display_name || c.username %></a>:
-            <span style="color:#888;font-size:11px"><%= (c.cmt_content || '').replace(/<[^>]*>/g, '').slice(0, 40) %></span>
-          </li>
-        <% }); %>
-      </ul>
-    </div>
-  </div>
-  <% } %>
+      <% if (recentComments && recentComments.length) { %>
+        <div class="sb-box">
+          <h3>最近评论</h3>
+          <div class="sb-inner">
+            <ul>
+              <% recentComments.forEach(function(c) { %>
+                <li style="margin-bottom:6px;padding-bottom:4px;border-bottom:1px dotted #eee">
+                  <a href="/<%= 'posts' %>/<%= c.post_slug %>" style="color:#adcb83">
+                    <%= c.display_name || c.username %>
+                  </a>:
+                  <span style="color:#888;font-size:11px">
+                    <%= (c.cmt_content || '' ).replace(/<[^>]*>/g, '').slice(0, 40) %>
+                  </span>
+                </li>
+                <% }); %>
+            </ul>
+          </div>
+        </div>
+        <% } %>
 
-  <% if (tagList && tagList.length) { %>
-  <div class="sb-box">
-    <h3>热门标签</h3>
-    <div class="sb-inner tag-cloud">
-      <% tagList.forEach(function(t) { %>
-        <a href="/search?q=<%= encodeURIComponent(t) %>&type=posts"><%= t %></a>
-      <% }); %>
-    </div>
-  </div>
-  <% } %>
+          <% if (tagList && tagList.length) { %>
+            <div class="sb-box">
+              <h3>热门标签</h3>
+              <div class="sb-inner tag-cloud">
+                <% tagList.forEach(function(t) { %>
+                  <a href="/search?q=<%= encodeURIComponent(t) %>&type=posts">
+                    <%= t %>
+                  </a>
+                  <% }); %>
+              </div>
+            </div>
+            <% } %>
 
-  <% if (typeof stats !== 'undefined' && stats) { %>
-<div class="sb-box">
-  <h3>站点统计</h3>
-  <div class="sb-inner" style="font-size:12px;line-height:1.8">
-    文章 <%= stats.posts %> 篇<br>
-    评论 <%= stats.comments %> 条 | 用户 <%= stats.users %> 人
-  </div>
-</div>
-<% } %>
-<div class="sb-box">
-    <h3>友情链接</h3>
-    <div class="sb-inner">
-      <ul>
-        <li><a href="https://kexue.fm" target="_blank" rel="noopener">科学空间</a></li>
-        <li><a href="https://licphel.github.io" target="_blank" rel="noopener">Licphel 个人主页</a></li>
-      </ul>
-    </div>
-  </div>
+              <% if (typeof stats !=='undefined' && stats) { %>
+                <div class="sb-box">
+                  <h3>站点统计</h3>
+                  <div class="sb-inner" style="font-size:12px;line-height:1.8">
+                    文章 <%= stats.posts %> 篇<br>
+                      评论 <%= stats.comments %> 条 | 用户 <%= stats.users %> 人
+                  </div>
+                </div>
+                <% } %>
+                  <div class="sb-box">
+                    <h3>友情链接</h3>
+                    <div class="sb-inner">
+                      <ul>
+                        <li><a href="https://kexue.fm" target="_blank" rel="noopener">科学空间</a></li>
+                        <li><a href="https://licphel.github.io" target="_blank" rel="noopener">Licphel 个人主页</a></li>
+                      </ul>
+                    </div>
+                  </div>
 
 </div>

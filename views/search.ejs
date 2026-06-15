@@ -8,45 +8,58 @@
 
   <div class="search-tabs">
     <a href="/search?q=<%= encodeURIComponent(query) %>&type=all" class="<%= type === 'all' ? 'active' : '' %>">全部</a>
-    <a href="/search?q=<%= encodeURIComponent(query) %>&type=posts" class="<%= type === 'posts' ? 'active' : '' %>">文章</a>
-    <a href="/search?q=<%= encodeURIComponent(query) %>&type=users" class="<%= type === 'users' ? 'active' : '' %>">用户</a>
+    <a href="/search?q=<%= encodeURIComponent(query) %>&type=posts"
+      class="<%= type === 'posts' ? 'active' : '' %>">文章</a>
+    <a href="/search?q=<%= encodeURIComponent(query) %>&type=users"
+      class="<%= type === 'users' ? 'active' : '' %>">用户</a>
   </div>
 
   <% if (!query) { %>
     <p style="color:#999;text-align:center;padding:40px 0">输入关键词开始搜索。</p>
-  <% } %>
+    <% } %>
 
-  <% if (query && postResults.length + userResults.length === 0) { %>
-    <p style="color:#999;text-align:center;padding:40px 0">没有找到相关内容。</p>
-  <% } %>
+      <% if (query && postResults.length + userResults.length===0) { %>
+        <p style="color:#999;text-align:center;padding:40px 0">没有找到相关内容。</p>
+        <% } %>
 
-  <% if (postResults.length) { %>
-    <h3>文章 (<%= postResults.length %>)</h3>
-    <% postResults.forEach(function(p) { %>
-    <div class="forum-topic">
-      <h3><a href="/posts/<%= p.slug %>"><%= p.title %></a></h3>
-      <div class="forum-meta">
-        <a href="/users/<%= p.username %>"><%= p.display_name || p.username %></a> |
-        <%= p.created_at.slice(0, 16) %> |
-        <%= p.comment_count %> 评论
-      </div>
-      <div style="font-size:12px;color:#666;margin-top:4px"><%= (p.excerpt || '').slice(0, 120) %></div>
-    </div>
-    <% }); %>
-  <% } %>
+          <% if (postResults.length) { %>
+            <h3>文章 (<%= postResults.length %>)</h3>
+            <% postResults.forEach(function(p) { %>
+              <div class="forum-topic">
+                <h3><a href="/posts/<%= p.slug %>">
+                    <%= p.title %>
+                  </a></h3>
+                <div class="forum-meta">
+                  <a href="/users/<%= p.username %>">
+                    <%= p.display_name || p.username %>
+                  </a> |
+                  <%= p.created_at.slice(0, 16) %> |
+                    <%= p.comment_count %> 评论
+                </div>
+                <div style="font-size:12px;color:#666;margin-top:4px">
+                  <%= (p.excerpt || '' ).slice(0, 120) %>
+                </div>
+              </div>
+              <% }); %>
+                <% } %>
 
 
-  <% if (userResults.length) { %>
-    <h3>用户 (<%= userResults.length %>)</h3>
-    <% userResults.forEach(function(u) { %>
-    <div class="forum-topic" style="display:flex;align-items:center;gap:12px">
-      <img src="<%= u.avatar || '/img/default-avatar.svg' %>" style="width:40px;height:40px;border-radius:3px;border:2px solid #e8e4d8">
-      <div>
-        <a href="/users/<%= u.username %>" style="font-weight:bold;font-size:14px"><%= u.display_name || u.username %></a>
-        <span style="color:#999;font-size:12px">@<%= u.username %></span>
-        <div style="font-size:11px;color:#999"><%= u.post_count %> 篇文章 | <%= (u.bio || '').slice(0, 60) %></div>
-      </div>
-    </div>
-    <% }); %>
-  <% } %>
+                  <% if (userResults.length) { %>
+                    <h3>用户 (<%= userResults.length %>)</h3>
+                    <% userResults.forEach(function(u) { %>
+                      <div class="forum-topic" style="display:flex;align-items:center;gap:12px">
+                        <img src="<%= u.avatar || '/img/default-avatar.png' %>"
+                          style="width:40px;height:40px;border-radius:3px;border:2px solid #e8e4d8">
+                        <div>
+                          <a href="/users/<%= u.username %>" style="font-weight:bold;font-size:14px">
+                            <%= u.display_name || u.username %>
+                          </a>
+                          <span style="color:#999;font-size:12px">@<%= u.username %></span>
+                          <div style="font-size:11px;color:#999">
+                            <%= u.post_count %> 篇文章 | <%= (u.bio || '' ).slice(0, 60) %>
+                          </div>
+                        </div>
+                      </div>
+                      <% }); %>
+                        <% } %>
 </div>

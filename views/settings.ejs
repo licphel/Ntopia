@@ -1,20 +1,71 @@
 <h2>设置</h2>
 
-<div class="search-tabs" style="margin-bottom:16px">
-  <a href="/settings?tab=theme" class="<%= tab==='theme'||!tab?'active':'' %>">主题</a>
-  <a href="/settings?tab=account" class="<%= tab==='account'?'active':'' %>">密码</a>
-  <a href="/settings?tab=email" class="<%= tab==='email'?'active':'' %>">邮箱</a>
-</div>
+<div style="display:flex;gap:24px;margin-top:12px">
+  <!-- Left: category menu -->
+  <div style="width:140px;flex-shrink:0">
+    <%
+      var topTab = tab || 'appearance';
+      var sub = (typeof subtab !== 'undefined' && subtab) ? subtab : (topTab === 'account' ? 'password' : 'theme');
+      var cats = [
+        { id: 'appearance', label: '图形', subs: [{ id: 'theme', label: '主题' }] },
+        { id: 'account', label: '账号', subs: [
+          { id: 'password', label: '密码' },
+          { id: 'email', label: '邮箱' },
+          { id: 'delete', label: '注销' }
+        ]}
+      ];
+    %>
+    <% cats.forEach(function(cat) { %>
+      <div style="margin-bottom:8px">
+        <a href="/settings?tab=<%= cat.id %>&sub=<%= cat.subs[0].id %>"
+           style="display:block;padding:6px 10px;font-weight:bold;font-size:14px;color:<%= topTab===cat.id ? 'var(--c)' : '#555' %>;background:<%= topTab===cat.id ? '#f0ede5' : 'transparent' %>;border-radius:3px;text-decoration:none">
+           <%= cat.label %>
+        </a>
+        <div style="margin-left:12px;margin-top:2px">
+          <% cat.subs.forEach(function(s) { %>
+            <a href="/settings?tab=<%= cat.id %>&sub=<%= s.id %>"
+               style="display:block;padding:4px 10px;font-size:13px;color:<%= topTab===cat.id && sub===s.id ? 'var(--c)' : '#777' %>;font-weight:<%= topTab===cat.id && sub===s.id ? 'bold' : 'normal' %>;border-left:<%= topTab===cat.id && sub===s.id ? '2px solid var(--c)' : '2px solid transparent' %>;text-decoration:none">
+               <%= s.label %>
+            </a>
+          <% }); %>
+        </div>
+      </div>
+    <% }); %>
+  </div>
 
-<% if (tab === 'account') { %>
+  <!-- Right: content area -->
+  <div style="flex:1;min-width:0">
+
+<% if (topTab === 'appearance') { %>
+  <h3>主题颜色</h3>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">
+    <% [
+      { id:'green', name:'墨绿', c:'#5a8a5a', bg:'#e6f7e6' },
+      { id:'blue', name:'蓝', c:'#5a8aaa', bg:'#e4effa' },
+      { id:'purple', name:'紫', c:'#7a6a9a', bg:'#f3e6fc' },
+      { id:'orange', name:'橙', c:'#b8845a', bg:'#fef3e6' },
+      { id:'red', name:'红', c:'#a06050', bg:'#fce8e6' },
+      { id:'teal', name:'青', c:'#5a8a7a', bg:'#e6f5f2' },
+      { id:'pink', name:'粉', c:'#9a6a80', bg:'#fce6f0' },
+      { id:'dark', name:'暗绿', c:'#5a7a5a', bg:'#e8f0e8' },
+    ].forEach(function(t){ %>
+      <div onclick="setTheme('<%= t.id %>')" style="cursor:pointer;text-align:center;padding:12px 16px;border:2px solid #ddd;border-radius:6px;min-width:80px;background:<%= t.bg %>">
+        <div style="width:32px;height:32px;border-radius:50%;background:<%= t.c %>;margin:0 auto 6px"></div>
+        <span style="font-size:13px"><%= t.name %></span>
+      </div>
+    <% }); %>
+  </div>
+  <p style="color:#999;font-size:12px;margin-top:16px">点击颜色即可切换，设置保存在浏览器中。</p>
+
+<% } else if (topTab === 'account' && sub === 'password') { %>
   <h3>修改密码</h3>
   <% if (accountError) { %><div class="auth-error"><%= accountError %></div><% } %>
   <% if (accountOk) { %><div style="color:var(--c);text-align:center;margin-bottom:8px"><%= accountOk %></div><% } %>
-  <div class="auth-form" style="margin-top:0">
+  <div class="auth-form" style="margin-top:0;max-width:400px">
   <form method="POST" action="/settings/account">
   <input type="hidden" name="_csrf" value="<%= csrf %>">
     <label>邮箱验证码</label>
-    <p style="font-size:12px;color:#999;margin-bottom:6px">验证码将发送至：<strong><%= user.email || '未绑定' %></strong></p>
+    <p style="font-size:12px;color:#999;margin-bottom:6px">验证码将发送至：<strong><%= user && user.email ? user.email : '未绑定' %></strong></p>
     <div style="display:flex;gap:8px;margin-bottom:10px">
       <input type="text" name="email_code" required placeholder="6位验证码" style="flex:1;margin-bottom:0">
       <button type="button" id="pwdSendBtn" onclick="sendPwdCode()" style="background:var(--c);color:#fff;border:none;padding:7px 14px;border-radius:3px;cursor:pointer;font-size:12px;white-space:nowrap">发送验证码</button>
@@ -28,14 +79,14 @@
   </form>
   </div>
 
-<% } else if (tab === 'email') { %>
+<% } else if (topTab === 'account' && sub === 'email') { %>
   <h3>邮箱绑定</h3>
   <% if (emailError) { %><div class="auth-error"><%= emailError %></div><% } %>
   <% if (emailOk) { %><div style="color:var(--c);text-align:center;margin-bottom:8px"><%= emailOk %></div><% } %>
   <p style="font-size:13px;color:#999;margin-bottom:12px">
-    当前邮箱：<strong><%= user.email || '未绑定' %></strong>
+    当前邮箱：<strong><%= user && user.email ? user.email : '未绑定' %></strong>
   </p>
-  <div class="auth-form" style="margin-top:0">
+  <div class="auth-form" style="margin-top:0;max-width:400px">
   <form method="POST" action="/settings/email">
   <input type="hidden" name="_csrf" value="<%= csrf %>">
     <label>新邮箱</label>
@@ -71,27 +122,28 @@
   }
   </script>
 
-<% } else { %>
-  <h3>主题颜色</h3>
-  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">
-    <% [
-      { id:'green', name:'墨绿', c:'#5a8a5a', bg:'#e6f7e6' },
-      { id:'blue', name:'蓝', c:'#5a8aaa', bg:'#e4effa' },
-      { id:'purple', name:'紫', c:'#7a6a9a', bg:'#f3e6fc' },
-      { id:'orange', name:'橙', c:'#b8845a', bg:'#fef3e6' },
-      { id:'red', name:'红', c:'#a06050', bg:'#fce8e6' },
-      { id:'teal', name:'青', c:'#5a8a7a', bg:'#e6f5f2' },
-      { id:'pink', name:'粉', c:'#9a6a80', bg:'#fce6f0' },
-      { id:'dark', name:'暗绿', c:'#5a7a5a', bg:'#e8f0e8' },
-    ].forEach(function(t){ %>
-      <div onclick="setTheme('<%= t.id %>')" style="cursor:pointer;text-align:center;padding:12px 16px;border:2px solid #ddd;border-radius:6px;min-width:80px;background:<%= t.bg %>">
-        <div style="width:32px;height:32px;border-radius:50%;background:<%= t.c %>;margin:0 auto 6px"></div>
-        <span style="font-size:13px"><%= t.name %></span>
-      </div>
-    <% }); %>
+<% } else if (topTab === 'account' && sub === 'delete') { %>
+  <h3 style="color:#c00">删除账号</h3>
+  <p style="font-size:12px;color:#999;margin-bottom:8px">删除后你的所有文章和评论将被标记为删除，私信和通知将被清除。此操作不可撤销。</p>
+  <div class="auth-form" style="margin-top:0;border-color:#c00;max-width:400px">
+  <form method="POST" action="/settings/delete-account" onsubmit="return confirm('确定要删除账号吗？此操作不可撤销！')">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <label>邮箱验证码</label>
+    <p style="font-size:12px;color:#999;margin-bottom:6px">验证码将发送至：<strong><%= user && user.email ? user.email : '未绑定' %></strong></p>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <input type="text" name="email_code" required placeholder="6位验证码" style="flex:1;margin-bottom:0">
+      <button type="button" id="delSendBtn" onclick="sendDelCode()" style="background:#c00;color:#fff;border:none;padding:7px 14px;border-radius:3px;cursor:pointer;font-size:12px;white-space:nowrap">发送验证码</button>
+      <span id="delSendStatus" style="font-size:11px;color:#999;margin-left:4px"></span>
+    </div>
+    <button type="submit" class="submit-btn" style="background:#c00">确认删除账号</button>
+  </form>
   </div>
-  <p style="color:#999;font-size:12px;margin-top:16px">点击颜色即可切换，设置保存在浏览器中。</p>
 <% } %>
+
+  </div>
+</div>
+
+<input type="hidden" name="_csrf" value="<%= csrf %>">
 
 <script>
 var pwdCd = 0;
@@ -113,6 +165,25 @@ function pwdTick(btn){
   btn.textContent = pwdCd+'s后重发'; btn.disabled=true;
   pwdCd--; setTimeout(function(){pwdTick(btn)},1000);
 }
+var delCd = 0;
+function sendDelCode(){
+  if(delCd > 0) return;
+  var st = document.getElementById('delSendStatus');
+  <% if (user && user.email) { %>
+  var btn = document.getElementById('delSendBtn');
+  btn.textContent = '发送中...'; btn.disabled = true; st.textContent = '';
+  fetch('/email/send', { method:'POST', headers:{'Content-Type':'application/json','x-csrf-token':'<%= csrf %>'}, body:JSON.stringify({email:'<%= user.email %>'}) })
+    .then(r=>r.json()).then(d=>{
+      if(d.ok){ delCd=60; st.textContent='已发送'; st.style.color='var(--c)'; delTick(btn); }
+      else { btn.textContent='发送验证码'; btn.disabled=false; st.textContent=d.error||'失败'; st.style.color='#c00'; }
+    }).catch(function(){ btn.textContent='发送验证码'; btn.disabled=false; st.textContent='网络错误'; st.style.color='#c00'; });
+  <% } %>
+}
+function delTick(btn){
+  if(delCd<=0){ btn.textContent='发送验证码'; btn.disabled=false; st.textContent=''; return; }
+  btn.textContent = delCd+'s后重发'; btn.disabled=true;
+  delCd--; setTimeout(function(){delTick(btn)},1000);
+}
 function setTheme(id){
   document.documentElement.className = 'theme-' + id;
   document.cookie = 'ntopia_theme=' + id + ';path=/;max-age=31536000';
@@ -128,5 +199,3 @@ function setTheme(id){
   });
 })();
 </script>
-
-<input type="hidden" name="_csrf" value="<%= csrf %>">

@@ -146,7 +146,7 @@ a:hover{color:var(--cd);text-decoration:underline}
 /* === Profile === */
 .profile-header{display:flex;gap:14px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #e0dbd0}
 .profile-avatar{flex-shrink:0}
-.profile-avatar img{width:48px;height:48px;border:2px solid #e0dbd0}
+.profile-avatar img{width:240px !important;height:240px !important;border:3px solid #e0dbd0;border-radius:4px}
 .profile-info{min-width:0;flex:1;overflow:hidden}
 .profile-info h2{font-size:18px;margin-bottom:2px;border:none;padding:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .profile-info .bio{color:#666;font-size:12px;margin:2px 0}
@@ -223,7 +223,7 @@ a:hover{color:var(--cd);text-decoration:underline}
           <li><a href="/notifications" style="position:relative">通知<% if (unreadNotifs) { %><span class="notif-badge"><%= unreadNotifs > 99 ? '99+' : unreadNotifs %></span><% } %></a></li>
           <li><a href="/messages" style="position:relative">私信<% if (unreadMessages) { %><span class="notif-badge"><%= unreadMessages > 99 ? '99+' : unreadMessages %></span><% } %></a></li>
           <li><a href="/rss.xml" target="_blank">RSS</a></li>
-          <li><a href="/auth/logout">退出</a></li>
+          <li><form method="POST" action="/auth/logout" style="display:inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><button type="submit" style="background:#fff;border:1px solid #ccc;color:var(--c);cursor:pointer;font-size:12px;padding:2px 8px;border-radius:2px;font-family:inherit">退出</button></form></li>
         <% } else { %>
           <li><a href="/auth/login">登录</a></li>
         <% } %>
@@ -358,6 +358,36 @@ async function toggleBookmark(e, postId) {
     }
   });
   document.addEventListener('keydown',function(e){if(e.key==='Escape')lb.style.display='none';});
+})();
+</script>
+
+<script>
+// Preserve scroll position across page reloads
+(function(){
+  var key = 'ntopia_scroll_' + location.pathname;
+  var saved = sessionStorage.getItem(key);
+  if (saved) {
+    // Restore on next paint after images/embeds settle
+    var y = parseInt(saved, 10);
+    if (y > 0) {
+      var restore = function() {
+        window.scrollTo(0, y);
+        if (Math.abs(window.scrollY - y) > 50) {
+          requestAnimationFrame(function() { window.scrollTo(0, y); });
+        }
+      };
+      requestAnimationFrame(restore);
+      setTimeout(restore, 200);
+    }
+    sessionStorage.removeItem(key);
+  }
+  // Save scroll on navigation and periodically
+  var save = function() { sessionStorage.setItem(key, window.scrollY); };
+  var ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) { requestAnimationFrame(function() { save(); ticking = false; }); ticking = true; }
+  }, { passive: true });
+  window.addEventListener('beforeunload', save);
 })();
 </script>
 

@@ -16,8 +16,7 @@ router.post('/send', limiter, async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     console.error('Email error:', e.message);
-    console.log(`[DEV] code=${code} email=${email}`);
-    res.json({ ok: false, error: e.message });
+    res.json({ ok: false, error: '邮件发送失败，请稍后重试' });
   }
 });
 

@@ -41,7 +41,7 @@ router.post('/register', (req, res) => {
   if (!agree) return res.render('register', { title: '注册', error: '请先阅读并同意用户须知' });
   if (!captcha || captcha.toLowerCase() !== req.session._captcha) return res.render('register', { title: '注册', error: '验证码错误' });
   req.session._captcha = null;
-  if (username.length > 64 || password.length > 64 || (display_name||'').length > 64) return res.render('register', { title: '注册', error: '输入过长' });
+  if (username.length > 64 || password.length > 64 || (display_name || '').length > 64) return res.render('register', { title: '注册', error: '输入过长' });
   if (!email || !email_code) return res.render('register', { title: '注册', error: '请先验证邮箱' });
   if (!verifyCode(email, email_code)) return res.render('register', { title: '注册', error: '验证码错误或已过期' });
   if (password !== password2) return res.render('register', { title: '注册', error: '两次密码不一致' });
@@ -51,13 +51,13 @@ router.post('/register', (req, res) => {
   if (exists) return res.render('register', { title: '注册', error: '用户名已被占用' });
   const hash = bcrypt.hashSync(password, 10);
   db.prepare('INSERT INTO users (username, password_hash, display_name, role, avatar, email) VALUES (?, ?, ?, 1, ?, ?)')
-    .run(uname, hash, display_name || uname, '/img/default-avatar.svg', email);
+    .run(uname, hash, display_name || uname, '/img/default-avatar.png', email);
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(uname);
   req.session.user = { id: user.id, username: user.username, display_name: user.display_name, role: user.role, avatar: user.avatar, xp: user.xp, level: user.level, email: user.email, needsEmail: !user.email };
   req.session.save(() => res.redirect('/'));
 });
 
-router.get('/logout', (req, res) => {
+router.post('/logout', (req, res) => {
   req.session.destroy();
   res.redirect('/');
 });
