@@ -35,11 +35,10 @@
         <div class="PostHead">
           <div class="date-wrap<%= post.is_pinned ? ' forum-date' : '' %>">
             <span class="date-day">
-              <%= new Date(post.created_at).getDate() %>
+              <%- timeTag(post.created_at, {fmt:'day'}) %>
             </span>
             <span class="date-month">
-              <%= ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][new
-                Date(post.created_at).getMonth()] %>
+              <%- timeTag(post.created_at, {fmt:'month'}) %>
             </span>
           </div>
           <div class="title-wrap">
@@ -53,7 +52,7 @@
                 <%= post.display_name || post.username %>
               </a>
               <span class="lv-badge">Lv.<%= post.level || 1 %></span> |
-              <%= post.created_at.slice(0, 16) %>
+              <%- timeTag(post.created_at) %>
                 <% if (post.category) { %> | <a href="/search?q=<%= encodeURIComponent(post.category) %>">
                     <%= post.category_name || post.category %>
                   </a>

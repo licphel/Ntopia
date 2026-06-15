@@ -6,8 +6,8 @@
     <h3><a href="/posts/<%= p.slug %>"><%= p.title %></a></h3>
     <div class="forum-meta">
       By <a href="/users/<%= p.username %>"><%= p.display_name || p.username %></a> |
-      <%= p.created_at.slice(0, 16) %> |
-      收藏于 <%= p.bookmarked_at.slice(0, 16) %>
+      <%- timeTag(p.created_at) %> |
+      收藏于 <%- timeTag(p.bookmarked_at).toISOString().slice(0, 16) %>
     </div>
   </div>
   <button onclick="removeBookmark(event, <%= p.id %>)" style="background:none;border:none;color:#c00;cursor:pointer;font-size:11px;padding:2px 6px;white-space:nowrap;flex-shrink:0">取消收藏</button>

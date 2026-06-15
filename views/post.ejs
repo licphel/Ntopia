@@ -2,11 +2,10 @@
   <div class="PostHead">
     <div class="date-wrap">
       <span class="date-day">
-        <%= new Date(post.created_at).getDate() %>
+        <%- timeTag(post.created_at, {fmt:'day'}) %>
       </span>
       <span class="date-month">
-        <%= ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][new
-          Date(post.created_at).getMonth()] %>
+        <%- timeTag(post.created_at, {fmt:'month'}) %>
       </span>
     </div>
     <div class="title-wrap">
@@ -25,7 +24,7 @@
             <%= b.text %>
           </span>
           <span class="lv-badge">Lv.<%= post.level || 1 %></span> |
-          <%= post.created_at.slice(0, 16) %>
+          <%- timeTag(post.created_at) %>
             <% if (post.category) { %> | <%= post.category_name || post.category %>
                 <% } %>
                   | <%= post.view_count %> 阅读
@@ -95,7 +94,7 @@
           <img src="<%= c.avatar || '/img/default-avatar.png' %>" style="width:16px;height:16px;vertical-align:middle;margin-right:3px">
           <a href="/users/<%= c.username %>"><strong><%= c.display_name || c.username %></strong></a>
           <span class="lv-badge">Lv.<%= c.level || 1 %></span>
-          <span style="color:#999;font-size:10px;margin-left:4px"><%= c.created_at.slice(5, 16) %></span>
+          <span style="color:#999;font-size:10px;margin-left:4px"><%- timeTag(c.created_at, {fmt:'short'}) %></span>
           <% var rc=comments.filter(function(x){return x.parent_id===c.id}).length; %>
           <a href="/posts/<%= post.slug %>/comment/<%= c.id %>" style="font-size:11px;color:var(--c);margin-left:6px"><%= rc>0 ? rc+'条回复' : '回复' %></a>
           <% if (user) { %><a href="#" onclick="submitReport('comment', <%= c.id %>);return false" style="font-size:10px;color:#999;margin-left:4px">举报</a><% } %>

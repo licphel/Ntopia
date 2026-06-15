@@ -15,7 +15,7 @@
           </strong></a>
         <span class="lv-badge">Lv.<%= root.level || 1 %></span>
         <span style="color:#999;font-size:11px;float:right">
-          <%= root.created_at.slice(0, 16) %>
+          <%- timeTag(root.created_at) %>
         </span>
   </div>
   <div style="font-size:14px;line-height:1.7"><%- root.content_html %></div>
@@ -40,7 +40,7 @@
       <a href="/users/<%= c.username %>"><strong><%= c.display_name || c.username %></strong></a>
       <span class="lv-badge">Lv.<%= c.level || 1 %></span>
       <% if (c.parent_username && c.parent_id !==root.id) { %><span style="color:var(--c);font-size:11px"> 回复 @<%= c.parent_display || c.parent_username %></span><% } %>
-      <span style="color:#999;font-size:10px;margin-left:4px"><%= c.created_at.slice(5, 16) %></span>
+      <span style="color:#999;font-size:10px;margin-left:4px"><%- timeTag(c.created_at, {fmt:'short'}) %></span>
       <% if (user) { %><a href="/posts/<%= post.slug %>/comment/<%= c.id %>" style="font-size:10px;color:var(--c);margin-left:4px">回复</a><% } %>
       <% if (user && (user.id===c.author_id || (user.role || 0)>= 32)) { %>
         <form method="POST" action="/posts/comments/<%= c.id %>/delete" style="display:inline" onsubmit="return confirm('确认删除？')"><input type="hidden" name="_csrf" value="<%= csrf %>"><button style="background:none;border:none;color:#c00;cursor:pointer;font-size:10px;padding:0;margin-left:4px">删除</button></form>

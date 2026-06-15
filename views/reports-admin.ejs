@@ -8,7 +8,7 @@
     <strong><%= r.reporter_display || r.reporter_name %></strong>
     <span style="color:#999;font-size:11px">举报了<%= r.type === 'post' ? '文章' : '评论' %></span>
     <a href="<%= r.link %>" style="color:var(--c)"><%= r.title %></a>
-    <span style="float:right;font-size:11px;color:#999"><%= r.created_at.slice(0, 16) %>
+    <span style="float:right;font-size:11px;color:#999"><%- timeTag(r.created_at) %>
       <% if (r.status !== 'pending') { %>
         · <%= r.status === 'resolved' ? '已处理' : '已驳回' %>
         <% if (r.resolved_by) { %>· by #<%= r.resolved_by %><% } %>

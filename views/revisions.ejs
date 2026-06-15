@@ -8,7 +8,7 @@
 <div class="comment" style="margin-bottom:8px;<%= idx === 0 ? 'border:2px solid var(--c)' : '' %>">
   <div style="margin-bottom:2px">
     <strong><%= idx === 0 ? '(最新)' : '#' + (revisions.length - idx) %></strong>
-    <span style="color:#999;font-size:11px"><%= r.created_at.slice(0, 16) %></span>
+    <span style="color:#999;font-size:11px"><%- timeTag(r.created_at) %></span>
     <span style="color:#999;font-size:11px"> by <%= r.display_name || r.username %></span>
   </div>
   <div style="font-size:13px;color:#666;margin:4px 0">

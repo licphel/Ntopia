@@ -450,5 +450,19 @@ async function toggleBookmark(e, postId) {
 })();
 </script>
 
+<script>
+(function(){
+  var M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function p(n){return n<10?'0'+n:n}
+  document.querySelectorAll('time.local-time').forEach(function(el){
+    var d=new Date(el.dateTime),f=el.getAttribute('data-fmt')||'datetime';
+    if(f==='day')el.textContent=d.getDate();
+    else if(f==='month')el.textContent=M[d.getMonth()];
+    else if(f==='date')el.textContent=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
+    else if(f==='short')el.textContent=p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+    else el.textContent=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+  });
+})();
+</script>
 </body>
 </html>

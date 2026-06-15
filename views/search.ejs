@@ -33,7 +33,7 @@
                   <a href="/users/<%= p.username %>">
                     <%= p.display_name || p.username %>
                   </a> |
-                  <%= p.created_at.slice(0, 16) %> |
+                  <%- timeTag(p.created_at) %> |
                     <%= p.comment_count %> 评论
                 </div>
                 <div style="font-size:12px;color:#666;margin-top:4px">

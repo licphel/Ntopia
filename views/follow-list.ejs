@@ -12,7 +12,7 @@
     <span style="color:#999;font-size:12px;margin-left:4px">@<%= u.username %></span>
     <div style="font-size:11px;color:#999"><%= (u.bio || '').slice(0, 60) %></div>
   </div>
-  <div style="font-size:11px;color:#999"><%= u.followed_at.slice(0, 10) %></div>
+  <div style="font-size:11px;color:#999"><%- timeTag(u.followed_at, {fmt:'date'}) %></div>
 </div>
 <% }); %>
 

@@ -9,8 +9,8 @@
   <div class="Post<%= post.is_pinned ? ' pinned' : '' %>">
     <div class="PostHead">
       <div class="date-wrap<%= post.is_pinned ? ' forum-date' : '' %>">
-        <span class="date-day"><%= new Date(post.created_at).getDate() %></span>
-        <span class="date-month"><%= ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][new Date(post.created_at).getMonth()] %></span>
+        <span class="date-day"><%- timeTag(post.created_at, {fmt:'day'}) %></span>
+        <span class="date-month"><%- timeTag(post.created_at, {fmt:'month'}) %></span>
       </div>
       <div class="title-wrap">
         <h2><a href="/posts/<%= post.slug %>"><%= post.title %></a></h2>
@@ -18,7 +18,7 @@
           <img src="<%= post.avatar || '/img/default-avatar.png' %>" style="width:18px;height:18px;vertical-align:middle;margin-right:3px">
           <a href="/users/<%= post.username %>"><%= post.display_name || post.username %></a>
           <span class="lv-badge">Lv.<%= post.level || 1 %></span> |
-          <%= post.created_at.slice(0, 16) %> |
+          <%- timeTag(post.created_at) %> |
           <%= post.comment_count %> 评论 | <%= post.view_count %> 阅读
         </span>
       </div>

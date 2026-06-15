@@ -9,7 +9,7 @@
 <div class="comment" style="<%= m.is_read ? '' : 'border-left:3px solid var(--c);background:#f8fff8' %>">
   <div class="cmt-header">
     <a href="/users/<%= m.username %>"><strong><%= m.display_name || m.username %></strong></a>
-    <span style="color:#999;font-size:11px"><%= m.created_at.slice(0, 16) %></span>
+    <span style="color:#999;font-size:11px"><%- timeTag(m.created_at) %></span>
     <a href="/messages/send/<%= m.username %>" style="font-size:11px;margin-left:8px">回复</a>
   </div>
   <div class="cmt-body"><%- m.content_html %></div>
@@ -24,7 +24,7 @@
 <div class="comment">
   <div class="cmt-header">
     发给 <a href="/users/<%= m.username %>"><strong><%= m.display_name || m.username %></strong></a>
-    <span style="color:#999;font-size:11px"><%= m.created_at.slice(0, 16) %></span>
+    <span style="color:#999;font-size:11px"><%- timeTag(m.created_at) %></span>
   </div>
   <div class="cmt-body"><%- m.content_html %></div>
 </div>
