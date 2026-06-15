@@ -1,5 +1,5 @@
 ---
-title: 关于 Ntopia
+title: 关于本站
 ---
 
 ## 技术架构
