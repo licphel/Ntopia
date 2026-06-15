@@ -55,7 +55,7 @@ router.get('/', (req, res) => {
       SELECT * FROM (${baseQuery} ${catFilter})
       ORDER BY is_pinned DESC, (comment_count * 3.0 + view_count * 0.1) / ((julianday(?) - julianday(created_at)) * 24.0 + 4.0) DESC
       LIMIT ? OFFSET ?
-    `).all(hotNow, ...catParam, limit, offset);
+    `).all(...catParam, hotNow, limit, offset);
   } else {
     posts = db.prepare(`${baseQuery} ${catFilter} ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT ? OFFSET ?`).all(...catParam, limit, offset);
   }
