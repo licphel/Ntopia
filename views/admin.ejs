@@ -70,13 +70,6 @@
   </tr>
   <% }); %>
 </table>
-<% if (totalPages > 1) { %>
-<div class="pages-nav">
-  <% for (var i = 1; i <= totalPages; i++) { %>
-    <% if (i === page) { %><span class="current"><%= i %></span>
-    <% } else { %><a href="/admin?page=<%= i %>"><%= i %></a><% } %>
-  <% } %>
-</div>
-<% } %>
+<% if (totalPages > 1) { %><%- include("pagination", { page: page, totalPages: totalPages, baseUrl: "/admin", param: "page" }) %><% } %>
 
 <input type="hidden" name="_csrf" value="<%= csrf %>">

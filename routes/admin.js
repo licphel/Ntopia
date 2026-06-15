@@ -2,6 +2,7 @@ const { LEVEL, canPost, canEdit, canDelete, canManageUser } = require('../lib/pe
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { db } = require('../lib/db');
+const config = require('../lib/config');
 const router = express.Router();
 
 function requireLevel(level) {
@@ -16,7 +17,7 @@ function requireLevel(level) {
 // Admin dashboard (>=32)
 router.get('/', requireLevel(LEVEL.ADMIN), (req, res) => {
   const page = parseInt(req.query.page) || 1;
-  const limit = 20;
+  const limit = 10;
   const stats = {
     users: db.prepare('SELECT COUNT(*) as c FROM users').get().c,
     posts: db.prepare('SELECT COUNT(*) as c FROM posts WHERE is_deleted = 0 OR is_deleted IS NULL').get().c,
@@ -54,9 +55,9 @@ router.post('/posts/:slug/delete', requireLevel(LEVEL.MOD), (req, res) => {
   res.redirect('/');
 });
 
-// Hard delete post (only if deleted 60+ days ago)
+// Hard delete post (only if past retention period)
 router.post('/posts/:slug/purge', requireLevel(LEVEL.ADMIN), (req, res) => {
-  const post = db.prepare("SELECT id FROM posts WHERE slug = ? AND is_deleted = 1 AND deleted_at < datetime('now', '-60 days')").get(req.params.slug);
+  const post = db.prepare(`SELECT id FROM posts WHERE slug = ? AND is_deleted = 1 AND deleted_at < datetime('now', '-${config.RETENTION}')`).get(req.params.slug);
   if (post) {
     db.prepare('DELETE FROM comments WHERE post_id = ?').run(post.id);
     db.prepare('DELETE FROM posts WHERE id = ?').run(post.id);
@@ -76,7 +77,8 @@ router.post('/posts/:slug/pin', requireLevel(LEVEL.MOD), (req, res) => {
   if (post) {
     db.prepare('UPDATE posts SET is_pinned = ? WHERE id = ?').run(post.is_pinned ? 0 : 1, post.id);
   }
-  res.redirect('back');
+  const back = req.get('Referer') || '';
+  res.redirect(back.startsWith('/') ? back : '/');
 });
 
 // Ban user (must be strictly higher level than target)
@@ -140,21 +142,26 @@ router.post('/comments/:id/delete-mod', requireLevel(LEVEL.MOD), (req, res) => {
   res.redirect('/posts/' + cmt.slug);
 });
 
-// Hard delete user (must be strictly higher level)
+// Delete user — soft-delete content, mark user for cleanup after 60 days
 router.post('/users/:id/delete', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
   const myRole = req.session.user.role || 0;
-  const target = db.prepare('SELECT id, role, username, banned FROM users WHERE id = ?').get(req.params.id);
+  const target = db.prepare('SELECT id, role, username, banned, deleted_at FROM users WHERE id = ?').get(req.params.id);
   if (!target) return res.redirect('/');
+  if (target.deleted_at) return res.status(400).render('error', { title: '错误', code: 400, message: '用户已被删除', detail: '该用户已在等待清理中', back: '/users/' + target.username });
   if (myRole <= target.role) return res.status(400).render('error', { title: '错误', code: 400, message: '权限不足', detail: '只能删除权限低于你的用户', back: '/users/' + target.username });
+  // Soft-delete all content
   db.prepare("UPDATE comments SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE author_id = ?").run(target.id);
   db.prepare("UPDATE posts SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE author_id = ?").run(target.id);
-  db.prepare('DELETE FROM messages WHERE from_id = ? OR to_id = ?').run(target.id, target.id);
+  db.prepare("UPDATE messages SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE (from_id = ? OR to_id = ?) AND is_deleted = 0").run(target.id, target.id);
   db.prepare('DELETE FROM notifications WHERE user_id = ?').run(target.id);
   db.prepare('DELETE FROM checkins WHERE user_id = ?').run(target.id);
   db.prepare('DELETE FROM xp_log WHERE user_id = ?').run(target.id);
-  db.prepare('UPDATE users SET banned = 1, password_hash = ? WHERE id = ?').run(bcrypt.hashSync(Math.random().toString(), 10), target.id);
-  res.redirect('/');
+  db.prepare('DELETE FROM likes WHERE user_id = ?').run(target.id);
+  db.prepare('DELETE FROM bookmarks WHERE user_id = ?').run(target.id);
+  // Mark user as deleted — content retained 60 days, then system purges
+  db.prepare("UPDATE users SET banned = 1, deleted_at = CURRENT_TIMESTAMP, password_hash = ? WHERE id = ?").run(bcrypt.hashSync(Math.random().toString(), 10), target.id);
+  res.redirect('/users/' + target.username);
 });
 
 module.exports = router;

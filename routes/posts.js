@@ -13,7 +13,7 @@ const router = express.Router();
 router.get('/drafts', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
   const page = parseInt(req.query.page) || 1;
-  const limit = 20;
+  const limit = 10;
   const drafts = db.prepare(`
     SELECT * FROM posts WHERE author_id = ? AND is_draft = 1 AND is_deleted = 0
     ORDER BY updated_at DESC LIMIT ? OFFSET ?
@@ -107,6 +107,8 @@ router.post('/new-post', async (req, res) => {
   const user = db.prepare('SELECT banned, email FROM users WHERE id = ?').get(req.session.user.id);
   if (user && (user.banned || !user.email)) return res.status(403).render('error', { title: '错误', code: 403, message: '账号受限', detail: user.banned ? '你的账号已被管理员封禁' : '请前往设置页面绑定邮箱后再操作', back: '/' });
   const { title, category, tags, excerpt, content, license } = req.body;
+  // Validate license against whitelist
+  const validLicense = LICENSES.some(l => l.key === license) ? (license || '') : '';
   const is_draft = req.body.is_draft === '1' ? 1 : 0;
   const slug = slugify(title) + '-' + Date.now();
   const html = renderMarkdown(content);
@@ -126,7 +128,7 @@ router.post('/new-post', async (req, res) => {
 
   db.prepare(`INSERT INTO posts (title, slug, content_md, content_html, excerpt, category, tags, author_id, is_draft, license)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(title, slug, content, html, excerpt || '', category || '', tags || '', req.session.user.id, is_draft, license || '');
+    .run(title, slug, content, html, excerpt || '', category || '', tags || '', req.session.user.id, is_draft, validLicense);
   const post = db.prepare('SELECT id FROM posts WHERE slug = ?').get(slug);
   if (is_draft) {
     res.redirect('/drafts');
@@ -155,6 +157,7 @@ router.post('/posts/:slug/edit', (req, res) => {
     return res.status(403).render('error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
   }
   const { title, content, category, tags, excerpt, license } = req.body;
+  const validLicense = LICENSES.some(l => l.key === license) ? (license || '') : '';
   const is_draft = req.body.is_draft === '1' ? 1 : 0;
   const html = renderMarkdown(content);
 
@@ -167,7 +170,7 @@ router.post('/posts/:slug/edit', (req, res) => {
   )`).run(post.id);
 
   db.prepare(`UPDATE posts SET title=?, content_md=?, content_html=?, excerpt=?, category=?, tags=?, is_draft=?, license=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-    .run(title, content, html, excerpt || '', category || '', tags || '', is_draft, license || '', post.id);
+    .run(title, content, html, excerpt || '', category || '', tags || '', is_draft, validLicense, post.id);
   res.redirect(is_draft ? '/drafts' : '/posts/' + post.slug);
 });
 

@@ -14,14 +14,7 @@
 </div>
 <% }); %>
 
-<% if (typeof bmTotalPages !== 'undefined' && bmTotalPages > 1) { %>
-<div class="pages-nav">
-  <% for (var i = 1; i <= bmTotalPages; i++) { %>
-    <% if (i === bmPage) { %><span class="current"><%= i %></span>
-    <% } else { %><a href="/bookmarks?page=<%= i %>"><%= i %></a><% } %>
-  <% } %>
-</div>
-<% } %>
+<%- include('pagination', { page: bmPage, totalPages: bmTotalPages, baseUrl: '/bookmarks', param: 'page' }) %>
 
 <script>
 async function removeBookmark(e, postId) {

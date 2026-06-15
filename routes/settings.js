@@ -58,11 +58,9 @@ router.post('/email', (req, res) => {
   renderSettings(res, { tab: 'account', subtab: 'email', emailOk: '邮箱绑定成功' });
 });
 
-// Account deletion — Super Admin+ only (content preserved for legal compliance)
+// Self account deletion (soft — content retained per retention policy)
 router.post('/delete-account', (req, res) => {
-  if (!req.session.user || (req.session.user.role || 0) < 64) {
-    return res.redirect('/auth/login');
-  }
+  if (!req.session.user) return res.redirect('/auth/login');
   const { email_code } = req.body;
   const uid = req.session.user.id;
   const email = req.session.user.email;
@@ -77,12 +75,14 @@ router.post('/delete-account', (req, res) => {
     return renderSettings(res, { tab: 'account', subtab: 'delete', accountError: '验证码错误或已过期' });
   }
 
-  // Soft-delete: ban user, scramble password, soft-delete all posts/comments
+  // Soft-delete: mark content and user for 60-day retention then purge
   db.prepare("UPDATE comments SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE author_id = ?").run(uid);
   db.prepare("UPDATE posts SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE author_id = ?").run(uid);
-  db.prepare('DELETE FROM messages WHERE from_id = ? OR to_id = ?').run(uid, uid);
+  db.prepare("UPDATE messages SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE (from_id = ? OR to_id = ?) AND is_deleted = 0").run(uid, uid);
   db.prepare('DELETE FROM notifications WHERE user_id = ?').run(uid);
-  db.prepare('UPDATE users SET banned = 1, password_hash = ? WHERE id = ?').run(bcrypt.hashSync(Math.random().toString(), 10), uid);
+  db.prepare('DELETE FROM likes WHERE user_id = ?').run(uid);
+  db.prepare('DELETE FROM bookmarks WHERE user_id = ?').run(uid);
+  db.prepare("UPDATE users SET banned = 1, deleted_at = CURRENT_TIMESTAMP, password_hash = ? WHERE id = ?").run(bcrypt.hashSync(Math.random().toString(), 10), uid);
 
   req.session.destroy();
   res.redirect('/');

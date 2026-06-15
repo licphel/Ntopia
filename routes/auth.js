@@ -46,6 +46,7 @@ router.post('/register', (req, res) => {
   if (!verifyCode(email, email_code)) return res.render('register', { title: '注册', error: '验证码错误或已过期' });
   if (password !== password2) return res.render('register', { title: '注册', error: '两次密码不一致' });
   if (username.length < 2 || password.length < 4) return res.render('register', { title: '注册', error: '用户名至少2字符，密码至少4字符' });
+  if (!/^[a-zA-Z0-9_一-鿿]+$/.test(username)) return res.render('register', { title: '注册', error: '用户名只能包含字母、数字、下划线和中文' });
   const uname = username.toLowerCase();
   const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(uname);
   if (exists) return res.render('register', { title: '注册', error: '用户名已被占用' });

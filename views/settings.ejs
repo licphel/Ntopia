@@ -6,8 +6,7 @@
     <%
       var topTab = tab || 'appearance';
       var sub = (typeof subtab !== 'undefined' && subtab) ? subtab : (topTab === 'account' ? 'password' : 'theme');
-      var accountSubs = [{ id: 'password', label: '密码' }, { id: 'email', label: '邮箱' }];
-      if (user && (user.role || 0) >= 64) accountSubs.push({ id: 'delete', label: '注销' });
+      var accountSubs = [{ id: 'password', label: '密码' }, { id: 'email', label: '邮箱' }, { id: 'delete', label: '注销' }];
       var cats = [
         { id: 'appearance', label: '图形', subs: [{ id: 'theme', label: '主题' }] },
         { id: 'account', label: '账号', subs: accountSubs }
@@ -120,7 +119,7 @@
   }
   </script>
 
-<% } else if (topTab === 'account' && sub === 'delete' && user && (user.role || 0) >= 64) { %>
+<% } else if (topTab === 'account' && sub === 'delete') { %>
   <h3 style="color:#c00">删除账号</h3>
   <p style="font-size:12px;color:#999;margin-bottom:8px">删除后你的所有文章和评论将被标记为删除，私信和通知将被清除。此操作不可撤销。</p>
   <div class="auth-form" style="margin-top:0;border-color:#c00;max-width:400px">

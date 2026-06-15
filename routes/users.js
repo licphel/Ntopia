@@ -15,7 +15,15 @@ const avatarUpload = multer({
     destination: UPLOADS_DIR,
     filename: (req, file, cb) => cb(null, 'avatar-' + req.session.user.id + '-' + Date.now() + path.extname(file.originalname))
   }),
-  limits: { fileSize: 5 * 1024 * 1024 }
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype) || !allowed.includes(ext)) {
+      return cb(new Error('仅允许 JPG/PNG/WebP'), false);
+    }
+    cb(null, true);
+  }
 });
 
 // User profile page with pagination
@@ -96,8 +104,8 @@ router.post('/:username/edit', (req, res) => {
   let uname = profile.username;
   if (new_username && new_username !== profile.username) {
     uname = new_username.toLowerCase();
-    if (uname.length < 2) {
-      return res.render('edit-profile', { title: '编辑资料', profile, error: '用户名至少2个字符', formData });
+    if (uname.length < 2 || !/^[a-zA-Z0-9_一-鿿]+$/.test(uname)) {
+      return res.render('edit-profile', { title: '编辑资料', profile, error: '用户名只能包含字母、数字、下划线和中文，至少2个字符', formData });
     }
     const exists = db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(uname, profile.id);
     if (exists) {

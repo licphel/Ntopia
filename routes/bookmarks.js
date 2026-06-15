@@ -23,7 +23,7 @@ router.post('/toggle', (req, res) => {
 router.get('/', (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
   const page = parseInt(req.query.page) || 1;
-  const limit = 20;
+  const limit = 10;
   const posts = db.prepare(`
     SELECT p.*, u.username, u.display_name, b.created_at as bookmarked_at
     FROM bookmarks b JOIN posts p ON b.post_id = p.id JOIN users u ON p.author_id = u.id

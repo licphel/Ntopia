@@ -76,7 +76,13 @@ router.post('/:slug/comment', async (req, res) => {
     }
   }
 
-  res.redirect(parent_id ? base + post.slug + '/comment/' + parent_id : base + post.slug);
+  // Redirect to the root of this reply thread (one level up if nested)
+  let threadId = parent_id;
+  if (parent_id) {
+    const parent = db.prepare('SELECT parent_id FROM comments WHERE id = ?').get(parent_id);
+    if (parent && parent.parent_id) threadId = parent.parent_id;
+  }
+  res.redirect(threadId ? base + post.slug + '/comment/' + threadId : base + post.slug);
 });
 
 // Sub-thread: single comment + all its replies
@@ -135,7 +141,7 @@ router.post('/comments/:id/delete', (req, res) => {
     return res.status(403).render('error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
   db.prepare("UPDATE comments SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?").run(req.params.id);
   const base = '/posts/';
-  res.redirect(cmt.parent_id ? base + cmt.slug + '/comment/' + cmt.parent_id : base + cmt.slug);
+  res.redirect(base + cmt.slug);
 });
 
 module.exports = router;

@@ -105,19 +105,7 @@
             </div>
           </div>
           <% }); %>
-            <% if (postPages> 1) { %>
-              <div class="pages-nav">
-                <% for (var i=1; i <=postPages; i++) { %>
-                  <% if (i===postPage) { %><span class="current">
-                      <%= i %>
-                    </span>
-                    <% } else { %><a href="/users/<%= profile.username %>?pp=<%= i %>&cp=<%= cmtPage %>">
-                        <%= i %>
-                      </a>
-                      <% } %>
-                        <% } %>
-              </div>
-              <% } %>
+            <%- include('pagination', { page: postPage, totalPages: postPages, baseUrl: '/users/' + profile.username + '?cp=' + cmtPage, param: 'pp' }) %>
 
                 <h3>评论记录</h3>
                 <% if (comments.length===0) { %>
@@ -138,18 +126,6 @@
                         <div class="cmt-body"><%- (c.content_html || '' ).slice(0, 300) %></div>
                       </div>
                       <% }); %>
-                        <% if (cmtPages> 1) { %>
-                          <div class="pages-nav">
-                            <% for (var i=1; i <=cmtPages; i++) { %>
-                              <% if (i===cmtPage) { %><span class="current">
-                                  <%= i %>
-                                </span>
-                                <% } else { %><a href="/users/<%= profile.username %>?pp=<%= postPage %>&cp=<%= i %>">
-                                    <%= i %>
-                                  </a>
-                                  <% } %>
-                                    <% } %>
-                          </div>
-                          <% } %>
+                        <%- include('pagination', { page: cmtPage, totalPages: cmtPages, baseUrl: '/users/' + profile.username + '?pp=' + postPage, param: 'cp' }) %>
 
                             <input type="hidden" name="_csrf" value="<%= csrf %>">

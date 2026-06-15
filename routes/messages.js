@@ -11,22 +11,35 @@ function requireLogin(req, res, next) {
 
 // Inbox
 router.get('/', requireLogin, (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const offset = (page - 1) * limit;
+
   const msgs = db.prepare(`
     SELECT m.*, u.username, u.display_name, u.avatar
     FROM messages m JOIN users u ON m.from_id = u.id
-    WHERE m.to_id = ? ORDER BY m.created_at DESC LIMIT 50
-  `).all(req.session.user.id);
+    WHERE m.to_id = ? AND (m.is_deleted = 0 OR m.is_deleted IS NULL) ORDER BY m.created_at DESC LIMIT ? OFFSET ?
+  `).all(req.session.user.id, limit, offset);
 
+  const msgTotal = db.prepare('SELECT COUNT(*) as c FROM messages WHERE to_id = ? AND (is_deleted = 0 OR is_deleted IS NULL)').get(req.session.user.id);
+
+  const sPage = parseInt(req.query.sp) || 1;
+  const sOffset = (sPage - 1) * limit;
   const sent = db.prepare(`
     SELECT m.*, u.username, u.display_name
     FROM messages m JOIN users u ON m.to_id = u.id
-    WHERE m.from_id = ? ORDER BY m.created_at DESC LIMIT 20
-  `).all(req.session.user.id);
+    WHERE m.from_id = ? AND (m.is_deleted = 0 OR m.is_deleted IS NULL) ORDER BY m.created_at DESC LIMIT ? OFFSET ?
+  `).all(req.session.user.id, limit, sOffset);
+  const sentTotal = db.prepare('SELECT COUNT(*) as c FROM messages WHERE from_id = ? AND (is_deleted = 0 OR is_deleted IS NULL)').get(req.session.user.id);
 
   // Mark all as read
   db.prepare('UPDATE messages SET is_read = 1 WHERE to_id = ? AND is_read = 0').run(req.session.user.id);
 
-  res.render('messages', { title: '私信', msgs, sent });
+  res.render('messages', {
+    title: '私信', msgs, sent,
+    msgPage: page, msgTotalPages: Math.ceil(msgTotal.c / limit),
+    sentPage: sPage, sentTotalPages: Math.ceil(sentTotal.c / limit),
+  });
 });
 
 // Send message page

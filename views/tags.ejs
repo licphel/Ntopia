@@ -24,7 +24,7 @@
       </div>
     </div>
     <div class="PostContent">
-      <%- post.excerpt || post.content_html.slice(0, 300) %>
+      <% if (post.excerpt) { %><%= post.excerpt %><% } else { %><%- post.content_html.slice(0, 300) %><% } %>
       <% if (post.content_html.length > 300 || post.excerpt) { %><p><a href="/posts/<%= post.slug %>">阅读全文...</a></p><% } %>
     </div>
     <% if (post.tags) { %>
@@ -33,11 +33,4 @@
   </div>
 <% }); %>
 
-<% if (totalPages > 1) { %>
-  <div class="pages-nav">
-    <% for (var i = 1; i <= totalPages; i++) { %>
-      <% if (i === page) { %><span class="current"><%= i %></span>
-      <% } else { %><a href="/tags/<%= encodeURIComponent(tag) %>?page=<%= i %>"><%= i %></a><% } %>
-    <% } %>
-  </div>
-<% } %>
+<% if (totalPages > 1) { %><%- include("pagination", { page: page, totalPages: totalPages, baseUrl: "/tags/" + encodeURIComponent(tag), param: "page" }) %><% } %>

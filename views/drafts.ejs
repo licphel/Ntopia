@@ -23,12 +23,5 @@
 </div>
 <% }); %>
 
-<% if (typeof draftTotalPages !== 'undefined' && draftTotalPages > 1) { %>
-<div class="pages-nav">
-  <% for (var i = 1; i <= draftTotalPages; i++) { %>
-    <% if (i === draftPage) { %><span class="current"><%= i %></span>
-    <% } else { %><a href="/drafts?page=<%= i %>"><%= i %></a><% } %>
-  <% } %>
-</div>
-<% } %>
+<%- include('pagination', { page: draftPage, totalPages: draftTotalPages, baseUrl: '/drafts', param: 'page' }) %>
 

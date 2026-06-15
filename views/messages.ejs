@@ -16,6 +16,8 @@
 </div>
 <% }); %>
 
+<%- include('pagination', { page: msgPage, totalPages: msgTotalPages, baseUrl: '/messages', param: 'page' }) %>
+
 <h3 style="margin-top:24px">已发送</h3>
 <% if (sent.length === 0) { %><p style="color:#999">暂无发送记录。</p><% } %>
 <% sent.forEach(function(m) { %>
@@ -27,3 +29,5 @@
   <div class="cmt-body"><%- m.content_html %></div>
 </div>
 <% }); %>
+
+<%- include('pagination', { page: sentPage, totalPages: sentTotalPages, baseUrl: '/messages', param: 'sp' }) %>
