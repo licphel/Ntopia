@@ -17,7 +17,7 @@ router.get('/', (req, res) => {
         SELECT p.*, u.username, u.display_name,
           (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
         FROM posts p JOIN users u ON p.author_id = u.id
-        WHERE p.type = 'post' AND (p.title LIKE ? OR p.content_md LIKE ? OR p.tags LIKE ?)
+        WHERE p.type = 'post' AND p.is_deleted = 0 AND (p.title LIKE ? OR p.content_md LIKE ? OR p.tags LIKE ?)
         ORDER BY p.created_at DESC LIMIT 20
       `).all(like, like, like);
     }
@@ -27,7 +27,7 @@ router.get('/', (req, res) => {
         SELECT p.*, u.username, u.display_name,
           (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
         FROM posts p JOIN users u ON p.author_id = u.id
-        WHERE p.type = 'forum' AND (p.title LIKE ? OR p.content_md LIKE ?)
+        WHERE p.type = 'forum' AND p.is_deleted = 0 AND (p.title LIKE ? OR p.content_md LIKE ?)
         ORDER BY p.created_at DESC LIMIT 20
       `).all(like, like);
     }

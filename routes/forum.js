@@ -59,20 +59,6 @@ router.post('/new-topic', (req, res) => {
   awardForumXP(req.session.user.id, post.id);
   req.session.user.xp = (req.session.user.xp || 0) + 3;
   res.redirect('/forum/' + slug);
-
-  const comments = db.prepare(`
-    SELECT c.*, u.username, u.display_name, u.avatar, u.level, u.role,
-      p2.username as parent_username, p2.display_name as parent_display
-    FROM comments c JOIN users u ON c.author_id = u.id
-    JOIN posts p ON c.post_id = p.id
-    LEFT JOIN comments pc ON c.parent_id = pc.id
-    LEFT JOIN users p2 ON pc.author_id = p2.id
-    WHERE c.post_id = ? AND ((c.is_deleted = 0 OR c.is_deleted IS NULL) OR ? >= 128) ORDER BY c.created_at ASC
-  `).all(topic.id, (req.session.user ? (req.session.user.role || 0) : 0));
-
-  computeDepth(comments);
-
-  res.render('comments', { title: '讨论: ' + topic.title, post: topic, comments });
 });
 
 // Sub-thread for forum

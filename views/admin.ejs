@@ -74,24 +74,3 @@
   <% } %>
 </div>
 <% } %>
-
-<% if (deletedPosts && deletedPosts.length) { %>
-<h3>已删除帖子</h3>
-<table class="admin-table">
-  <tr><th>标题</th><th>类型</th><th>操作</th></tr>
-  <% deletedPosts.forEach(function(p) { %>
-  <tr>
-    <td><%= p.title %></td>
-    <td><%= p.type %></td>
-    <td>
-      <form method="POST" action="/admin/posts/<%= p.slug %>/restore" style="display:inline">
-        <button style="background:var(--c);color:#fff;border:none;padding:2px 8px;border-radius:2px;cursor:pointer;font-size:11px">恢复</button>
-      </form>
-      <form method="POST" action="/admin/posts/<%= p.slug %>/purge" style="display:inline" onsubmit="return confirm('彻底删除？不可恢复！')">
-        <button style="background:#333;color:#fff;border:none;padding:2px 8px;border-radius:2px;cursor:pointer;font-size:11px">清除</button>
-      </form>
-    </td>
-  </tr>
-  <% }); %>
-</table>
-<% } %>

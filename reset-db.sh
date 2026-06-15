@@ -1,12 +1,13 @@
 #!/bin/bash
 # Reset Ntopia database to fresh state
-# Deletes SQLite DB and session files
+# Deletes SQLite DB, WAL/SHM files, and session files
 
 DATA_DIR="$(dirname "$0")/data"
 
 echo "Resetting Ntopia database..."
 
-rm -f "$DATA_DIR/core.db" "$DATA_DIR/volatile.db"
+# Remove all SQLite files (db, wal, shm) including legacy ntopia.db
+rm -f "$DATA_DIR"/*.db "$DATA_DIR"/*.db-wal "$DATA_DIR"/*.db-shm
 rm -rf "$DATA_DIR/sessions"/*
 
 echo "Done. Database and sessions cleared."

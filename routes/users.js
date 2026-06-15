@@ -102,7 +102,6 @@ router.post('/:username/edit', (req, res) => {
       return res.render('edit-profile', { title: '编辑资料', profile, error: '用户名已被占用', formData });
     }
     db.prepare('UPDATE users SET username = ? WHERE id = ?').run(uname, profile.id);
-    req.session.user.username = uname;
     req.session.user.username = new_username;
   }
 
@@ -123,46 +122,47 @@ router.post('/:username/edit', (req, res) => {
   res.redirect('/users/' + (new_username || profile.username));
 });
 
-// Avatar upload with compression
+// Avatar upload with center-crop to square
 router.post('/:username/avatar', avatarUpload.single('avatar'), async (req, res) => {
-  if (!req.session.user) return res.redirect('/auth/login');
+  if (!req.session.user) return res.status(401).json({ ok: false, error: '请先登录' });
   const profile = db.prepare('SELECT * FROM users WHERE username = ?').get(req.params.username);
-  if (!profile || profile.id !== req.session.user.id) return res.status(403).render('error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
-  if (req.file) {
-    try {
-      const inPath = req.file.path;
-      const outName = 'avatar-' + req.session.user.id + '.webp';
-      const outPath = path.join(UPLOADS_DIR, outName);
+  if (!profile || profile.id !== req.session.user.id) return res.status(403).json({ ok: false, error: '权限不足' });
+  if (!req.file) return res.status(400).json({ ok: false, error: '请选择文件' });
 
-      const ext = path.extname(req.file.originalname).toLowerCase();
-      if (ext === '.gif') {
-        // Keep GIF as-is, just copy
-        const outName2 = 'avatar-' + req.session.user.id + '.gif';
-        const outPath2 = path.join(UPLOADS_DIR, outName2);
-        fs.copyFileSync(inPath, outPath2);
-        fs.unlinkSync(inPath);
-        const url = '/uploads/' + outName2 + '?v=' + Date.now();
-        db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(url, profile.id);
-        req.session.user.avatar = url;
-        return res.redirect('/users/' + profile.username + '/edit');
-      }
-      await sharp(inPath)
-        .resize(256, 256, { fit: 'cover' })
-        .webp({ quality: 85 })
-        .toFile(outPath);
+  const inPath = req.file.path;
+  const ext = path.extname(req.file.originalname).toLowerCase();
 
-      fs.unlinkSync(inPath);
-      const url = '/uploads/' + outName + '?v=' + Date.now();
-      db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(url, profile.id);
-      req.session.user.avatar = url;
-    } catch(e) {
-      console.error('Avatar compress error:', e.message);
-      const url = '/uploads/' + req.file.filename;
-      db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(url, profile.id);
-      req.session.user.avatar = url;
-    }
+  // GIF cannot be cropped to square — reject
+  if (ext === '.gif') {
+    try { fs.unlinkSync(inPath); } catch(_) {}
+    return res.json({ ok: false, error: '头像不支持 GIF，请上传 JPG/PNG/WebP' });
   }
-  res.redirect('/users/' + profile.username + '/edit');
+
+  try {
+    // Center-crop to square, then resize to 256x256
+    const meta = await sharp(inPath).metadata();
+    const side = Math.min(meta.width, meta.height);
+    const left = Math.floor((meta.width - side) / 2);
+    const top = Math.floor((meta.height - side) / 2);
+
+    const outName = 'avatar-' + req.session.user.id + '.webp';
+    const outPath = path.join(UPLOADS_DIR, outName);
+    await sharp(inPath)
+      .extract({ left, top, width: side, height: side })
+      .resize(256, 256)
+      .webp({ quality: 85 })
+      .toFile(outPath);
+
+    fs.unlinkSync(inPath);
+    const url = '/uploads/' + outName + '?v=' + Date.now();
+    db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(url, profile.id);
+    req.session.user.avatar = url;
+    res.json({ ok: true, url });
+  } catch(e) {
+    console.error('Avatar compress error:', e.message);
+    try { if (fs.existsSync(inPath)) fs.unlinkSync(inPath); } catch(_) {}
+    res.json({ ok: false, error: '图片处理失败，请尝试其他图片' });
+  }
 });
 
 module.exports = router;

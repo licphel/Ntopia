@@ -8,10 +8,13 @@ if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 const coreDb = new Database(path.join(DATA_DIR, 'core.db'));
 coreDb.pragma('journal_mode = WAL');
 coreDb.pragma('foreign_keys = ON');
+// Checkpoint on startup to flush any WAL backlog into the main DB
+coreDb.pragma('wal_checkpoint(RESTART)');
 
 const volatileDb = new Database(path.join(DATA_DIR, 'volatile.db'));
 volatileDb.pragma('journal_mode = WAL');
 volatileDb.pragma('foreign_keys = ON');
+volatileDb.pragma('wal_checkpoint(RESTART)');
 
 const VOLATILE_TABLES = ['checkins', 'xp_log', 'likes', 'notifications'];
 
@@ -217,6 +220,28 @@ function initDB() {
     for (const c of cats) insert.run(...c);
   }
 }
+
+// Periodic WAL checkpoint — prevents unbounded WAL growth during long runs
+// PASSIVE: non-blocking, safe under concurrent reads; skips if a writer is active
+const walInterval = setInterval(() => {
+  coreDb.pragma('wal_checkpoint(PASSIVE)');
+  volatileDb.pragma('wal_checkpoint(PASSIVE)');
+}, 30 * 60 * 1000);
+walInterval.unref(); // don't keep the process alive just for this timer
+
+// Graceful shutdown: flush WAL and close databases so PM2 / Docker restarts
+// never leave stale WAL backlog behind
+function shutdownDB() {
+  console.log('[db] Checkpointing WAL before shutdown...');
+  coreDb.pragma('wal_checkpoint(RESTART)');
+  volatileDb.pragma('wal_checkpoint(RESTART)');
+  coreDb.close();
+  volatileDb.close();
+  console.log('[db] Databases closed. Exiting.');
+  process.exit(0);
+}
+process.once('SIGINT', shutdownDB);
+process.once('SIGTERM', shutdownDB);
 
 // XP & Level helpers (in lib/xp.js)
 const xpLib = require('./lib/xp');
