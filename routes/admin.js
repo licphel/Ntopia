@@ -37,7 +37,7 @@ router.get('/', requireLevel(LEVEL.ADMIN), (req, res) => {
 // Add category (>=32)
 router.post('/categories', requireLevel(LEVEL.ADMIN), (req, res) => {
   const { name, description } = req.body;
-  const slug = name.toLowerCase().replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now();
+  const slug = name.toLowerCase().replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') + '-' + require('../lib/time').now().getTime();
   const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM categories').get();
   db.prepare('INSERT INTO categories (name, slug, description, sort_order) VALUES (?, ?, ?, ?)')
     .run(name, slug, description || '', (maxOrder.m || 0) + 1);
@@ -58,7 +58,7 @@ router.post('/posts/:slug/delete', requireLevel(LEVEL.MOD), (req, res) => {
 
 // Hard delete post (only if past retention period)
 router.post('/posts/:slug/purge', requireLevel(LEVEL.ADMIN), (req, res) => {
-  const post = db.prepare(`SELECT id FROM posts WHERE slug = ? AND is_deleted = 1 AND deleted_at < datetime('now', '-${config.RETENTION}')`).get(req.params.slug);
+  const post = db.prepare("SELECT id FROM posts WHERE slug = ? AND is_deleted = 1 AND deleted_at < ?").get(req.params.slug, require('../lib/time').sqlFromNow('-' + config.RETENTION)).get(req.params.slug);
   if (post) {
     db.prepare('DELETE FROM comments WHERE post_id = ?').run(post.id);
     db.prepare('DELETE FROM posts WHERE id = ?').run(post.id);

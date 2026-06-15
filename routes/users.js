@@ -13,7 +13,7 @@ const UPLOADS_DIR = path.join(__dirname, '..', 'public', 'uploads');
 const avatarUpload = multer({
   storage: multer.diskStorage({
     destination: UPLOADS_DIR,
-    filename: (req, file, cb) => cb(null, 'avatar-' + req.session.user.id + '-' + Date.now() + path.extname(file.originalname))
+    filename: (req, file, cb) => cb(null, 'avatar-' + req.session.user.id + '-' + require('../lib/time').now().getTime() + path.extname(file.originalname))
   }),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
@@ -177,7 +177,7 @@ router.post('/:username/avatar', avatarUpload.single('avatar'), async (req, res)
       const outName = 'avatar-' + req.session.user.id + '.webp';
       const outPath = path.join(UPLOADS_DIR, outName);
       fs.writeFileSync(outPath, outBuf);
-      url = '/uploads/' + outName + '?v=' + Date.now();
+      url = '/uploads/' + outName + '?v=' + require('../lib/time').now().getTime();
     }
     db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(url, profile.id);
     req.session.user.avatar = url;

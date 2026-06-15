@@ -4,6 +4,7 @@
 const express = require('express');
 const { renderMarkdown, extractMentions, linkMentions } = require('../lib/helpers');
 const { db, awardCommentXP } = require('../lib/db');
+const time = require('../lib/time');
 const router = express.Router();
 
 // Add comment
@@ -27,8 +28,8 @@ router.post('/:slug/comment', async (req, res) => {
     const { reviewComment } = require('../lib/moderation');
     const result = await reviewComment(content);
     if (!result.pass) {
-      db.prepare("UPDATE users SET banned = 1, banned_until = datetime('now', '+1 minute') WHERE id = ?").run(req.session.user.id);
-      req.session.user = null;
+      db.prepare("UPDATE users SET banned = 1, banned_until = ? WHERE id = ?").run(time.sqlFromNow('+1 minute'), req.session.user.id);
+      //req.session.user = null;
       return res.status(403).render('error', { title: '错误', code: 403, message: '评论审核未通过', detail: `你的评论未通过审核：${result.reason}。账号已被封禁1分钟。`, back: '/' });
     }
   }

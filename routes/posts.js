@@ -3,6 +3,7 @@ const express = require('express');
 const { renderMarkdown, slugify, computeDepth, extractTOC, injectHeadingIds } = require('../lib/helpers');
 const { db, awardPostXP } = require('../lib/db');
 const { LICENSES, licenseText } = require('../lib/license');
+const time = require('../lib/time');
 const router = express.Router();
 
 
@@ -49,11 +50,12 @@ router.get('/', (req, res) => {
   if (sort === 'replies') {
     posts = db.prepare(`${baseQuery} ORDER BY p.is_pinned DESC, comment_count DESC LIMIT ? OFFSET ?`).all(limit, offset);
   } else if (sort === 'hot') {
+    const hotNow = time.toSQL().split(' ')[0]; // YYYY-MM-DD for julianday
     posts = db.prepare(`
       SELECT * FROM (${baseQuery})
-      ORDER BY is_pinned DESC, (comment_count * 3.0 + view_count * 0.1) / ((julianday('now') - julianday(created_at)) * 24.0 + 4.0) DESC
+      ORDER BY is_pinned DESC, (comment_count * 3.0 + view_count * 0.1) / ((julianday(?) - julianday(created_at)) * 24.0 + 4.0) DESC
       LIMIT ? OFFSET ?
-    `).all(limit, offset);
+    `).all(hotNow, limit, offset);
     total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE is_deleted = 0").get();
   }
 
@@ -110,7 +112,7 @@ router.post('/new-post', async (req, res) => {
   // Validate license against whitelist
   const validLicense = LICENSES.some(l => l.key === license) ? (license || '') : '';
   const is_draft = req.body.is_draft === '1' ? 1 : 0;
-  const slug = slugify(title) + '-' + Date.now();
+  const slug = slugify(title) + '-' + time.now().getTime();
   const html = renderMarkdown(content);
 
   // AI moderation on first publish (not draft). Admin+ exempt.
@@ -118,10 +120,9 @@ router.post('/new-post', async (req, res) => {
     const { review } = require('../lib/moderation');
     const result = await review(title, content, category || '');
     if (!result.pass) {
-      // Ban user for 1 day
-      db.prepare("UPDATE users SET banned = 1, banned_until = datetime('now', '+1 hour') WHERE id = ?").run(req.session.user.id);
-      // Force logout
-      req.session.user = null;
+      // Ban user for 1 hour
+      db.prepare("UPDATE users SET banned = 1, banned_until = ? WHERE id = ?").run(time.sqlFromNow('+1 hour'), req.session.user.id);
+      //req.session.user = null;
       return res.status(403).render('error', { title: '错误', code: 403, message: '内容审核未通过', detail: `你的文章未通过审核：${result.reason}。账号已被封禁1小时。`, back: '/' });
     }
   }
