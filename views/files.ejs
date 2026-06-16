@@ -81,14 +81,14 @@
 function citeFile(id, name){
   var md = '[' + name + '](/files/download/' + id + ')';
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(md).then(function(){ alert('已复制：' + md); });
+    navigator.clipboard.writeText(md).then(function(){ ntopiaAlert('已复制：<code>' + md + '</code>'); });
   } else {
-    prompt('复制以下内容到编辑器：', md);
+    ntopiaPrompt('复制以下内容到编辑器：', md);
   }
 }
 function toggleUpload(){ var el = document.getElementById('uploadForm'); el.style.display = el.style.display === 'none' ? 'block' : 'none'; }
 async function mkdirPrompt(){
-  var name = prompt('新建文件夹名称：');
+  var name = await ntopiaPrompt('新建文件夹名称：');
   if (!name) return;
   var r = await fetch('/files/mkdir', {
     method:'POST',
@@ -97,7 +97,7 @@ async function mkdirPrompt(){
   });
   var d = await r.json();
   if (d.ok) { location.href = '/files?path=' + encodeURIComponent(d.path); }
-  else { alert(d.error || '创建失败'); }
+  else { ntopiaAlert(d.error || '创建失败'); }
 }
 document.getElementById('upForm').addEventListener('submit', async function(e) {
   e.preventDefault();

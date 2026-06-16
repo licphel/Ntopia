@@ -30,29 +30,8 @@
           <%- timeTag(post.created_at) %>
             <% if (post.category) { %> | <%= post.category_name || post.category %>
                 <% } %>
+                | <%= post.comment_count %> 评论
                   | <%= post.view_count %> 阅读
-                    | <a href="#" onclick="toggleLike(event, <%= post.id %>, null)" id="like-post-<%= post.id %>"
-                      style="font-size:11px;color:#999">点赞</a>
-                    | <a href="#" onclick="toggleBookmark(event, <%= post.id %>)" id="bookmark-<%= post.id %>"
-                      style="font-size:11px;color:#999">收藏</a>
-                    | <a href="#" onclick="submitReport('post', <%= post.id %>);return false" style="font-size:11px;color:#999">举报</a>
-                    | <a href="/posts/<%= post.slug %>/download" style="font-size:11px;color:#999">下载 MD</a>
-                    <% if (user && (user.id===post.author_id || (user.role || 0)>= LEVEL.ADMIN)) { %>
-                      | <a href="/posts/<%= post.slug %>/edit">编辑</a>
-                      | <a href="/posts/<%= post.slug %>/revisions">历史</a>
-                      | <form method="POST" action="/posts/<%= post.slug %>/delete-self" style="display:inline"
-                        onsubmit="return confirm('确认删除？')">
-                        <input type="hidden" name="_csrf" value="<%= csrf %>">
-                        <button
-                          style="background:none;border:none;color:#c00;cursor:pointer;font-size:11px;padding:0">删除</button>
-                      </form>
-                      <% } %>
-                      <% if (user && (user.role || 0) >= LEVEL.MOD) { %>
-                      | <form method="POST" action="/admin/posts/<%= post.slug %>/pin" style="display:inline">
-                        <input type="hidden" name="_csrf" value="<%= csrf %>">
-                        <button style="background:none;border:none;color:var(--c);cursor:pointer;font-size:11px;padding:0"><%= post.is_pinned ? '取消置顶' : '置顶' %></button>
-                      </form>
-                      <% } %>
       </span>
     </div>
   </div>
@@ -70,18 +49,54 @@
     </details>
     <% } %>
       <div class="PostContent"><%- post.content_html %></div>
-      <% if (post.tags) { %>
-        <div class="tools">标签: <% post.tags.split(',').forEach(function(t) { %><a
-              href="/tags/<%= encodeURIComponent(t.trim()) %>">
-              <%= t.trim() %>
-            </a>
-            <% }); %>
-        </div>
-        <% } %>
-        <% if (post.license) { %>
-        <div class="tools">许可: <%- post.license %></div>
-        <% } %>
+      <div class="tools" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px">
+        <span>
+          <% if (post.tags) { %>
+            标签: <% post.tags.split(',').forEach(function(t) { %><a href="/tags/<%= encodeURIComponent(t.trim()) %>"><%= t.trim() %></a> <% }); %>
+          <% } %>
+          <% if (post.license) { %> | 许可: <%= post.license %><% } %>
+        </span>
+        <span style="display:flex;gap:6px;align-items:center">
+          <a href="#" onclick="toggleLike(event, <%= post.id %>, null)" id="like-post-<%= post.id %>" style="font-size:11px;color:<%= userLiked ? 'var(--c)' : '#999' %>"><%= userLiked ? '已赞' : '点赞' %><% if (likeCount) { %>(<%= likeCount %>)<% } %></a>
+          <a href="#" onclick="toggleBookmark(event, <%= post.id %>)" id="bookmark-<%= post.id %>" style="font-size:11px;color:<%= userBookmarked ? 'var(--c)' : '#999' %>"><%= userBookmarked ? '已收藏' : '收藏' %><% if (bookmarkCount) { %>(<%= bookmarkCount %>)<% } %></a>
+          <a href="#" onclick="submitReport('post', <%= post.id %>);return false" style="font-size:11px;color:#999">举报</a>
+          <a href="#" onclick="downloadPost(event)" style="font-size:11px;color:#999">下载 MD</a>
+          <a href="#" onclick="toggleCite();return false" style="font-size:11px;color:#999">CITE</a>
+          <% if (user && (user.id===post.author_id || (user.role || 0)>= LEVEL.ADMIN)) { %>
+            <a href="/posts/<%= post.slug %>/edit" style="font-size:11px;color:#999">编辑</a>
+            <a href="/posts/<%= post.slug %>/revisions" style="font-size:11px;color:#999">历史</a>
+            <a href="#" onclick="delPost(event)" style="font-size:11px;color:#c00">删除</a>
+          <% } %>
+          <% if (user && (user.role || 0) >= LEVEL.MOD) { %>
+            <form method="POST" action="/admin/posts/<%= post.slug %>/pin" style="display:inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><button style="background:none;border:none;color:var(--c);cursor:pointer;font-size:11px;padding:0"><%= post.is_pinned ? '取消置顶' : '置顶' %></button></form>
+          <% } %>
+        </span>
+      </div>
+      <pre id="citeBox" style="display:none;margin-top:8px;background:#2d2d2d;color:#ccc;padding:12px;border-radius:3px;overflow-x:auto;font-size:12px;line-height:1.5;white-space:pre-wrap"><%= bibtex %></pre>
 </div>
+
+<script>
+function toggleCite(){
+  var b = document.getElementById('citeBox');
+  b.style.display = b.style.display === 'none' ? 'block' : 'none';
+}
+async function downloadPost(e){
+  e.preventDefault();
+  await ntopiaAlert('本文章遵循 <%= (post.license || 'All Rights Reserved').replace(/'/g, "\\'") %> 许可协议，请确保分发时合规！');
+  location.href = '/posts/<%= post.slug %>/download';
+}
+async function delPost(e){
+  e.preventDefault();
+  var ok = await ntopiaConfirm('确认删除这篇文章？');
+  if (ok) {
+    var f = document.createElement('form');
+    f.method = 'POST'; f.action = '/posts/<%= post.slug %>/delete-self'; f.style.display = 'none';
+    var csrf = document.createElement('input'); csrf.type = 'hidden'; csrf.name = '_csrf'; csrf.value = '<%= csrf %>';
+    f.appendChild(csrf);
+    document.body.appendChild(f); f.submit();
+  }
+}
+</script>
 
 <!-- Top-level comments only (like Tieba) -->
 <div style="margin-top:20px">
@@ -102,7 +117,7 @@
           <a href="/posts/<%= post.slug %>/comment/<%= c.id %>" style="font-size:11px;color:var(--c);margin-left:6px"><%= rc>0 ? rc+'条回复' : '回复' %></a>
           <% if (user) { %><a href="#" onclick="submitReport('comment', <%= c.id %>);return false" style="font-size:10px;color:#999;margin-left:4px">举报</a><% } %>
           <% if (user && (user.id===c.author_id || (user.role || 0)>= LEVEL.ADMIN)) { %>
-            <form method="POST" action="/posts/comments/<%= c.id %>/delete" style="display:inline" onsubmit="return confirm('确认删除？')"><input type="hidden" name="_csrf" value="<%= csrf %>"><button style="background:none;border:none;color:#c00;cursor:pointer;font-size:11px;padding:0;margin-left:4px">删除</button></form>
+            <button onclick="delConfirm(event,'/posts/comments/<%= c.id %>/delete')" style="background:none;border:none;color:#c00;cursor:pointer;font-size:11px;padding:0;margin-left:4px">删除</button>
           <% } %>
         </div>
         <div style="font-size:13px;line-height:1.6"><%- c.content_html %></div>

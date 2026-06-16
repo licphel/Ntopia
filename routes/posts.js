@@ -69,14 +69,35 @@ router.get('/', (req, res) => {
 router.get('/posts/:slug', (req, res) => {
   const post = db.prepare(`
     SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role,
-      COALESCE(cat.name, p.category) as category_name
+      COALESCE(cat.name, p.category) as category_name,
+      (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
     FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.category = cat.slug
     WHERE p.slug = ? AND p.is_draft = 0
   `).get(req.params.slug);
   if (!post) return res.status(404).render('404', { title: '404' });
   if (post.is_deleted && post.author_id !== (req.session.user ? req.session.user.id : 0) && (req.session.user ? (req.session.user.role || 0) : 0) < 128) return res.status(404).render('404', { title: '404' });
 
-  db.prepare('UPDATE posts SET view_count = view_count + 1 WHERE id = ?').run(post.id);
+  // View count dedup via cookie — only count once per post per day
+  const viewedKey = 'ntopia_views';
+  const viewedCookie = (req.headers.cookie || '').match(new RegExp(`(?:^|;\\s*)${viewedKey}=([^;]*)`));
+  const viewed = viewedCookie ? viewedCookie[1].split(',') : [];
+  if (!viewed.includes(String(post.id))) {
+    db.prepare('UPDATE posts SET view_count = view_count + 1 WHERE id = ?').run(post.id);
+    post.view_count += 1;
+    viewed.push(String(post.id));
+    // Keep only last 20, cookie expires in 24h
+    if (viewed.length > 20) viewed.shift();
+    res.cookie(viewedKey, viewed.join(','), { maxAge: 24 * 3600 * 1000, httpOnly: true, sameSite: 'lax' });
+  }
+
+  // Like & bookmark status for current user
+  let userLiked = false, userBookmarked = false, likeCount = 0, bookmarkCount = 0;
+  likeCount = (db.prepare('SELECT COUNT(*) as c FROM likes WHERE post_id = ?').get(post.id) || {}).c || 0;
+  bookmarkCount = (db.prepare('SELECT COUNT(*) as c FROM bookmarks WHERE post_id = ?').get(post.id) || {}).c || 0;
+  if (req.session.user) {
+    userLiked = !!db.prepare('SELECT 1 FROM likes WHERE user_id = ? AND post_id = ?').get(req.session.user.id, post.id);
+    userBookmarked = !!db.prepare('SELECT 1 FROM bookmarks WHERE user_id = ? AND post_id = ?').get(req.session.user.id, post.id);
+  }
 
   const comments = db.prepare(`
     SELECT c.*, u.username, u.display_name, u.avatar, u.level, u.role,
@@ -95,8 +116,22 @@ router.get('/posts/:slug', (req, res) => {
   // SEO meta description
   const metaDesc = post.excerpt || post.content_md.replace(/[#*`>\[\]()!~|\\]/g,'').replace(/\s+/g,' ').trim().slice(0, 160);
 
+  // BibTeX citation
+  const siteUrl = process.env.SITE_URL || 'https://ntopia.top';
+  const authorName = post.display_name || post.username;
+  const postYear = new Date(post.created_at).getFullYear();
+  const citeKey = 'ntopia-' + (post.username || 'anon') + '-' + post.slug.slice(-8);
+  const todayStr = require('../lib/time').now().toISOString().slice(0, 10);
+  const bibtex = `@misc{${citeKey},
+  author = {${authorName}},
+  title = {${post.title}},
+  year = {${postYear}},
+  howpublished = {\\url{${siteUrl}/posts/${post.slug}}},
+  note = {Accessed: ${todayStr}}
+}`;
+
   const cmtPage = parseInt(req.query.cp) || 1;
-  res.render("post", { title: post.title, post, comments, toc: toc.length > 1 ? toc : null, cmtPage, metaDesc });
+  res.render("post", { title: post.title, post, comments, toc: toc.length > 1 ? toc : null, cmtPage, metaDesc, bibtex, userLiked, userBookmarked, likeCount, bookmarkCount });
 });
 
 // Create post page — uses category dropdown

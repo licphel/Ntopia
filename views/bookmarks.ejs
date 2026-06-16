@@ -19,7 +19,7 @@
 <script>
 async function removeBookmark(e, postId) {
   e.preventDefault();
-  if (!confirm('取消收藏？')) return;
+  var ok = await ntopiaConfirm('取消收藏？'); if (!ok) return;
   var resp = await fetch('/bookmarks/toggle', { method:'POST', headers:{'Content-Type':'application/json','x-csrf-token':'<%= csrf %>'}, body:JSON.stringify({post_id:postId}) });
   var d = await resp.json();
   if (d.ok) location.reload();

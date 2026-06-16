@@ -197,11 +197,12 @@ function importMdFile(inp){
   var file = inp.files[0];
   if (!file) return;
   var reader = new FileReader();
-  reader.onload = function(e){
+  reader.onload = async function(e){
     var ta = document.getElementById('edContent');
     var text = e.target.result;
-    if (ta.value.trim() && !confirm('当前编辑区已有内容，导入 .md 文件将替换现有内容。是否继续？')) {
-      inp.value = ''; return;
+    if (ta.value.trim()) {
+      var ok = await ntopiaConfirm('当前编辑区已有内容，导入 .md 文件将替换现有内容。是否继续？');
+      if (!ok) { inp.value = ''; return; }
     }
     ta.value = text;
     ta.dispatchEvent(new Event('input', {bubbles:true}));

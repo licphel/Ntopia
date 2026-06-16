@@ -85,6 +85,15 @@ router.post('/reset-password/reset', (req, res) => {
   res.render('reset-password', { title: '重置密码', error: null, ok: '密码重置成功！请前往登录。' });
 });
 
+// Check-in status (called on page load to set correct button state)
+router.get('/checkin-status', (req, res) => {
+  if (!req.session.user) return res.json({ checkedIn: false });
+  const { today } = require('../lib/time');
+  const row = db.prepare('SELECT id FROM checkins WHERE user_id = ? AND checkin_date = ?').get(req.session.user.id, today());
+  const count = db.prepare('SELECT COUNT(*) as c FROM checkins WHERE user_id = ?').get(req.session.user.id);
+  res.json({ checkedIn: !!row, total: count.c });
+});
+
 router.post('/checkin', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: '请先登录' });
   const uid = req.session.user.id;
