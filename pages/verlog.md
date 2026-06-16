@@ -53,7 +53,6 @@ title: 更新日志
 - CSRF token 移除 query string 接受
 - Session cookie 添加 SameSite: Lax
 - Pages 路由防路径穿越
-- 自助注销权限收紧为 Super Admin+
 - 封禁改为限时制（banned_until），到期自动解封
 
 ## 1.2.1 (2026.06.15)

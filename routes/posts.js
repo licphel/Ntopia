@@ -101,7 +101,7 @@ router.get('/new-post', (req, res) => {
   const user = db.prepare('SELECT banned, email FROM users WHERE id = ?').get(req.session.user.id);
   if (user && (user.banned || !user.email)) return res.status(403).render('error', { title: '错误', code: 403, message: '账号受限', detail: user.banned ? '你的账号已被管理员封禁' : '请前往设置页面绑定邮箱后再操作', back: '/' });
   const categories = db.prepare("SELECT * FROM categories ORDER BY sort_order").all();
-  res.render('editor', { title: '撰写文章', post: null, type: 'post', categories, canPost: true, hideSidebar: true, licenses: LICENSES });
+  res.render('editor', { title: '撰写文章', post: null, type: 'post', categories, canPost: true, licenses: LICENSES });
 });
 
 // Create post POST
@@ -149,7 +149,7 @@ router.get('/posts/:slug/edit', (req, res) => {
     return res.status(403).render('error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
   }
   const categories = db.prepare("SELECT * FROM categories ORDER BY sort_order").all();
-  res.render('editor', { title: '编辑文章', post, type: 'post', categories, canPost: true, hideSidebar: true, licenses: LICENSES });
+  res.render('editor', { title: '编辑文章', post, type: 'post', categories, canPost: true, licenses: LICENSES });
 });
 
 router.post('/posts/:slug/edit', (req, res) => {

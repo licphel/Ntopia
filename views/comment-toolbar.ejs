@@ -8,6 +8,7 @@
   <button type="button" onclick="tbCodeBlock(this)" title="代码块">Code</button>
   <button type="button" onclick="tbTex(this)" title="公式">TeX</button>
   <button type="button" onclick="tbUpload(this)" title="上传图片">Img</button>
+  <button type="button" onclick="importMd()" title="导入 MD 文件">MD</button>
   <input type="file" accept="image/*" style="display:none" onchange="tbUploadDone(this)">
   <span style="font-size:10px;color:#999;margin-left:4px"></span>
 </div>
@@ -27,5 +28,6 @@ function tbQuote(el){tbIns(el,'\n> ','')}
 function tbCodeBlock(el){tbIns(el,'\n```\n','\n```\n')}
 function tbTex(el){tbIns(el,'$','$')}
 function tbUpload(el){var p=el.closest('.cmt-toolbar');var f=p?p.querySelectorAll('input[type=file]')[0]:null;if(f)f.click()}
+function importMd(){var f=document.getElementById('mdFileInput');if(!f){alert('MD 导入仅在文章编辑器中可用');return;}f.click()}
 async function tbUploadDone(inp){var p=inp.closest('.cmt-toolbar');var s=p?p.querySelector('span'):null;var f=inp.files[0];if(!f)return;if(s)s.textContent='...';var d=new FormData();d.append('file',f);try{var r=await fetch('/upload',{method:'POST',body:d,headers:{'x-csrf-token':(window._csrf||'')}});var j=await r.json();if(j.ok){tbIns(inp,'![]('+j.url+')','');if(s)s.textContent='OK'}else{if(s)s.textContent='失败'}}catch(e){if(s)s.textContent='错误'}inp.value='';setTimeout(function(){if(s)s.textContent=''},3000)}
 </script>
