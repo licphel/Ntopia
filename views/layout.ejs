@@ -37,6 +37,13 @@ a:hover{color:var(--cd);text-decoration:underline}
 #MenuTop a:hover,#MenuTop a.nav-active,#MenuTop .nav-btn:hover{color:#fff;text-decoration:none}
 #MenuTop a.nav-active{font-weight:bold}
 #MenuTop .notif-badge{background:#fff;color:var(--c);top:-6px;right:-10px}
+/* Nav dropdown */
+.nav-drop{position:relative}
+.nav-drop-menu{display:none;position:absolute;top:100%;left:0;background:#fff;border:1px solid #ccc;border-radius:3px;min-width:120px;z-index:200;box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:4px 0;margin-top:2px}
+.nav-drop:hover .nav-drop-menu,.nav-drop-menu:hover{display:block}
+.nav-drop-menu a{display:block;padding:5px 14px;color:#555!important;font-size:12px;white-space:nowrap}
+.nav-drop-menu a:hover{background:var(--c);color:#fff!important;text-decoration:none}
+.nav-drop>a::after{content:" ▾";font-size:10px}
 #HeadRight{display:flex;gap:12px;text-align:center;font-size:11px;flex-shrink:0;padding:0 20px}
 #HeadRight a{color:#555;display:block;width:52px}
 #HeadRight a:hover{color:var(--c);text-decoration:none}
@@ -270,6 +277,12 @@ a:hover{color:var(--cd);text-decoration:underline}
         <% if ((user.role || 0) >= LEVEL.ADMIN) { %><li><a href="/admin">管理</a></li><% } %>
         <li><a href="/notifications" style="position:relative">通知<% if (unreadNotifs) { %><span class="notif-badge"><%= unreadNotifs > 99 ? '99+' : unreadNotifs %></span><% } %></a></li>
         <li><a href="/messages" style="position:relative">私信<% if (unreadMessages) { %><span class="notif-badge"><%= unreadMessages > 99 ? '99+' : unreadMessages %></span><% } %></a></li>
+        <li class="nav-drop">
+          <a href="#" onclick="return false" style="cursor:default">工具</a>
+          <div class="nav-drop-menu">
+            <a href="/tools/rb">红黑榜</a>
+          </div>
+        </li>
         <li><a href="/rss.xml" target="_blank">RSS</a></li>
         <li><form method="POST" action="/auth/logout" style="display:inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><button type="submit" class="nav-btn" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0">退出</button></form></li>
       <% } else { %>
