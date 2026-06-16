@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="<%= typeof metaDesc !== 'undefined' && metaDesc ? metaDesc : 'Ntopia — 记录思考，分享技术，探索世界。个人博客与知识社区，支持 Markdown 与 LaTeX。' %>">
+<meta property="og:title" content="<%= title %> — Ntopia">
+<meta property="og:description" content="<%= typeof metaDesc !== 'undefined' && metaDesc ? metaDesc : 'Ntopia — 记录思考，分享技术，探索世界' %>">
+<meta property="og:type" content="website">
+<meta property="og:url" content="<%= typeof siteUrl !== 'undefined' ? siteUrl : 'https://ntopia.top' %><%= path %>">
+<meta name="twitter:card" content="summary">
 <title><%= title %> — Ntopia</title>
 <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/themes/prism-tomorrow.min.css">
@@ -57,14 +63,16 @@ a:hover{color:var(--cd);text-decoration:underline}
 #content{flex:1;min-width:0}
 
 /* === Post === */
-.Post{margin-bottom:24px;padding-bottom:20px;border-bottom:2px solid #e0dbd0}
+.Post{margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #e0dbd0}
 .Post.pinned{border-left:3px solid var(--c);padding-left:12px}
 .Post:last-child,.Post:only-child{border-bottom:none}
-.PostHead{display:flex;gap:12px;align-items:flex-start}
+.PostHead{display:flex;gap:12px;align-items:center}
 .date-wrap{text-align:center;background:var(--c);color:#fff;padding:3px 8px 4px;border-radius:2px;min-width:44px;flex-shrink:0;box-shadow:1px 1px 2px rgba(0,0,0,.1)}
 .date-wrap.forum-date{background:#6a8a4e}
 .date-day{display:block;font-size:20px;font-weight:bold;line-height:1.1}
 .date-month{display:block;font-size:10px;text-transform:uppercase}
+.date-col{flex-shrink:0;display:flex;flex-direction:column;gap:4px;min-width:44px}
+.date-cat{display:block;font-size:10px;font-weight:bold;text-align:center;background:transparent;color:var(--c);padding:1px 2px;border:1.5px solid var(--c);border-radius:2px}
 .title-wrap h2{font-size:18px;margin-bottom:2px;line-height:1.3}
 .title-wrap h2 a{color:#333}.title-wrap h2 a:hover{color:var(--c)}
 .submitted{font-size:11px;color:#999}.submitted a{color:var(--c)}
@@ -460,6 +468,7 @@ async function toggleBookmark(e, postId) {
     else if(f==='month')el.textContent=M[d.getMonth()];
     else if(f==='date')el.textContent=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
     else if(f==='short')el.textContent=p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+    else if(f==='year')el.textContent=d.getFullYear();
     else el.textContent=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
   });
 })();

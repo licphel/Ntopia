@@ -63,6 +63,28 @@ router.post('/logout', (req, res) => {
   res.redirect('/');
 });
 
+// ── Password reset ──────────────────────────────────────────────
+router.get('/reset-password', (req, res) => {
+  res.render('reset-password', { title: '重置密码', error: null, ok: null });
+});
+
+router.post('/reset-password/reset', (req, res) => {
+  const { email, code, new_password, new_password2 } = req.body;
+  if (!email || !code) return res.render('reset-password', { title: '重置密码', error: '请填写邮箱和验证码', ok: null });
+  if (new_password.length < 4) return res.render('reset-password', { title: '重置密码', error: '新密码至少4个字符', ok: null });
+  if (new_password !== new_password2) return res.render('reset-password', { title: '重置密码', error: '两次密码不一致', ok: null });
+
+  const user = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  if (!user) return res.render('reset-password', { title: '重置密码', error: '该邮箱未注册', ok: null });
+
+  const { verifyCode } = require('../lib/mail');
+  if (!verifyCode(email, code)) return res.render('reset-password', { title: '重置密码', error: '验证码错误或已过期', ok: null });
+
+  const hash = require('bcryptjs').hashSync(new_password, 10);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, user.id);
+  res.render('reset-password', { title: '重置密码', error: null, ok: '密码重置成功！请前往登录。' });
+});
+
 router.post('/checkin', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: '请先登录' });
   const uid = req.session.user.id;

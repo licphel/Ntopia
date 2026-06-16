@@ -68,7 +68,8 @@ router.get('/', (req, res) => {
 // Single blog post
 router.get('/posts/:slug', (req, res) => {
   const post = db.prepare(`
-    SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role
+    SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role,
+      COALESCE(cat.name, p.category) as category_name
     FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.category = cat.slug
     WHERE p.slug = ? AND p.is_draft = 0
   `).get(req.params.slug);
@@ -91,8 +92,11 @@ router.get('/posts/:slug', (req, res) => {
   const toc = extractTOC(post.content_html);
   if (toc.length) post.content_html = injectHeadingIds(post.content_html);
 
+  // SEO meta description
+  const metaDesc = post.excerpt || post.content_md.replace(/[#*`>\[\]()!~|\\]/g,'').replace(/\s+/g,' ').trim().slice(0, 160);
+
   const cmtPage = parseInt(req.query.cp) || 1;
-  res.render("post", { title: post.title, post, comments, toc: toc.length > 1 ? toc : null, cmtPage });
+  res.render("post", { title: post.title, post, comments, toc: toc.length > 1 ? toc : null, cmtPage, metaDesc });
 });
 
 // Create post page — uses category dropdown
