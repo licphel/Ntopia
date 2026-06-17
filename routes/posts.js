@@ -1,6 +1,6 @@
 const { LEVEL, canPost, canEdit, canDelete, canManageUser } = require('../lib/perm');
 const express = require('express');
-const { renderMarkdown, slugify, computeDepth, extractTOC, injectHeadingIds } = require('../lib/helpers');
+const { renderMarkdown, slugify, computeDepth, extractTOC, injectHeadingIds, firstNLines } = require('../lib/helpers');
 const { db, awardPostXP } = require('../lib/db');
 const { LICENSES, licenseText } = require('../lib/license');
 const time = require('../lib/time');
@@ -62,6 +62,9 @@ router.get('/', (req, res) => {
 
   const totalPages = Math.ceil(total.c / limit);
 
+  // Generate preview from first 5 lines of rendered HTML
+  posts.forEach(p => { p.preview_html = firstNLines(p.content_html, 5); });
+
   res.render('index', { title: '首页', posts, page, totalPages, sort, categories, currentCat: cat });
 });
 
@@ -114,7 +117,7 @@ router.get('/posts/:slug', (req, res) => {
   if (toc.length) post.content_html = injectHeadingIds(post.content_html);
 
   // SEO meta description
-  const metaDesc = post.excerpt || post.content_md.replace(/[#*`>\[\]()!~|\\]/g,'').replace(/\s+/g,' ').trim().slice(0, 160);
+  const metaDesc = post.content_md.replace(/[#*`>\[\]()!~|\\]/g,'').replace(/\s+/g,' ').trim().slice(0, 160);
 
   // BibTeX citation
   const siteUrl = process.env.SITE_URL || 'https://ntopia.top';
@@ -148,7 +151,7 @@ router.post('/new-post', async (req, res) => {
   if (!req.session.user) return res.redirect('/auth/login');
   const user = db.prepare('SELECT banned, email FROM users WHERE id = ?').get(req.session.user.id);
   if (user && (user.banned || !user.email)) return res.status(403).render('error', { title: '错误', code: 403, message: '账号受限', detail: user.banned ? '你的账号已被管理员封禁' : '请前往设置页面绑定邮箱后再操作', back: '/' });
-  const { title, category, tags, excerpt, content, license } = req.body;
+  const { title, category, tags, content, license } = req.body;
   // Validate license against whitelist
   const validLicense = LICENSES.some(l => l.key === license) ? (license || '') : '';
   const is_draft = req.body.is_draft === '1' ? 1 : 0;
@@ -167,9 +170,9 @@ router.post('/new-post', async (req, res) => {
     }
   }
 
-  db.prepare(`INSERT INTO posts (title, slug, content_md, content_html, excerpt, category, tags, author_id, is_draft, license)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(title, slug, content, html, excerpt || '', category || '', tags || '', req.session.user.id, is_draft, validLicense);
+  db.prepare(`INSERT INTO posts (title, slug, content_md, content_html, category, tags, author_id, is_draft, license)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(title, slug, content, html, category || '', tags || '', req.session.user.id, is_draft, validLicense);
   const post = db.prepare('SELECT id FROM posts WHERE slug = ?').get(slug);
   if (is_draft) {
     res.redirect('/drafts');
@@ -197,21 +200,21 @@ router.post('/posts/:slug/edit', (req, res) => {
   if (!post || (post.author_id !== req.session.user.id && (req.session.user.role || 0) <= LEVEL.MOD)) {
     return res.status(403).render('error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
   }
-  const { title, content, category, tags, excerpt, license } = req.body;
+  const { title, content, category, tags, license } = req.body;
   const validLicense = LICENSES.some(l => l.key === license) ? (license || '') : '';
   const is_draft = req.body.is_draft === '1' ? 1 : 0;
   const html = renderMarkdown(content);
 
   // Save revision before updating
-  db.prepare(`INSERT INTO post_revisions (post_id, title, content_md, content_html, excerpt, category, tags, revised_by)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(post.id, post.title, post.content_md, post.content_html, post.excerpt || '', post.category || '', post.tags || '', req.session.user.id);
+  db.prepare(`INSERT INTO post_revisions (post_id, title, content_md, content_html, category, tags, revised_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?)`)
+    .run(post.id, post.title, post.content_md, post.content_html, post.category || '', post.tags || '', req.session.user.id);
   db.prepare(`DELETE FROM post_revisions WHERE id IN (
     SELECT id FROM post_revisions WHERE post_id = ? ORDER BY created_at DESC LIMIT -1 OFFSET 10
   )`).run(post.id);
 
-  db.prepare(`UPDATE posts SET title=?, content_md=?, content_html=?, excerpt=?, category=?, tags=?, is_draft=?, license=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-    .run(title, content, html, excerpt || '', category || '', tags || '', is_draft, validLicense, post.id);
+  db.prepare(`UPDATE posts SET title=?, content_md=?, content_html=?, category=?, tags=?, is_draft=?, license=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+    .run(title, content, html, category || '', tags || '', is_draft, validLicense, post.id);
   res.redirect(is_draft ? '/drafts' : '/posts/' + post.slug);
 });
 
@@ -266,11 +269,11 @@ router.post('/posts/:slug/restore/:revId', (req, res) => {
   const rev = db.prepare('SELECT * FROM post_revisions WHERE id = ? AND post_id = ?').get(req.params.revId, post.id);
   if (!rev) return res.status(404).render('404', { title: '404' });
   // Save current as revision, then restore
-  db.prepare(`INSERT INTO post_revisions (post_id, title, content_md, content_html, excerpt, category, tags, revised_by)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(post.id, post.title, post.content_md, post.content_html, post.excerpt || '', post.category || '', post.tags || '', req.session.user.id);
-  db.prepare(`UPDATE posts SET title=?, content_md=?, content_html=?, excerpt=?, category=?, tags=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-    .run(rev.title, rev.content_md, rev.content_html, rev.excerpt || '', rev.category || '', rev.tags || '', post.id);
+  db.prepare(`INSERT INTO post_revisions (post_id, title, content_md, content_html, category, tags, revised_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?)`)
+    .run(post.id, post.title, post.content_md, post.content_html, post.category || '', post.tags || '', req.session.user.id);
+  db.prepare(`UPDATE posts SET title=?, content_md=?, content_html=?, category=?, tags=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+    .run(rev.title, rev.content_md, rev.content_html, rev.category || '', rev.tags || '', post.id);
   res.redirect('/posts/' + post.slug);
 });
 

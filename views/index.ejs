@@ -65,8 +65,8 @@
           </div>
         </div>
         <div class="PostContent">
-          <% if (post.excerpt) { %><%= post.excerpt %><% } else { %><%- post.content_html.slice(0, 300) %><% } %>
-            <% if (post.content_html.length> 300 || post.excerpt) { %>
+          <%- post.preview_html || '' %>
+            <% if (post.content_html.length > (post.preview_html || '').length + 10) { %>
               <p><a href="/posts/<%= post.slug %>">阅读全文...</a></p>
               <% } %>
         </div>

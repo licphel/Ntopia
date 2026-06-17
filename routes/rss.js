@@ -14,7 +14,7 @@ router.get('/', (req, res) => {
   let items = '';
   const xmlEsc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
   posts.forEach(p => {
-    const desc = xmlEsc(p.excerpt || '');
+    const desc = xmlEsc((p.content_md || '').replace(/[#*`>\[\]()!~|\\]/g,'').replace(/\s+/g,' ').trim().slice(0, 200));
     const title = xmlEsc(p.title);
     const author = xmlEsc(p.display_name || p.username);
     const date = new Date(p.created_at).toUTCString();

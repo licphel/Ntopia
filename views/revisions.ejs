@@ -13,7 +13,6 @@
   </div>
   <div style="font-size:13px;color:#666;margin:4px 0">
     <strong><%= r.title %></strong>
-    <% if (r.excerpt) { %><span style="font-size:11px"> &mdash; <%= r.excerpt.slice(0, 80) %></span><% } %>
   </div>
   <div style="font-size:12px;line-height:1.6;max-height:200px;overflow-y:auto;border:1px solid #e0dbd0;padding:6px 10px;background:#fff">
     <%- r.content_html.slice(0, 2000) %>

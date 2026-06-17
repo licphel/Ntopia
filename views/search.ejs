@@ -37,7 +37,7 @@
                     <%= p.comment_count %> 评论
                 </div>
                 <div style="font-size:12px;color:#666;margin-top:4px">
-                  <%= (p.excerpt || '' ).slice(0, 120) %>
+                  <%= (p.content_md || '').replace(/[#*`>\[\]()!~|\\]/g,'').slice(0, 120) %>
                 </div>
               </div>
               <% }); %>
