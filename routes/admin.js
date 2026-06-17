@@ -29,9 +29,10 @@ router.get('/', requireLevel(LEVEL.ADMIN), (req, res) => {
   const categories = db.prepare('SELECT * FROM categories ORDER BY sort_order').all();
   const deletedPosts = db.prepare("SELECT * FROM posts WHERE is_deleted = 1 ORDER BY updated_at DESC LIMIT 10").all();
   const users = db.prepare('SELECT * FROM users ORDER BY role DESC, created_at ASC LIMIT ? OFFSET ?').all(limit, (page-1)*limit);
+  const loginLogs = db.prepare(`SELECT l.*, u.username FROM login_logs l JOIN users u ON l.user_id = u.id ORDER BY l.created_at DESC LIMIT 20`).all();
   const userTotal = db.prepare('SELECT COUNT(*) as c FROM users').get();
   const totalPages = Math.ceil(userTotal.c / limit);
-  res.render('admin', { title: '管理后台', stats, categories, deletedPosts, users, page, totalPages, LEVEL });
+  res.render('admin', { title: '管理后台', stats, categories, deletedPosts, users, page, totalPages, LEVEL, loginLogs });
 });
 
 // Add category (>=32)

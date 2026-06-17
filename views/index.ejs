@@ -1,23 +1,27 @@
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-  <h2 style="margin:0;padding:0;border:none">讨论</h2>
+  <h2 style="margin:0;padding:0;border:none"><%= typeof isForum !== 'undefined' && isForum ? '论坛' : '博客' %></h2>
   <% if (user) { %>
     <a href="/new-post"
       style="background:var(--c);color:#fff;padding:6px 14px;border-radius:3px;font-size:13px;text-decoration:none">+
       发布新文章</a>
     <% } %>
 </div>
-<!-- Category tabs -->
+<% var basePath = (typeof isForum !== 'undefined' && isForum) ? '/forum' : '/blog'; %>
+<!-- Category tabs (blog only) -->
+<% if (typeof isForum === 'undefined' || !isForum) { %>
 <div class="search-tabs" style="margin-bottom:8px">
-  <a href="/?sort=<%= sort || 'newest' %>" class="<%= !currentCat ? 'active' : '' %>">全部</a>
-  <% categories.forEach(function(cat) { %>
-    <a href="/?cat=<%= cat.slug %>&sort=<%= sort || 'newest' %>" class="<%= currentCat === cat.slug ? 'active' : '' %>">
+  <a href="<%= basePath %>?sort=<%= sort || 'newest' %>" class="<%= !currentCat ? 'active' : '' %>">全部</a>
+  <% categories.forEach(function(cat) { if (cat.slug === 'forum') return; %>
+    <a href="<%= basePath %>?cat=<%= cat.slug %>&sort=<%= sort || 'newest' %>" class="<%= currentCat === cat.slug ? 'active' : '' %>">
       <%= cat.name %>
     </a>
     <% }); %>
 </div>
+<% } %>
 
 <div style="display:flex;gap:0;font-size:12px;margin-bottom:12px">
-  <% var base='/?' + (currentCat ? 'cat=' + currentCat + '&' : '' ); %>
+  <% var currentCat = typeof currentCat !== 'undefined' ? currentCat : ''; %>
+  <% var base=basePath + '?' + (currentCat ? 'cat=' + currentCat + '&' : '' ); %>
     <a href="<%= base %>sort=newest"
       style="padding:3px 10px;border:1px solid #ccc;<%= (sort||'newest')==='newest'?'background:var(--c);color:#fff;':'' %>">最新</a>
     <a href="<%= base %>sort=replies"

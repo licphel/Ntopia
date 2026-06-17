@@ -38,6 +38,13 @@ router.get('/:username/followers', (req, res) => {
     ORDER BY f.created_at DESC LIMIT ? OFFSET ?
   `).all(req.params.username, limit, (page - 1) * limit);
   const count = db.prepare('SELECT COUNT(*) as c FROM follows WHERE follow_id = (SELECT id FROM users WHERE username = ?)').get(req.params.username);
+  // Mark which users the current viewer follows
+  if (req.session.user && users.length) {
+    const ids = users.map(u => u.id);
+    const followed = db.prepare(`SELECT follow_id FROM follows WHERE user_id = ? AND follow_id IN (${ids.map(()=>'?').join(',')})`).all(req.session.user.id, ...ids);
+    const followedSet = new Set(followed.map(r => r.follow_id));
+    users.forEach(u => { u.isFollowed = followedSet.has(u.id); });
+  }
   res.render('follow-list', {
     title: profile.display_name + ' 的粉丝',
     profile, users, page,
@@ -59,6 +66,12 @@ router.get('/:username/following', (req, res) => {
     ORDER BY f.created_at DESC LIMIT ? OFFSET ?
   `).all(req.params.username, limit, (page - 1) * limit);
   const count = db.prepare('SELECT COUNT(*) as c FROM follows WHERE user_id = (SELECT id FROM users WHERE username = ?)').get(req.params.username);
+  if (req.session.user && users.length) {
+    const ids = users.map(u => u.id);
+    const followed = db.prepare(`SELECT follow_id FROM follows WHERE user_id = ? AND follow_id IN (${ids.map(()=>'?').join(',')})`).all(req.session.user.id, ...ids);
+    const followedSet = new Set(followed.map(r => r.follow_id));
+    users.forEach(u => { u.isFollowed = followedSet.has(u.id); });
+  }
   res.render('follow-list', {
     title: profile.display_name + ' 的关注',
     profile, users, page,

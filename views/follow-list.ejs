@@ -12,6 +12,9 @@
     <span style="color:#999;font-size:12px;margin-left:4px">@<%= u.username %></span>
     <div style="font-size:11px;color:#999"><%= (u.bio || '').slice(0, 60) %></div>
   </div>
+  <% if (user && user.id !== u.id) { %>
+    <a href="#" onclick="toggleFollow(this,'<%= u.username %>');return false" style="font-size:11px;color:<%= u.isFollowed ? '#999' : 'var(--c)' %>;white-space:nowrap"><%= u.isFollowed ? '已关注' : '+ 关注' %></a>
+  <% } %>
   <div style="font-size:11px;color:#999"><%- timeTag(u.followed_at, {fmt:'date'}) %></div>
 </div>
 <% }); %>

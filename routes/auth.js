@@ -29,6 +29,7 @@ router.post('/login', (req, res) => {
     return res.render('login', { title: '登录', error: '用户名或密码错误' });
   }
   req.session.user = { id: user.id, username: user.username, display_name: user.display_name, role: user.role, avatar: user.avatar, xp: user.xp, level: user.level, email: user.email, needsEmail: !user.email };
+  db.prepare('INSERT INTO login_logs (user_id, ip, user_agent) VALUES (?, ?, ?)').run(user.id, req.ip || '', (req.get('User-Agent') || '').slice(0, 500));
   req.session.save(() => res.redirect('/'));
 });
 

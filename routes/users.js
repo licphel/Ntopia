@@ -38,6 +38,12 @@ router.get('/:username', (req, res) => {
   const limit = 10;
 
   const isOwner = req.session.user && (req.session.user.role || 0) >= LEVEL.OWNER;
+  const canManage = req.session.user && (req.session.user.role || 0) > (profile.role || 0) && (req.session.user.role || 0) >= LEVEL.ADMIN;
+  // Last login IP (owner only)
+  let lastLogin = null;
+  if (isOwner) {
+    lastLogin = db.prepare('SELECT ip, created_at FROM login_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 1').get(profile.id);
+  }
   const postFilter = isOwner ? '' : 'AND is_deleted = 0';
   const posts = db.prepare(`
     SELECT p.*, (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
@@ -78,9 +84,9 @@ router.get('/:username', (req, res) => {
     profile, posts, comments,
     postPage, postPages, cmtPage, cmtPages,
     checkinCount: checkinCount.c,
-    followerCount: followerCount.c, followingCount: followingCount.c, isFollowing,
+    followerCount: followerCount.c, followingCount: followingCount.c, isFollowing, canManage,
     todayCheckedIn: !!todayCheckin,
-    xpProgress, xpNext, xpBase, xpNextTotal
+    xpProgress, xpNext, xpBase, xpNextTotal, lastLogin
   });
 });
 

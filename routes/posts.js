@@ -23,9 +23,23 @@ router.get('/drafts', (req, res) => {
   res.render('drafts', { title: '我的草稿', drafts, draftPage: page, draftTotalPages: Math.ceil(total.c / limit) });
 });
 
-// Homepage — blog listing
+// Landing page
 router.get('/', (req, res) => {
-  const cat = req.query.cat || '';
+  const stats = {
+    posts: db.prepare("SELECT COUNT(*) as c FROM posts WHERE is_deleted = 0 AND is_draft = 0").get().c,
+    comments: db.prepare("SELECT COUNT(*) as c FROM comments WHERE is_deleted = 0 OR is_deleted IS NULL").get().c,
+    users: db.prepare('SELECT COUNT(*) as c FROM users').get().c,
+    views: db.prepare('SELECT COUNT(*) as c FROM site_views').get().c,
+    likes: db.prepare('SELECT COUNT(*) as c FROM likes').get().c,
+    bookmarks: db.prepare('SELECT COUNT(*) as c FROM bookmarks').get().c,
+    checkins: db.prepare('SELECT COUNT(*) as c FROM checkins').get().c,
+    todayViews: db.prepare("SELECT COUNT(*) as c FROM site_views WHERE date(created_at) = date('now')").get().c,
+  };
+  res.render('home', { title: '首页', stats });
+});
+
+// Shared listing helper
+function listPosts(catFilter, catParam, req, res, opts) {
   const page = parseInt(req.query.page) || 1;
   const sort = req.query.sort || 'newest';
   const limit = 10;
@@ -33,39 +47,46 @@ router.get('/', (req, res) => {
 
   const categories = db.prepare("SELECT * FROM categories ORDER BY sort_order").all();
 
-  let posts, total;
   const baseQuery = `SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role,
         COALESCE(cat.name, p.category) as category_name,
     (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
     FROM posts p JOIN users u ON p.author_id = u.id LEFT JOIN categories cat ON p.category = cat.slug
-    WHERE (p.is_deleted = 0 OR p.is_deleted IS NULL) AND p.is_draft = 0`;
-  const catFilter = cat ? 'AND p.category = ?' : '';
-  const catParam = cat ? [cat] : [];
-  if (cat) {
-    total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE category = ? AND is_deleted = 0").get(cat);
-  } else {
-    total = db.prepare("SELECT COUNT(*) as c FROM posts WHERE is_deleted = 0").get();
-  }
+    WHERE (p.is_deleted = 0 OR p.is_deleted IS NULL) AND p.is_draft = 0 ${catFilter}`;
 
+  const countBase = catFilter.replace(/p\./g, '');
+  const total = db.prepare(`SELECT COUNT(*) as c FROM posts WHERE is_deleted = 0 AND is_draft = 0 ${countBase}`).get(...catParam);
+
+  let posts;
   if (sort === 'replies') {
-    posts = db.prepare(`${baseQuery} ${catFilter} ORDER BY p.is_pinned DESC, comment_count DESC LIMIT ? OFFSET ?`).all(...catParam, limit, offset);
+    posts = db.prepare(`${baseQuery} ORDER BY p.is_pinned DESC, comment_count DESC LIMIT ? OFFSET ?`).all(...catParam, limit, offset);
   } else if (sort === 'hot') {
     const hotNow = time.toSQL().split(' ')[0];
     posts = db.prepare(`
-      SELECT * FROM (${baseQuery} ${catFilter})
+      SELECT * FROM (${baseQuery})
       ORDER BY is_pinned DESC, (comment_count * 3.0 + view_count * 0.1) / ((julianday(?) - julianday(created_at)) * 24.0 + 4.0) DESC
       LIMIT ? OFFSET ?
     `).all(...catParam, hotNow, limit, offset);
   } else {
-    posts = db.prepare(`${baseQuery} ${catFilter} ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT ? OFFSET ?`).all(...catParam, limit, offset);
+    posts = db.prepare(`${baseQuery} ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT ? OFFSET ?`).all(...catParam, limit, offset);
   }
 
   const totalPages = Math.ceil(total.c / limit);
-
-  // Generate preview from first 5 lines of rendered HTML
   posts.forEach(p => { p.preview_html = firstNLines(p.content_html, 5); });
 
-  res.render('index', { title: '首页', posts, page, totalPages, sort, categories, currentCat: cat });
+  res.render('index', Object.assign({ posts, page, totalPages, sort, categories }, opts));
+}
+
+// Blog listing (all categories except forum)
+router.get('/blog', (req, res) => {
+  const cat = req.query.cat || '';
+  const filter = cat ? "AND p.category = ?" : "AND (p.category != 'forum' OR p.category IS NULL OR p.category = '')";
+  const params = cat ? [cat] : [];
+  listPosts(filter, params, req, res, { title: '博客', currentCat: cat, isBlog: true });
+});
+
+// Forum listing (forum category only)
+router.get('/forum', (req, res) => {
+  listPosts("AND p.category = 'forum'", [], req, res, { title: '论坛', isForum: true });
 });
 
 // Single blog post

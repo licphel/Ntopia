@@ -1,0 +1,39 @@
+<div style="display:flex;gap:24px">
+  <div style="flex:1">
+    <h2 style="margin:0 0 12px;padding:0;border:none">欢迎来到 Ntopia</h2>
+    <p style="font-size:14px;line-height:1.9;color:#555">
+      Ntopia 是由 Licphel 创建的个人知识社区，致力于构建自由、理性的技术交流空间。<br>
+      支持 Markdown 写作与 LaTeX 数学公式，内容可独立选择许可协议。
+    </p>
+    <div style="display:flex;gap:12px;margin:16px 0">
+      <a href="/blog" style="display:inline-block;background:var(--c);color:#fff;padding:10px 24px;border-radius:3px;font-size:14px;text-decoration:none;font-weight:bold">进入博客</a>
+      <a href="/forum" style="display:inline-block;background:#6a8a4e;color:#fff;padding:10px 24px;border-radius:3px;font-size:14px;text-decoration:none;font-weight:bold">进入论坛</a>
+    </div>
+    <div style="margin-top:20px;padding:14px;background:#fafaf5;border:1px solid #e0dbd0;border-radius:3px;font-size:13px;line-height:2">
+      <h3 style="font-size:14px;color:var(--c);margin-bottom:4px">站务信息</h3>
+      <ul style="list-style:none;padding:0;margin:0">
+        <% if (typeof infoPages !== 'undefined') { infoPages.forEach(function(pg) { %>
+          <li style="padding:3px 0;border-bottom:1px dotted #eee"><a href="<%= pg.url %>"><%= pg.title %></a></li>
+        <% }); } %>
+      </ul>
+    </div>
+  </div>
+  <% if (typeof posters !== 'undefined' && posters && posters.length) { %>
+  <div style="width:320px;flex-shrink:0">
+    <div id="PosterBar" style="aspect-ratio:3/2;background:#1a1a1a;border-radius:4px;overflow:hidden;position:relative;margin-bottom:12px">
+      <% posters.forEach(function(p, i) { %>
+        <img src="<%= p %>" alt="" class="<%= i === 0 ? 'active' : '' %>" data-idx="<%= i %>">
+      <% }); %>
+      <% if (posters.length > 1) { %>
+        <div class="p-dots"><% posters.forEach(function(p, i) { %><span class="<%= i === 0 ? 'active' : '' %>" data-idx="<%= i %>" onclick="posterGo(<%= i %>)"></span><% }); %></div>
+      <% } %>
+    </div>
+    <div style="font-size:12px;line-height:2;color:#666">
+      <strong>站点统计</strong><br>
+      文章 <%= stats.posts %> 篇 · 评论 <%= stats.comments %> 条 · 用户 <%= stats.users %> 人<br>
+      累计访问 <%= stats.views %> 次<% if (stats.todayViews) { %> · 今日 <%= stats.todayViews %><% } %><br>
+      点赞 <%= stats.likes %> · 收藏 <%= stats.bookmarks %> · 签到 <%= stats.checkins %>
+    </div>
+  </div>
+  <% } %>
+</div>
