@@ -114,15 +114,17 @@
   }
 </script>
 
-<!-- Top-level comments only
-<div id="comments"></div> (like Tieba) -->
+<!-- Top-level comments only (like Tieba) -->
+<div id="comments"></div>
 <div style="margin-top:20px">
-  <% var _cp=(typeof cmtPage !=='undefined' ) ? cmtPage : 1; var allTop=comments.filter(function(c){return
-    !c.parent_id}); var cmtPerPage=10; var cmtTotalPages=Math.ceil(allTop.length / cmtPerPage); if (_cp < 1) _cp=1; if
+  <% var _cp=(typeof cmtPage !=='undefined' ) ? cmtPage : 1;
+    var allTop = []; for (var i = 0; i < comments.length; i++) { if (!comments[i].parent_id) allTop.push(comments[i]); }
+    var cmtPerPage=10; var cmtTotalPages=Math.ceil(allTop.length / cmtPerPage); if (_cp < 1) _cp=1; if
     (_cp> cmtTotalPages) _cp = cmtTotalPages || 1;
     var pagedComments = allTop.slice((_cp-1)*cmtPerPage, _cp*cmtPerPage);
     %>
-    <h3>评论 (<%= comments.filter(function(c){return !c.parent_id}).length %>)</h3>
+    <h3>评论 (<%= allTop.length %>)</h3>
+    <% if (allTop.length === 0) { %><p style="color:var(--text-muted);text-align:center;padding:20px 0">暂无评论</p><% } %>
     <% pagedComments.forEach(function(c) { %>
       <div class="comment"
         style="padding:6px 10px;margin-bottom:4px;<%= c.is_deleted ? 'opacity:0.5;border-color:var(--text-danger)' : '' %>">
@@ -137,7 +139,7 @@
               <span class="lv-badge">Lv.<%= c.level || 1 %></span>
               <span style="color:var(--text-muted);font-size:10px;margin-left:4px"><%- timeTag(c.created_at,
                   {fmt:'short'}) %></span>
-              <% var rc=comments.filter(function(x){return x.parent_id===c.id}).length; %>
+              <% var rc=0; for (var ri=0; ri<comments.length; ri++) { if (comments[ri].parent_id===c.id) rc++; } %>
                 <a href="/posts/<%= post.id %>/comment/<%= c.id %>"
                   style="font-size:11px;color:var(--c);margin-left:6px">
                   <%= rc>0 ? rc+'条回复' : '回复' %>

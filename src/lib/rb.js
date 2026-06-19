@@ -4,7 +4,7 @@ const { pinyin } = require('pinyin');
 const path = require('path');
 const fs = require('fs');
 
-const XLSX_PATH = path.join(__dirname, '..', 'public', 'utils', 'rb', 'redblack.xlsx');
+const XLSX_PATH = path.join(__dirname, '..', '..', 'public', 'utils', 'rb', 'redblack.xlsx');
 const LOCK_PATH = XLSX_PATH + '.lock';
 
 // Pinyin helpers for fuzzy search

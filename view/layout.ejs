@@ -1357,11 +1357,11 @@
                     <%= unreadMessages> 99 ? '99+' : unreadMessages %>
                   </span>
                   <% } %></a></li>
-            <li class="nav-sep" style="margin-left:auto;opacity:0.7"><span style="color:rgba(255,255,255,0.5)">|</span>
-            </li>
-            <li><a href="#" onclick="document.getElementById('logoutForm').submit();return false">退出</a></li>
-            <form id="logoutForm" method="POST" action="/auth/logout" style="display:none"><input type="hidden"
-                name="_csrf" value="<%= csrf %>"></form>
+            <li class="nav-sep" style="margin-left:auto;opacity:0.7"><span style="color:rgba(255,255,255,0.5)">|</span></li>
+            <li class="nav-drop"><a href="#" onclick="return false">设置</a><div class="nav-drop-menu"><a href="/settings/password">修改密码</a><a href="/settings/email">邮箱绑定</a><a href="/settings/delete">删除账号</a><a href="#" onclick="document.getElementById('logoutForm').submit();return false">退出登录</a></div></li>
+            <% if ((user.role || 0) >= LEVEL.ADMIN) { %><li class="nav-drop"><a href="#" onclick="return false">管理</a><div class="nav-drop-menu"><a href="/report/admin">举报管理</a></div></li><% } %>
+            <li class="nav-drop"><a href="#" onclick="return false">工具</a><div class="nav-drop-menu"><a href="/tools/rb">红黑榜</a><a href="/rss.xml" target="_blank">RSS</a></div></li>
+            <form id="logoutForm" method="POST" action="/auth/logout" style="display:none"><input type="hidden" name="_csrf" value="<%= csrf %>"></form>
             <% } else { %>
               <li><a href="/auth/login">登录</a></li>
               <% } %>
@@ -1376,24 +1376,11 @@
       </div>
       <% } %>
         <% if (user) { %>
-          <div id="UserBar" style="display:flex;justify-content:space-between;align-items:center">
-            <span>
-              欢迎回来，<a href="/users/<%= user.id %>">
-                <%= user.display_name || user.username %>
-              </a>
-              <% var b=roleBadge(user.role || 0); %>
-                <span class="lv-badge" data-level="LEVEL=<%= user.role %>"
-                  style="background:<%= b.bg %>;color:<%= b.color %>">
-                  <%= b.text %>
-                </span>
-                <span class="xp-badge">Lv.<%= user.level || 1 %> (<%= user.xp || 0 %>/<%= user.xpNextTotal || 5 %>
-                        EXP)</span>
-                <span style="margin-left:8px">|</span>
-                <a href="/settings/password" style="margin-left:8px">设置</a>
-                <% if ((user.role || 0)>= LEVEL.ADMIN) { %><a href="/admin" style="margin-left:6px">管理</a>
-                  <% } %>
-                    <a href="/tools/rb" style="margin-left:6px">工具</a>
-            </span>
+          <div id="UserBar">
+            欢迎回来，<a href="/users/<%= user.id %>"><%= user.display_name || user.username %></a>
+            <% var b=roleBadge(user.role || 0); %>
+            <span class="lv-badge" data-level="LEVEL=<%= user.role %>" style="background:<%= b.bg %>;color:<%= b.color %>"><%= b.text %></span>
+            <span class="xp-badge">Lv.<%= user.level || 1 %> (<%= user.xp || 0 %>/<%= user.xpNextTotal || 5 %> EXP)</span>
             <button class="checkin-btn" id="checkinBtn" onclick="doCheckin()">签到</button>
           </div>
           <% } %>

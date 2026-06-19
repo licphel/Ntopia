@@ -77,7 +77,7 @@
 <% }); %>
 </table>
 
-<%- include('pagination', { page: page, totalPages: totalPages, baseUrl: '/files' + (typeof baseQuery !== 'undefined' ? baseQuery : ''), param: 'page' }) %>
+<%- include('widget/pagination', { page: page, totalPages: totalPages, baseUrl: '/files' + (typeof baseQuery !== 'undefined' ? baseQuery : ''), param: 'page' }) %>
 
 <script>
 function citeFile(id, name){

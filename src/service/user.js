@@ -6,7 +6,7 @@ const config = require('../config');
 const auth = require('../lib/auth');
 const { userRepo, postRepo, commentRepo, xpRepo, followRepo, messageRepo, notificationRepo } = require('../repo');
 const { validateUsername, validatePassword, validateEmail, validateDisplayName, validateBio } = require('../util/validator');
-const { renderMarkdown } = require('../util/markdown');
+const { renderMarkdown, firstNLines } = require('../util/markdown');
 const emailService = require('./email');
 const time = require('../util/time');
 
@@ -28,6 +28,7 @@ const userService = {
       limit: config.PAGE_SIZE,
       isOwner: isOwnerView,
     });
+    postResult.posts.forEach(p => { p.preview_html = firstNLines(p.content_html, 5); });
 
     // Comments
     const cmtResult = commentRepo.listByUser(profile.id, {

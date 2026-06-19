@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 
 let rb = null;
-try { rb = require('../lib/rb'); } catch (_) { rb = null; }
+rb = require('../lib/rb');
 
 router.get('/tools/rb', (req, res) => {
   const q = (req.query.q || '').trim();

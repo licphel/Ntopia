@@ -99,7 +99,7 @@ app.post('/upload', (req, res, next) => {
 }).single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
   try {
-    const { fileService } = require('./service/file');
+    const fileService = require('./service/file');
     const result = await fileService.processImage(req.file.path, req.file.originalname);
     res.json(result);
   } catch (e) { try { fs.unlinkSync(req.file.path); } catch (_) {} res.status(400).json({ error: '图片处理失败' }); }

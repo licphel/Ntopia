@@ -13,6 +13,32 @@ const SELECT_POST = `
 
 const WHERE_VISIBLE = `(p.is_deleted = 0 OR p.is_deleted IS NULL) AND p.is_draft = 0`;
 
+function sortOrder(sort) {
+  if (sort === 'replies') return 'ORDER BY comment_count DESC';
+  if (sort === 'hot') { const t = require('../util/time'); return `ORDER BY (comment_count * 3.0 + p.view_count * 0.1) / ((julianday('${t.toSQL().split(' ')[0]}') - julianday(p.created_at)) * 24.0 + 4.0) DESC`; }
+  return 'ORDER BY p.created_at DESC';
+}
+
+function likeSearch(query, page, limit, orderBy) {
+  const offset = (page - 1) * limit;
+  const like = `%${query}%`;
+  const total = getDB().prepare(`
+    SELECT COUNT(*) as c FROM posts WHERE is_deleted = 0
+      AND (title LIKE ? OR content_md LIKE ?
+        OR category_id IN (SELECT id FROM categories WHERE name LIKE ?))
+  `).get(like, like, like);
+  const posts = getDB().prepare(`
+    SELECT p.*, u.username, u.display_name, u.avatar,
+      (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
+    FROM posts p JOIN users u ON p.author_id = u.id
+    WHERE p.is_deleted = 0
+      AND (p.title LIKE ? OR p.content_md LIKE ?
+        OR p.category_id IN (SELECT id FROM categories WHERE name LIKE ?))
+    ${orderBy} LIMIT ? OFFSET ?
+  `).all(like, like, like, limit, offset);
+  return { posts, total: total?.c || 0, page, totalPages: Math.ceil((total?.c || 0) / limit) };
+}
+
 const postRepo = {
   /** Find a visible post by ID, with author info. */
   findById(id) {
@@ -53,20 +79,8 @@ const postRepo = {
     const total = getDB().prepare(countSQL).get(...params);
 
     // Build list query
-    let orderBy;
+    const orderBy = 'ORDER BY p.is_pinned DESC, ' + sortOrder(sort).replace('ORDER BY ', '');
     const listParams = [...params];
-
-    if (sort === 'replies') {
-      orderBy = 'ORDER BY p.is_pinned DESC, comment_count DESC';
-    } else if (sort === 'hot') {
-      const time = require('../util/time');
-      const hotNow = time.toSQL().split(' ')[0];
-      orderBy = `ORDER BY p.is_pinned DESC,
-        (comment_count * 3.0 + p.view_count * 0.1) / ((julianday(?) - julianday(p.created_at)) * 24.0 + 4.0) DESC`;
-      listParams.push(hotNow);
-    } else {
-      orderBy = 'ORDER BY p.is_pinned DESC, p.created_at DESC';
-    }
 
     const posts = getDB().prepare(`
       ${SELECT_POST}
@@ -97,13 +111,14 @@ const postRepo = {
     const offset = (page - 1) * limit;
     const deleteFilter = isOwner ? '' : 'AND is_deleted = 0';
     const posts = getDB().prepare(`
-      SELECT p.*, (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
-      FROM posts p
+      SELECT p.*, u.username, u.display_name, u.avatar,
+        (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
+      FROM posts p JOIN users u ON p.author_id = u.id
       WHERE p.author_id = ? AND p.is_draft = 0 ${deleteFilter.replace('is_deleted', 'p.is_deleted')}
       ORDER BY p.created_at DESC LIMIT ? OFFSET ?
     `).all(userId, limit, offset);
     const total = getDB().prepare(
-      `SELECT COUNT(*) as c FROM posts WHERE author_id = ? AND is_draft = 0 ${deleteFilter}`
+      `SELECT COUNT(*) as c FROM posts p WHERE p.author_id = ? AND p.is_draft = 0 ${deleteFilter.replace('is_deleted', 'p.is_deleted')}`
     ).get(userId);
     return { posts, total: total.c, page, totalPages: Math.ceil(total.c / limit) };
   },
@@ -193,8 +208,12 @@ const postRepo = {
   },
 
   /** Full-text search with pagination. Returns { posts, total }. */
-  search(query, { page = 1, limit = 10 } = {}) {
+  search(query, { page = 1, limit = 10, sort = 'newest' } = {}) {
     const offset = (page - 1) * limit;
+    let orderBy = 'ORDER BY p.created_at DESC';
+    if (sort === 'replies') orderBy = 'ORDER BY comment_count DESC';
+    else if (sort === 'hot') { const time = require('../util/time'); const hotNow = time.toSQL().split(' ')[0]; orderBy = `ORDER BY (comment_count * 3.0 + p.view_count * 0.1) / ((julianday('${hotNow}') - julianday(p.created_at)) * 24.0 + 4.0) DESC`; }
+
     try {
       const ftsQuery = query.split(/\s+/).map(w => `"${w}"`).join(' ');
       const total = getDB().prepare(`
@@ -202,33 +221,21 @@ const postRepo = {
         WHERE posts_fts MATCH ? AND p.is_deleted = 0
       `).get(ftsQuery);
       const posts = getDB().prepare(`
-        SELECT p.*, u.username, u.display_name,
+        SELECT p.*, u.username, u.display_name, u.avatar,
           (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count,
           rank
         FROM posts_fts f
           JOIN posts p ON f.rowid = p.id
           JOIN users u ON p.author_id = u.id
         WHERE posts_fts MATCH ? AND p.is_deleted = 0
-        ORDER BY rank LIMIT ? OFFSET ?
+        ${orderBy} LIMIT ? OFFSET ?
       `).all(ftsQuery, limit, offset);
-      return { posts, total: total?.c || 0, page, totalPages: Math.ceil((total?.c || 0) / limit) };
+      const result = { posts, total: total?.c || 0, page, totalPages: Math.ceil((total?.c || 0) / limit) };
+      if (result.posts.length > 0) return result;
+      // FTS returned 0 — fallback to LIKE (for CJK etc.)
+      return likeSearch(query, page, limit, orderBy);
     } catch (_) {
-      const like = `%${query}%`;
-      const total = getDB().prepare(`
-        SELECT COUNT(*) as c FROM posts WHERE is_deleted = 0
-          AND (title LIKE ? OR content_md LIKE ?
-            OR category_id IN (SELECT id FROM categories WHERE name LIKE ?))
-      `).get(like, like, like);
-      const posts = getDB().prepare(`
-        SELECT p.*, u.username, u.display_name,
-          (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
-        FROM posts p JOIN users u ON p.author_id = u.id
-        WHERE p.is_deleted = 0
-          AND (p.title LIKE ? OR p.content_md LIKE ?
-            OR p.category_id IN (SELECT id FROM categories WHERE name LIKE ?))
-        ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT ? OFFSET ?
-      `).all(like, like, like, limit, offset);
-      return { posts, total: total?.c || 0, page, totalPages: Math.ceil((total?.c || 0) / limit) };
+      return likeSearch(query, page, limit, orderBy);
     }
   },
 

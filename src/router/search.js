@@ -6,8 +6,10 @@ const router = express.Router();
 router.get('/search', (req, res) => {
   const q = (req.query.q || '').trim();
   const page = parseInt(req.query.page) || 1;
-  const r = postService.search(q, req.query.type || 'all', page);
-  res.render('page/search', { title: q ? `搜索: ${q}` : '搜索', query: q, type: req.query.type || 'all', page, ...r });
+  const sort = req.query.sort || 'newest';
+  const type = req.query.type || 'all';
+  const r = postService.search(q, type, page, sort);
+  res.render('page/search', { title: q ? `搜索: ${q}` : '搜索', query: q, type, page, sort, ...r });
 });
 
 module.exports = router;

@@ -91,6 +91,6 @@
                 </div>
                 <% }); %>
 
-                  <% if (totalPages> 1) { %><%- include("pagination", { page: page, totalPages: totalPages, baseUrl:
+                  <% if (totalPages> 1) { %><%- include("widget/pagination", { page: page, totalPages: totalPages, baseUrl:
                       (typeof section !=='undefined' ? '/forum/' + section.id : '/forum' ), param: "page" }) %>
                       <% } %>

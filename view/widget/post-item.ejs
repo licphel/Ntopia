@@ -1,40 +1,32 @@
-<%# post-item — reusable post listing. Params: post, excerpt?, detailed? (date bubble + avatar + badges) %>
-  <% var dt=(typeof detailed==='undefined' ) ? true : detailed; %>
-    <div class="forum-topic<%= dt && post.is_pinned ? ' pinned' : '' %>"
-      style="display:flex;gap:10px;padding:8px 12px;<%= post.is_deleted ? 'opacity:0.5' : '' %>">
-      <div style="flex:1;min-width:0;position:relative">
-        <% if (dt && (post.is_pinned || post.is_featured)) { %>
-          <span style="position:absolute;top:0;right:0;font-size:10px;display:flex;gap:4px">
-            <% if (post.is_pinned) { %><span style="color:var(--c);font-weight:bold">置顶</span>
-              <% } %>
-                <% if (post.is_featured) { %><span
-                    style="background:linear-gradient(135deg,#f90,#f60);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:bold">精华</span>
-                  <% } %>
-          </span>
-          <% } %>
-            <h3 style="margin:0;font-size:15px"><a href="/posts/<%= post.id %>">
-                <%= post.title %>
-              </a></h3>
-            <div class="forum-meta" style="font-size:11px;color:var(--text-muted);margin-top:2px">
-              <% if (dt) { %><img src="<%= post.avatar || '/img/default-avatar.png' %>"
-                  style="width:16px;height:16px;border-radius:2px;vertical-align:middle;margin-right:3px">
-                <% } %>
-                  <a href="/users/<%= post.author_id %>">
-                    <%= post.display_name || post.username %>
-                  </a>
-                  <% if (typeof post.category_name !=='undefined' && post.category_name) { %> | <a
-                      href="/forum/<%= post.category_id %>">
-                      <%= post.category_name %>
-                    </a>
-                    <% } %>
-                      | <%- timeTag(post.created_at) %>
-                        | <%= post.view_count || 0 %> 阅读 | <%= post.comment_count || 0 %> 回复
-            </div>
-            <% if (typeof excerpt !=='undefined' && excerpt) { %>
-              <div style="font-size:12px;color:var(--text-soft);margin-top:3px">
-                <% if (post.preview_html) { %><%- post.preview_html %><% } else { %><%= (post.content_md || '').replace(/[#*`>\[\]()!~|\\]/g,'').slice(0, 120) %><% } %>
-                <a href="/posts/<%= post.id %>" style="font-size:11px;color:var(--accent);margin-left:4px">查看全文</a>
-              </div>
-              <% } %>
-      </div>
+<%# post-item — reusable post listing. Params: post, excerpt? %>
+<div class="forum-topic" style="display:flex;gap:10px;padding:8px 12px;<%= post.is_deleted ? 'opacity:0.5;border-color:var(--text-danger)' : '' %>">
+  <div class="date-wrap" style="align-self:flex-start">
+    <span class="date-day"><%- timeTag(post.created_at, {fmt:'day'}) %></span>
+    <span class="date-month"><%- timeTag(post.created_at, {fmt:'month'}) %></span>
+  </div>
+  <div style="flex:1;min-width:0;position:relative">
+    <% if (post.is_pinned || post.is_featured) { %>
+    <span style="position:absolute;top:0;right:0;font-size:10px;display:flex;gap:4px">
+      <% if (post.is_pinned) { %><span style="color:var(--c);font-weight:bold">置顶</span><% } %>
+      <% if (post.is_featured) { %><span style="background:linear-gradient(135deg,#f90,#f60);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:bold">精华</span><% } %>
+    </span>
+    <% } %>
+    <h3 style="margin:0;font-size:15px">
+      <% if (post.is_deleted) { %><span style="color:var(--text-danger);font-size:10px">[已删除]</span> <% } %>
+      <a href="/posts/<%= post.id %>"><%= post.title %></a>
+    </h3>
+    <div class="forum-meta" style="font-size:11px;color:var(--text-muted);margin-top:2px">
+      <img src="<%= post.avatar || '/img/default-avatar.png' %>" style="width:16px;height:16px;border-radius:2px;vertical-align:middle;margin-right:3px">
+      <a href="/users/<%= post.author_id %>"><%= post.display_name || post.username %></a>
+      <% if (typeof post.category_name !== 'undefined' && post.category_name) { %> | <a href="/forum/<%= post.category_id %>"><%= post.category_name %></a><% } %>
+      | <%- timeTag(post.created_at) %>
+      | <%= post.view_count || 0 %> 阅读 | <%= post.comment_count || 0 %> 回复
     </div>
+    <% if (typeof excerpt !== 'undefined' && excerpt) { %>
+    <div style="font-size:12px;color:var(--text-soft);margin-top:3px">
+      <% if (post.preview_html) { %><%- post.preview_html %><% } else { %><%= (post.content_md || '').replace(/[#*`>\[\]()!~|\\]/g,'').slice(0, 120) %><% } %>
+      <a href="/posts/<%= post.id %>" style="font-size:11px;color:var(--accent);margin-left:4px">查看全文</a>
+    </div>
+    <% } %>
+  </div>
+</div>

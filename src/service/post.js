@@ -245,12 +245,13 @@ ${items}</channel>
   },
 
   /** Search posts, users, and boards. */
-  search(query, type, page = 1) {
+  search(query, type, page = 1, sort = 'newest') {
     const results = { postResults: [], userResults: [], boardResults: [], postPage: 1, postTotalPages: 0, postTotal: 0 };
     if (!query) return results;
 
     if (type === 'all' || type === 'posts') {
-      const r = postRepo.search(query, { page, limit: config.PAGE_SIZE });
+      const r = postRepo.search(query, { page, limit: config.PAGE_SIZE, sort });
+      r.posts.forEach(p => { p.preview_html = firstNLines(p.content_html, 5); });
       results.postResults = r.posts;
       results.postPage = r.page;
       results.postTotalPages = r.totalPages;

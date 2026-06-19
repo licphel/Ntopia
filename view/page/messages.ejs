@@ -16,7 +16,7 @@
 </div>
 <% }); %>
 
-<%- include('pagination', { page: msgPage, totalPages: msgTotalPages, baseUrl: '/messages', param: 'page' }) %>
+<%- include('widget/pagination', { page: msgPage, totalPages: msgTotalPages, baseUrl: '/messages', param: 'page' }) %>
 
 <h3 style="margin-top:24px">已发送</h3>
 <% if (sent.length === 0) { %><p style="color:var(--text-muted)">暂无发送记录。</p><% } %>
@@ -30,4 +30,4 @@
 </div>
 <% }); %>
 
-<%- include('pagination', { page: sentPage, totalPages: sentTotalPages, baseUrl: '/messages', param: 'sp' }) %>
+<%- include('widget/pagination', { page: sentPage, totalPages: sentTotalPages, baseUrl: '/messages', param: 'sp' }) %>

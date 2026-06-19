@@ -93,9 +93,9 @@
     <% if (posts.length===0) { %>
       <p style="color:var(--text-muted)">暂无内容。</p>
       <% } %>
-        <% posts.forEach(function(p) { %><%- include('widget/post-item', { post: p, detailed: false }) %>
+        <% posts.forEach(function(p) { %><%- include('widget/post-item', { post: p, excerpt: true }) %>
             <% }); %>
-              <%- include('pagination', { page: postPage, totalPages: postPages, baseUrl: '/users/' + profile.id
+              <%- include('widget/pagination', { page: postPage, totalPages: postPages, baseUrl: '/users/' + profile.id
                 + '?cp=' + cmtPage, param: 'pp' }) %>
 
                 <h3>评论记录</h3>
@@ -118,7 +118,7 @@
                         <div class="cmt-body"><%- (c.content_html || '' ).slice(0, 300) %></div>
                       </div>
                       <% }); %>
-                        <%- include('pagination', { page: cmtPage, totalPages: cmtPages, baseUrl: '/users/' + profile.id
+                        <%- include('widget/pagination', { page: cmtPage, totalPages: cmtPages, baseUrl: '/users/' + profile.id
                           + '?pp=' + postPage, param: 'cp' }) %>
 
                           <input type="hidden" name="_csrf" value="<%= csrf %>">
