@@ -18,15 +18,16 @@ router.get('/register', (req, res) => res.render('page/register', { title: '注�
 router.get('/reset-password', (req, res) => res.render('page/reset-password', { title: '重置密码', error: null, ok: null }));
 
 router.post('/login', (req, res) => {
-  const r = authService.login(req.body.username, req.body.password, req.body.captcha, req.session, { ip: req.ip, userAgent: req.get('User-Agent') });
-  if (!r.ok) return res.render('page/login', { title: '登录', error: r.error });
+  const { username, password, captcha } = req.body;
+  const r = authService.login(username, password, captcha, req.session, { ip: req.ip, userAgent: req.get('User-Agent') });
+  if (!r.ok) return res.render('page/login', { title: '登录', error: r.error, form: { username } });
   req.session.user = r.user;
   req.session.save(() => res.redirect('/forum'));
 });
 
 router.post('/register', (req, res) => {
   const r = authService.register(req.body, req.session);
-  if (!r.ok) return res.render('page/register', { title: '注册', error: r.error });
+  if (!r.ok) return res.render('page/register', { title: '注册', error: r.error, form: { username: req.body.username, email: req.body.email, display_name: req.body.display_name } });
   req.session.user = r.user;
   req.session.save(() => res.redirect('/forum'));
 });

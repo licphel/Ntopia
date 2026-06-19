@@ -10,7 +10,7 @@
         <label>邮箱</label>
         <div style="display:flex;gap:8px;margin-bottom:12px">
           <input type="email" name="email" maxlength="128" required placeholder="用于接收验证码"
-            style="flex:1;margin-bottom:0">
+            style="flex:1;margin-bottom:0" value="<%= (typeof form !== 'undefined' && form.email) ? form.email : '' %>">
           <button type="button" id="sendBtn" onclick="sendCode()"
             style="background:var(--btn-accent-bg);color:var(--text-inverse);border:none;padding:7px 14px;border-radius:var(--radius);cursor:pointer;font-size:12px;white-space:nowrap">发送验证码</button>
           <span id="sendStatus" style="font-size:11px;color:var(--text-muted);margin-left:4px"></span>
@@ -18,9 +18,9 @@
         <label>验证码</label>
         <input type="text" name="email_code" maxlength="6" required placeholder="邮箱收到的6位验证码">
         <label>用户名</label>
-        <input type="text" name="username" maxlength="64" required placeholder="至少2个字符">
+        <input type="text" name="username" maxlength="64" required placeholder="至少2个字符" value="<%= (typeof form !== 'undefined' && form.username) ? form.username : '' %>">
         <label>显示名称</label>
-        <input type="text" name="display_name" maxlength="64" placeholder="可选，默认为用户名">
+        <input type="text" name="display_name" maxlength="64" placeholder="可选，默认为用户名" value="<%= (typeof form !== 'undefined' && form.display_name) ? form.display_name : '' %>">
         <label>密码</label>
         <input type="password" name="password" maxlength="64" required placeholder="至少4个字符">
         <label>确认密码</label>

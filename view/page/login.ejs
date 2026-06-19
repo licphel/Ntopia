@@ -6,7 +6,7 @@
   <form method="POST" action="/auth/login">
   <input type="hidden" name="_csrf" value="<%= csrf %>">
     <label>用户名</label>
-    <input type="text" name="username" required maxlength="64">
+    <input type="text" name="username" required maxlength="64" value="<%= (typeof form !== 'undefined' && form.username) ? form.username : '' %>">
     <label>密码</label>
     <input type="password" name="password" required maxlength="64">
 

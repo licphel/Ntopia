@@ -56,7 +56,7 @@ const authService = {
   },
 
   /** Register a new user. Returns { ok, error, user }. */
-  register({ username, password, password2, displayName, email, emailCode, captcha, agree }, session) {
+  register({ username, password, password2, displayName, email, email_code, captcha, agree }, session) {
     if (!agree) return { ok: false, error: '请先阅读并同意用户协定、隐私协议' };
     if (!this.verifyCaptcha(session, captcha)) return { ok: false, error: '验证码错误' };
     if (password !== password2) return { ok: false, error: '两次密码不一致' };
@@ -67,9 +67,9 @@ const authService = {
     if (passErr) return { ok: false, error: passErr };
     const emailErr = validateEmail(email);
     if (emailErr) return { ok: false, error: emailErr };
-    if (!emailCode) return { ok: false, error: '请先验证邮箱' };
+    if (!email_code) return { ok: false, error: '请先验证邮箱' };
 
-    if (!emailService.verifyCode(email, emailCode)) {
+    if (!emailService.verifyCode(email, email_code)) {
       return { ok: false, error: '验证码错误或已过期' };
     }
 
