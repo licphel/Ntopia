@@ -1,5 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const { requireLogin } = require('../lib/middleware');
 const { db } = require('../lib/db');
 const { verifyCode } = require('../lib/mail');
 const router = express.Router();

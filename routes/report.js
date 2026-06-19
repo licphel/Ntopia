@@ -1,15 +1,11 @@
 const express = require('express');
 const { db } = require('../lib/db');
 const { LEVEL } = require('../lib/perm');
+const { requireLoginAPI, requireLogin } = require('../lib/middleware');
 const router = express.Router();
 
-function requireLogin(req, res, next) {
-  if (!req.session.user) return res.status(401).json({ ok: false, error: '请先登录' });
-  next();
-}
-
 // Submit a report
-router.post('/submit', requireLogin, (req, res) => {
+router.post('/submit', requireLoginAPI, (req, res) => {
   const { type, target_id, reason } = req.body;
   if (!type || !target_id) return res.json({ ok: false, error: '参数错误' });
 

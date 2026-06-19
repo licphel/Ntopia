@@ -1,14 +1,10 @@
 const express = require('express');
 const { db } = require('../lib/db');
+const { requireLoginAPI } = require('../lib/middleware');
 const router = express.Router();
 
-function requireLogin(req, res, next) {
-  if (!req.session.user) return res.json({ ok: false, error: '请先登录' });
-  next();
-}
-
 // Toggle follow
-router.post('/:username', requireLogin, (req, res) => {
+router.post('/:username', requireLoginAPI, (req, res) => {
   const target = db.prepare('SELECT id FROM users WHERE username = ?').get(req.params.username);
   if (!target || target.id === req.session.user.id) return res.json({ ok: false, error: '无法操作' });
 

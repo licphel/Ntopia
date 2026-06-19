@@ -1,0 +1,26 @@
+<h2>我的草稿</h2>
+
+<% if (drafts.length === 0) { %>
+  <p style="color:#999;text-align:center;padding:40px 0">没有草稿。</p>
+<% } %>
+
+<% drafts.forEach(function(d) { %>
+<div class="forum-topic" style="display:flex;justify-content:space-between;align-items:center">
+  <div style="flex:1">
+    <h3><a href="/posts/<%= d.slug %>/edit"><%= d.title || '(无标题)' %></a></h3>
+    <div class="forum-meta">
+      更新于 <%= d.updated_at.slice(0, 16) %>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+    <a href="/posts/<%= d.slug %>/edit" style="font-size:11px;color:var(--c);white-space:nowrap">编辑</a>
+    <form method="POST" action="/posts/<%= d.slug %>/delete-self" style="margin:0" onsubmit="return confirm('删除草稿？')">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <button style="background:none;border:none;color:#c00;cursor:pointer;font-size:11px;padding:0;white-space:nowrap">删除</button>
+    </form>
+  </div>
+</div>
+<% }); %>
+
+<%- include('pagination', { page: draftPage, totalPages: draftTotalPages, baseUrl: '/drafts', param: 'page' }) %>
+

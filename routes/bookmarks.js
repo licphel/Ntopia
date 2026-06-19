@@ -1,10 +1,10 @@
 const express = require('express');
 const { db, awardBookmarkReceivedXP } = require('../lib/db');
+const { requireLogin, requireLoginAPI } = require('../lib/middleware');
 const router = express.Router();
 
 // Toggle bookmark
-router.post('/toggle', (req, res) => {
-  if (!req.session.user) return res.status(401).json({ ok: false });
+router.post('/toggle', requireLoginAPI, (req, res) => {
   const { post_id } = req.body;
   const uid = req.session.user.id;
   const existing = db.prepare('SELECT id FROM bookmarks WHERE user_id = ? AND post_id = ?').get(uid, post_id);

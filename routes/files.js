@@ -1,5 +1,6 @@
 const express = require('express');
 const multer = require('multer');
+const { requireLogin } = require('../lib/middleware');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -20,10 +21,6 @@ const SAFE_EXT = new Set([
   'mp3', 'mp4', 'wav', 'ogg', 'webm',
 ]);
 
-function requireLogin(req, res, next) {
-  if (!req.session.user) return res.redirect('/auth/login');
-  next();
-}
 
 // Fix double-encoded filenames from browser multipart uploads.
 // Browsers encode non-ASCII filenames as UTF-8 in the Content-Disposition header,

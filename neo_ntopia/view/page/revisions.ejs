@@ -1,0 +1,31 @@
+<h2>编辑历史: <a href="/posts/<%= post.slug %>"><%= post.title %></a></h2>
+
+<% if (revisions.length === 0) { %>
+  <p style="color:#999;text-align:center;padding:40px 0">暂无编辑历史。</p>
+<% } %>
+
+<% revisions.forEach(function(r, idx) { %>
+<div class="comment" style="margin-bottom:8px;<%= idx === 0 ? 'border:2px solid var(--c)' : '' %>">
+  <div style="margin-bottom:2px">
+    <strong><%= idx === 0 ? '(最新)' : '#' + (revisions.length - idx) %></strong>
+    <span style="color:#999;font-size:11px"><%- timeTag(r.created_at) %></span>
+    <span style="color:#999;font-size:11px"> by <%= r.display_name || r.username %></span>
+  </div>
+  <div style="font-size:13px;color:#666;margin:4px 0">
+    <strong><%= r.title %></strong>
+  </div>
+  <div style="font-size:12px;line-height:1.6;max-height:200px;overflow-y:auto;border:1px solid #e0dbd0;padding:6px 10px;background:#fff">
+    <%- r.content_html.slice(0, 2000) %>
+    <% if (r.content_html.length > 2000) { %><p style="color:#999">... 内容过长，仅显示前 2000 字符</p><% } %>
+  </div>
+  <div style="margin-top:4px;font-size:11px">
+    <form method="POST" action="/posts/<%= post.slug %>/restore/<%= r.id %>" style="display:inline" onsubmit="return confirm('恢复到该版本？当前内容将被保存为历史记录。')">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <button style="background:var(--c);color:#fff;border:none;padding:2px 8px;border-radius:2px;cursor:pointer;font-size:11px">恢复此版本</button>
+    </form>
+  </div>
+</div>
+<% }); %>
+
+<p style="margin-top:12px"><a href="/posts/<%= post.slug %>">返回文章</a></p>
+

@@ -1,11 +1,8 @@
 const express = require('express');
 const { db } = require('../lib/db');
+const { requireLogin } = require('../lib/middleware');
 const router = express.Router();
 
-function requireLogin(req, res, next) {
-  if (!req.session.user) return res.redirect('/auth/login');
-  next();
-}
 
 // View all notifications
 router.get('/', requireLogin, (req, res) => {

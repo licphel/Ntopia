@@ -1,13 +1,10 @@
 const express = require('express');
 const { renderMarkdown } = require('../lib/helpers');
+const { requireLogin } = require('../lib/middleware');
 const { db } = require('../lib/db');
 const router = express.Router();
 
 // Require login
-function requireLogin(req, res, next) {
-  if (!req.session.user) return res.redirect('/auth/login');
-  next();
-}
 
 // Inbox
 router.get('/', requireLogin, (req, res) => {

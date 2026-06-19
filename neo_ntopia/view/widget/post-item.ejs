@@ -1,0 +1,13 @@
+<%# post-item — reusable post listing. Params: post, excerpt? %>
+<div class="forum-topic<%= typeof pinned !== 'undefined' && pinned ? ' pinned' : '' %>">
+  <h3><a href="/posts/<%= post.slug %>"><%= post.title %></a></h3>
+  <div class="forum-meta">
+    <a href="/users/<%= post.username %>"><%= post.display_name || post.username %></a> |
+    <%- timeTag(post.created_at) %> |
+    <%= post.comment_count || 0 %> 评论
+    <% if (typeof post.category_name !== 'undefined' && post.category_name) { %> | <%= post.category_name %><% } %>
+  </div>
+  <% if (typeof excerpt !== 'undefined' && excerpt) { %>
+  <div style="font-size:12px;color:#666;margin-top:4px"><%= (post.content_md || '').replace(/[#*`>\[\]()!~|\\]/g,'').slice(0, 120) %></div>
+  <% } %>
+</div>

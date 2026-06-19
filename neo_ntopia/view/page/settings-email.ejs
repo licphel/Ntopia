@@ -1,0 +1,40 @@
+<h2>邮箱绑定</h2>
+<% if (typeof error !== 'undefined' && error) { %><div class="auth-error"><%= error %></div><% } %>
+<% if (typeof ok !== 'undefined' && ok) { %><div style="color:var(--c);text-align:center;margin-bottom:8px"><%= ok %></div><% } %>
+<p style="font-size:13px;color:#999;margin-bottom:12px">当前邮箱：<strong><%= user && user.email ? user.email : '未绑定' %></strong></p>
+<div class="auth-form" style="margin-top:0;max-width:400px">
+<form method="POST" action="/settings/email">
+<input type="hidden" name="_csrf" value="<%= csrf %>">
+  <label>新邮箱</label>
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <input type="email" name="new_email" required placeholder="输入新邮箱" style="flex:1;margin-bottom:0">
+    <button type="button" id="emailSendBtn" onclick="sendEmailCode()" style="background:var(--c);color:#fff;border:none;padding:7px 14px;border-radius:3px;cursor:pointer;font-size:12px;white-space:nowrap">发送验证码</button>
+    <span id="emailSendStatus" style="font-size:11px;color:#999;margin-left:4px"></span>
+  </div>
+  <label>验证码</label>
+  <input type="text" name="email_code" required placeholder="邮箱收到的6位验证码">
+  <button type="submit" class="submit-btn">绑定邮箱</button>
+</form>
+</div>
+
+<script>
+var cd = 0;
+var st = document.getElementById('emailSendStatus');
+function sendEmailCode(){
+  if(cd > 0) return;
+  var em = document.querySelector('[name=new_email]').value;
+  if(!em.includes('@')){ st.textContent='邮箱格式错误'; st.style.color='#c00'; return; }
+  var btn = document.getElementById('emailSendBtn');
+  btn.textContent = '发送中...'; btn.disabled = true; st.textContent = '';
+  fetch('/email/send', { method:'POST', headers:{'Content-Type':'application/json','x-csrf-token':'<%= csrf %>'}, body:JSON.stringify({email:em}) })
+    .then(r=>r.json()).then(d=>{
+      if(d.ok){ cd=60; st.textContent='已发送'; st.style.color='var(--c)'; tick2(btn); }
+      else { btn.textContent='发送验证码'; btn.disabled=false; st.textContent=d.error||'失败'; st.style.color='#c00'; }
+    }).catch(function(){ btn.textContent='发送验证码'; btn.disabled=false; st.textContent='网络错误'; st.style.color='#c00'; });
+}
+function tick2(btn){
+  if(cd<=0){ btn.textContent='发送验证码'; btn.disabled=false; st.textContent=''; return; }
+  btn.textContent = cd+'s后重发'; btn.disabled=true;
+  cd--; setTimeout(function(){tick2(btn)},1000);
+}
+</script>

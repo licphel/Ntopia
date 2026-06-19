@@ -1,0 +1,27 @@
+<%
+  // Params: page (current), totalPages, param (default 'page'), baseUrl
+  var p = page || 1, t = totalPages || 1;
+  if (t <= 1) return;
+  var prm = (typeof param !== 'undefined') ? param : 'page';
+  var base = baseUrl || '?';
+  var conn = base.indexOf('?') >= 0 ? '&' : '?';
+  function href(n) { return base + conn + prm + '=' + n; }
+
+  var pages = [];
+  for (var i = 1; i <= t; i++) {
+    if (i === 1 || i === t || (i >= p - 2 && i <= p + 2)) pages.push(i);
+  }
+  var jumpTpl = base + conn + prm + '=';
+%>
+<div class="pages-nav">
+  <% if (p > 1) { %><a href="<%= href(p-1) %>">&lt;</a><% } %>
+  <% for (var j = 0; j < pages.length; j++) {
+    var n = pages[j];
+    if (j > 0 && n - pages[j-1] > 1) { %><span class="p-gap">...</span><% } %>
+    <% if (n === p) { %><span class="current"><%= n %></span><% } else { %><a href="<%= href(n) %>"><%= n %></a><% } %>
+  <% } %>
+  <% if (p < t) { %><a href="<%= href(p+1) %>">&gt;</a><% } %>
+  <% if (t > 5) { %>
+  <span class="p-jump"><input type="text" size="3" value="<%= p %>" onkeydown="if(event.key==='Enter'){var v=parseInt(this.value);if(v>=1&&v<=<%= t %>)location.href='<%- jumpTpl %>'+v}"> / <%= t %></span>
+  <% } %>
+</div>

@@ -1,0 +1,24 @@
+<!-- 全部板块 header -->
+<div class="flex-between" style="margin-bottom:8px">
+  <h2 style="font-size:16px;color:var(--c);margin:0;padding-bottom:6px;border-bottom:2px solid #e0dbd0">全部板块</h2>
+  <a href="/forum" style="font-size:11px;color:var(--c);white-space:nowrap">返回论坛</a>
+</div>
+
+<% if (sections && sections.length) { %>
+<div style="margin-bottom:16px">
+  <% sections.forEach(function(s){ %>
+  <div style="padding:8px 0;border-bottom:1px dotted #e0dbd0;display:flex;align-items:flex-start;gap:10px">
+    <% if (s.image) { %><img src="<%= s.image %>" style="width:32px;height:32px;border-radius:3px;object-fit:cover;flex-shrink:0;margin-top:2px"><% } %>
+    <div style="flex:1;min-width:0">
+      <a href="/forum/<%= s.slug %>" style="font-weight:bold;font-size:14px;color:#333"><%= s.name %></a>
+      <span style="font-size:11px;color:var(--c);margin-left:8px"><%= s.post_count || 0 %> 帖</span>
+      <% if (s.description) { %><div style="font-size:12px;color:#999;margin-top:2px"><%= s.description %></div><% } %>
+    </div>
+  </div>
+  <% }) %>
+</div>
+<% } else { %>
+<p style="color:#999;text-align:center;padding:40px 0">暂无板块。</p>
+<% } %>
+
+<%- include('widget/pagination', { page: page, totalPages: totalPages, baseUrl: '/forum/sections', param: 'page' }) %>

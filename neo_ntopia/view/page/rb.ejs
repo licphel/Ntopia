@@ -1,0 +1,109 @@
+<style>
+.rb-wrap{max-width:800px;margin:0 auto}
+.rb-search{display:flex;gap:0;margin-bottom:12px}
+.rb-search input{flex:1;padding:7px 12px;border:1px solid #ccc;border-right:none;font-size:14px;font-family:inherit;border-radius:3px 0 0 3px}
+.rb-search input:focus{outline:none;border-color:var(--c)}
+.rb-search button{background:var(--c);color:#fff;border:none;padding:7px 16px;cursor:pointer;font-size:13px;border-radius:0 3px 3px 0}
+.rb-tabs{display:flex;margin-bottom:10px;gap:4px}
+.rb-tabs a,.rb-tabs span{padding:3px 12px;font-size:12px;border-radius:2px;text-decoration:none}
+.rb-tabs a{color:#555;background:#f0ede5}
+.rb-tabs a.active,.rb-tabs a:hover{background:var(--c);color:#fff;text-decoration:none}
+.rb-results{margin:12px 0}
+.rb-card{border:1px solid #e0dbd0;background:#fafaf5;padding:10px 14px;margin-bottom:6px;border-radius:3px;font-size:13px;line-height:1.7}
+.rb-card .rb-teacher{font-weight:bold;color:var(--c)}
+.rb-card .rb-course{color:#888;font-size:11px;margin-left:6px}
+.rb-card .rb-year{display:inline-block;font-size:10px;background:#f0ede5;color:#888;padding:0 4px;border-radius:2px;margin-left:6px}
+.rb-card .rb-review{margin-top:4px;color:#444}
+.rb-add-btn{background:var(--c);color:#fff;border:none;padding:6px 14px;border-radius:3px;cursor:pointer;font-size:12px;margin-bottom:12px}
+.rb-add-form{display:none;border:1px solid var(--c);padding:14px;border-radius:4px;margin-bottom:14px;background:#fafaf5}
+.rb-add-form input,.rb-add-form textarea{width:100%;padding:6px 10px;border:1px solid #ccc;font-size:13px;font-family:inherit;margin-bottom:8px;border-radius:3px}
+.rb-add-form input:focus,.rb-add-form textarea:focus{outline:none;border-color:var(--c)}
+.rb-add-form textarea{min-height:80px;resize:vertical}
+.rb-empty{text-align:center;color:#999;padding:40px 0}
+</style>
+
+<div class="rb-wrap">
+  <h2>红黑榜 <span style="font-size:12px;color:#999;font-weight:normal">— 课程与教师评价</span></h2>
+
+  <div class="rb-search">
+    <input type="text" id="rbQ" value="<%= q %>" placeholder="搜索老师或课程..." onkeydown="if(event.key==='Enter')rbSearch()">
+    <button onclick="rbSearch()">搜索</button>
+  </div>
+
+  <div class="rb-tabs">
+    <a href="?<%= q ? 'q='+encodeURIComponent(q)+'&' : '' %>field=all" class="<%= field==='all'?'active':'' %>">全部</a>
+    <a href="?<%= q ? 'q='+encodeURIComponent(q)+'&' : '' %>field=teacher" class="<%= field==='teacher'?'active':'' %>">教师</a>
+    <a href="?<%= q ? 'q='+encodeURIComponent(q)+'&' : '' %>field=course" class="<%= field==='course'?'active':'' %>">课程</a>
+  </div>
+
+  <% if (user) { %>
+  <button class="rb-add-btn" onclick="toggleAdd()">+ 添加评价</button>
+  <div class="rb-add-form" id="rbAddForm">
+    <input type="text" id="rbAddTeacher" placeholder="授课老师 *" maxlength="64">
+    <input type="text" id="rbAddCourse" placeholder="课程名称 *" maxlength="128">
+    <input type="text" id="rbAddYear" placeholder="年份（可选，如 2024）" maxlength="10">
+    <textarea id="rbAddReview" placeholder="评价内容 *" maxlength="5000"></textarea>
+    <button class="cmt-btn" onclick="submitAdd()">提交评价</button>
+    <span id="rbAddStatus" style="font-size:11px;color:#999;margin-left:8px"></span>
+  </div>
+  <% } %>
+
+  <div class="rb-results">
+    <% if (results.length) { %>
+      <% results.forEach(function(e){ %>
+        <div class="rb-card">
+          <div>
+            <span class="rb-teacher"><%= e.teacher %></span>
+            <span class="rb-course"><%= e.course_name %> <% if (e.course_code) { %>(<%= e.course_code %>)<% } %></span>
+            <% if (e.year && e.year !== '-') { %><span class="rb-year"><%= e.year %></span><% } %>
+          </div>
+          <div class="rb-review"><%= e.review %></div>
+        </div>
+      <% }); %>
+    <% } else if (q) { %>
+      <div class="rb-empty">没有找到 "<%= q %>" 的相关评价</div>
+    <% } else { %>
+      <div class="rb-empty">输入教师或课程名称搜索评价</div>
+    <% } %>
+  </div>
+</div>
+
+<script>
+function rbSearch(){
+  var q = document.getElementById('rbQ').value.trim();
+  if (!q) { location.href = '/tools/rb'; return; }
+  var field = new URLSearchParams(location.search).get('field') || 'all';
+  location.href = '/tools/rb?q=' + encodeURIComponent(q) + '&field=' + field;
+}
+function toggleAdd(){
+  var el = document.getElementById('rbAddForm');
+  if (!el.style.display || el.style.display === 'none') { el.style.display = 'block'; }
+  else { el.style.display = 'none'; }
+}
+async function submitAdd(){
+  var teacher = document.getElementById('rbAddTeacher').value.trim();
+  var course = document.getElementById('rbAddCourse').value.trim();
+  var year = document.getElementById('rbAddYear').value.trim();
+  var review = document.getElementById('rbAddReview').value.trim();
+  if (!teacher || !course || !review) { ntopiaAlert('请填写老师、课程和评价内容'); return; }
+  var st = document.getElementById('rbAddStatus');
+  st.textContent = '提交中...';
+  try {
+    var r = await fetch('/tools/rb/add', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-csrf-token':window._csrf||''},
+      body:JSON.stringify({teacher:teacher,course_name:course,year:year||'-',review:review})
+    });
+    var d = await r.json();
+    if (d.ok) {
+      st.textContent = '提交成功！刷新后可见';
+      document.getElementById('rbAddTeacher').value = '';
+      document.getElementById('rbAddCourse').value = '';
+      document.getElementById('rbAddYear').value = '';
+      document.getElementById('rbAddReview').value = '';
+    } else {
+      st.textContent = d.error || '失败';
+    }
+  } catch(e) { st.textContent = '网络错误'; }
+}
+</script>
