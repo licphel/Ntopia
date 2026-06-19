@@ -54,7 +54,22 @@ install_docker() {
   log "Docker installed — re-login if this is the first install"
 }
 
-# ── 2. Prepare .env ──────────────────────────────────────────
+# ── 2. SSL cert ──────────────────────────────────────────────
+setup_ssl() {
+  cd "$PROJECT_DIR"
+  mkdir -p certs
+  if [ -f certs/fullchain.pem ] && [ -f certs/privkey.pem ]; then
+    log "SSL certs exist"
+    return
+  fi
+  log "Generating self-signed SSL cert..."
+  openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout certs/privkey.pem -out certs/fullchain.pem \
+    -subj "/CN=ntopia.top/O=Ntopia" 2>/dev/null
+  log "Self-signed cert created (replace with Let's Encrypt later)"
+}
+
+# ── 3. Prepare .env ──────────────────────────────────────────
 setup_env() {
   cd "$PROJECT_DIR"
   if [ ! -f .env ]; then
@@ -108,6 +123,7 @@ main() {
 
   preflight
   install_docker
+  setup_ssl
   setup_env
   deploy
 }
