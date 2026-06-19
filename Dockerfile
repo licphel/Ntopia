@@ -24,8 +24,5 @@ RUN mkdir -p /app/data /app/public/uploads \
 USER ntopia
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "require('http').get('http://127.0.0.1:3000/forum',r=>{process.exit(r.statusCode===200?0:1)})"
-
 ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "server.js"]

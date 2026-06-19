@@ -28,13 +28,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/',r=>{process.exit(r.statusCode===200?0:1)})"]
-      interval: 30s
-      timeout: 5s
-      start_period: 10s
-      retries: 3
-
   nginx:
     image: nginx:stable-alpine
     container_name: neo-ntopia-nginx
@@ -46,8 +39,7 @@ services:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ntopia_uploads:/usr/share/nginx/html/uploads:ro
     depends_on:
-      app:
-        condition: service_healthy
+      - app
 
 volumes:
   ntopia_data:
