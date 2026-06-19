@@ -2,6 +2,17 @@
 const { getDB } = require('../database');
 
 const userRepo = {
+  /** List users with pagination. */
+  list({ page = 1, limit = 50 } = {}) {
+    const offset = (page - 1) * limit;
+    const total = getDB().prepare('SELECT COUNT(*) as c FROM users WHERE deleted_at IS NULL').get();
+    const users = getDB().prepare(`
+      SELECT id, username, display_name, role, email, created_at, deleted_at
+      FROM users WHERE deleted_at IS NULL ORDER BY id LIMIT ? OFFSET ?
+    `).all(limit, offset);
+    return { users, total: total.c, page, totalPages: Math.ceil(total.c / limit) };
+  },
+
   /** Find user by ID (returns full row). */
   findById(id) {
     return getDB().prepare('SELECT * FROM users WHERE id = ?').get(id);

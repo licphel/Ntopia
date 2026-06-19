@@ -2,10 +2,10 @@
   <div
     style="background:var(--bg-card);border:var(--border-style) var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:12px;display:flex;gap:14px;align-items:center">
     <% if (section.image) { %><img src="<%= section.image %>"
-        style="width:64px;height:64px;border-radius:var(--radius-lg);object-fit:cover;border:2px var(--border-style) var(--border);flex-shrink:0">
+        style="width:80px;height:80px;border-radius:var(--radius-lg);object-fit:cover;border:2px var(--border-style) var(--border);flex-shrink:0">
       <% } else { %>
         <div
-          style="width:64px;height:64px;border-radius:var(--radius-lg);background:var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--text-muted)">
+          style="width:80px;height:80px;border-radius:var(--radius-lg);background:var(--c);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--text-inverse);font-weight:bold;text-shadow:0 1px 2px rgba(0,0,0,.2)">
           <%= (section.name||'?')[0] %>
         </div>
         <% } %>

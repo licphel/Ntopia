@@ -1359,7 +1359,7 @@
                   <% } %></a></li>
             <li class="nav-sep" style="margin-left:auto;opacity:0.7"><span style="color:rgba(255,255,255,0.5)">|</span></li>
             <li class="nav-drop"><a href="#" onclick="return false">设置</a><div class="nav-drop-menu"><a href="/settings/password">修改密码</a><a href="/settings/email">邮箱绑定</a><a href="/settings/delete">删除账号</a><a href="#" onclick="document.getElementById('logoutForm').submit();return false">退出登录</a></div></li>
-            <% if ((user.role || 0) >= LEVEL.ADMIN) { %><li class="nav-drop"><a href="#" onclick="return false">管理</a><div class="nav-drop-menu"><a href="/report/admin">举报管理</a></div></li><% } %>
+            <% if ((user.role || 0) >= LEVEL.ADMIN) { %><li class="nav-drop"><a href="#" onclick="return false">管理</a><div class="nav-drop-menu"><a href="/report/admin">举报管理</a><a href="/admin/users">用户列表</a></div></li><% } %>
             <li class="nav-drop"><a href="#" onclick="return false">工具</a><div class="nav-drop-menu"><a href="/tools/rb">红黑榜</a><a href="/rss.xml" target="_blank">RSS</a></div></li>
             <form id="logoutForm" method="POST" action="/auth/logout" style="display:none"><input type="hidden" name="_csrf" value="<%= csrf %>"></form>
             <% } else { %>

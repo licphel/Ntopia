@@ -15,6 +15,13 @@ router.get('/', needAdmin, (req, res) => {
   res.render('page/admin', { title: '管理后台', ...adminService.dashboard(), LEVEL: auth.LEVEL, hideSidebar: true });
 });
 
+router.get('/users', needAdmin, (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const { userRepo } = require('../repo');
+  const r = userRepo.list({ page, limit: 50 });
+  res.render('page/admin-users', { title: '用户列表', users: r.users, page: r.page, totalPages: r.totalPages });
+});
+
 router.post('/categories', needAdmin, (req, res) => {
   adminService.createCategory(req.body.name, req.body.description); res.redirect('/admin');
 });

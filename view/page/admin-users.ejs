@@ -1,0 +1,22 @@
+<h2>用户列表</h2>
+<table style="width:100%;border-collapse:collapse">
+  <tr style="border-bottom:1px solid var(--border)">
+    <th style="text-align:left;padding:4px 8px">ID</th>
+    <th style="text-align:left;padding:4px 8px">用户名</th>
+    <th style="text-align:left;padding:4px 8px">显示名</th>
+    <th style="text-align:left;padding:4px 8px">角色</th>
+    <th style="text-align:left;padding:4px 8px">邮箱</th>
+    <th style="text-align:left;padding:4px 8px">注册时间</th>
+  </tr>
+  <% users.forEach(function(u){ %>
+  <tr style="border-bottom:1px dotted var(--border)">
+    <td style="padding:3px 8px"><%= u.id %></td>
+    <td style="padding:3px 8px"><a href="/users/<%= u.id %>"><%= u.username %></a></td>
+    <td style="padding:3px 8px"><%= u.display_name || '' %></td>
+    <td style="padding:3px 8px"><%= u.role %></td>
+    <td style="padding:3px 8px"><%= u.email || '' %></td>
+    <td style="padding:3px 8px;font-size:11px"><%- timeTag(u.created_at) %></td>
+  </tr>
+  <% }); %>
+</table>
+<% if (totalPages > 1) { %><%- include('widget/pagination', { page: page, totalPages: totalPages, baseUrl: '/admin/users', param: 'page' }) %><% } %>
