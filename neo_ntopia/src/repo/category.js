@@ -8,16 +8,16 @@ const categoryRepo = {
     return getDB().prepare('SELECT * FROM categories ORDER BY sort_order').all();
   },
 
-  findBySlug(slug) {
-    return getDB().prepare('SELECT * FROM categories WHERE slug = ?').get(slug);
+  findById(id) {
+    return getDB().prepare('SELECT * FROM categories WHERE id = ?').get(id);
   },
 
   /** Create a category. */
-  create(name, slug, description, type = 'blog') {
-    const max = getDB().prepare('SELECT MAX(sort_order) as m FROM categories WHERE type = ?').get(type);
+  create(name, description) {
+    const max = getDB().prepare('SELECT MAX(sort_order) as m FROM categories').get();
     getDB().prepare(
-      'INSERT INTO categories (name, slug, description, type, sort_order) VALUES (?,?,?,?,?)'
-    ).run(name, slug, description || '', type, (max.m || 0) + 1);
+      'INSERT INTO categories (name, description, sort_order) VALUES (?,?,?)'
+    ).run(name, description || '', (max.m || 0) + 1);
   },
 
   /** Delete a category. */

@@ -27,10 +27,10 @@ const commentRepo = {
     return getDB().prepare('SELECT * FROM comments WHERE id = ?').get(id);
   },
 
-  /** Get a comment with post slug (for redirects after delete). */
+  /** Get a comment with post ID (for redirects after delete). */
   findByIdWithPost(id) {
     return getDB().prepare(`
-      SELECT c.*, p.slug FROM comments c JOIN posts p ON c.post_id = p.id WHERE c.id = ?
+      SELECT c.*, p.id as post_id FROM comments c JOIN posts p ON c.post_id = p.id WHERE c.id = ?
     `).get(id);
   },
 
@@ -66,7 +66,7 @@ const commentRepo = {
       ? ''
       : 'AND ((p.is_deleted = 0 OR p.is_deleted IS NULL) OR 0) AND (c.is_deleted = 0 OR c.is_deleted IS NULL)';
     const comments = getDB().prepare(`
-      SELECT c.*, p.title as post_title, p.slug as post_slug
+      SELECT c.*, p.title as post_title, p.id as post_id
       FROM comments c JOIN posts p ON c.post_id = p.id
       WHERE c.author_id = ? ${visibility}
       ORDER BY c.created_at DESC LIMIT ? OFFSET ?

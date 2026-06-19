@@ -3,9 +3,9 @@
 <% posts.forEach(function(p) { %>
 <div class="forum-topic" style="display:flex;justify-content:space-between;align-items:center">
   <div style="flex:1">
-    <h3><a href="/posts/<%= p.slug %>"><%= p.title %></a></h3>
+    <h3><a href="/posts/<%= p.id %>"><%= p.title %></a></h3>
     <div class="forum-meta">
-      By <a href="/users/<%= p.username %>"><%= p.display_name || p.username %></a> |
+      By <a href="/users/<%= p.author_id %>"><%= p.display_name || p.username %></a> |
       <%- timeTag(p.created_at) %> |
       收藏于 <%- timeTag(p.bookmarked_at, {fmt:'short'}) %>
     </div>

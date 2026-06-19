@@ -10,7 +10,7 @@
   <div style="padding:8px 0;border-bottom:1px dotted #e0dbd0;display:flex;align-items:flex-start;gap:10px">
     <% if (s.image) { %><img src="<%= s.image %>" style="width:32px;height:32px;border-radius:3px;object-fit:cover;flex-shrink:0;margin-top:2px"><% } %>
     <div style="flex:1;min-width:0">
-      <a href="/forum/<%= s.slug %>" style="font-weight:bold;font-size:14px;color:#333"><%= s.name %></a>
+      <a href="/forum/<%= s.id %>" style="font-weight:bold;font-size:14px;color:#333"><%= s.name %></a>
       <span style="font-size:11px;color:var(--c);margin-left:8px"><%= s.post_count || 0 %> 帖</span>
       <% if (s.description) { %><div style="font-size:12px;color:#999;margin-top:2px"><%= s.description %></div><% } %>
     </div>

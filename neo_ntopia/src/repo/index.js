@@ -10,6 +10,9 @@ const reportRepo = require('./report');
 const attachmentRepo = require('./attachment');
 const xpRepo = require('./xp');
 const { categoryRepo, emailCodeRepo } = require('./category');
+const subCategoryRepo = require('./sub_category');
+const sectionFollowRepo = require('./section_follow');
+const sectionSubModRepo = require('./section_sub_mod');
 
 module.exports = {
   userRepo,
@@ -25,4 +28,7 @@ module.exports = {
   xpRepo,
   categoryRepo,
   emailCodeRepo,
+  subCategoryRepo,
+  sectionFollowRepo,
+  sectionSubModRepo,
 };

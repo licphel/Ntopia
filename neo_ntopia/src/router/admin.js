@@ -22,21 +22,21 @@ router.post('/categories/:id/delete', needAdmin, (req, res) => {
   adminService.deleteCategory(req.params.id); res.redirect('/admin');
 });
 
-router.post('/posts/:slug/delete', needMod, (req, res) => { adminService.deletePost(req.params.slug); res.redirect('/'); });
-router.post('/posts/:slug/purge', needAdmin, (req, res) => { adminService.purgePost(req.params.slug); res.redirect('/admin'); });
-router.post('/posts/:slug/restore', needAdmin, (req, res) => { adminService.restorePost(req.params.slug); res.redirect('/admin'); });
-router.post('/posts/:slug/pin', needMod, (req, res) => { adminService.togglePin(req.params.slug); res.redirect(req.get('Referer') || '/'); });
+router.post('/posts/:id(\\d+)/delete', needMod, (req, res) => { adminService.deletePost(req.params.id); res.redirect('/'); });
+router.post('/posts/:id(\\d+)/purge', needAdmin, (req, res) => { adminService.purgePost(req.params.id); res.redirect('/admin'); });
+router.post('/posts/:id(\\d+)/restore', needAdmin, (req, res) => { adminService.restorePost(req.params.id); res.redirect('/admin'); });
+router.post('/posts/:id(\\d+)/pin', needMod, (req, res) => { adminService.togglePin(req.params.id); res.redirect(req.get('Referer') || '/'); });
 
 router.post('/comments/:id/delete-mod', needMod, (req, res) => {
-  const slug = adminService.deleteComment(req.params.id);
-  if (!slug) return res.status(404).render('page/404', { title: '404' });
-  res.redirect('/posts/' + slug);
+  const postId = adminService.deleteComment(req.params.id);
+  if (!postId) return res.status(404).render('page/404', { title: '404' });
+  res.redirect('/posts/' + postId);
 });
 
 router.post('/users/:id/ban', needAdmin, (req, res) => {
   const r = adminService.banUser(req.params.id, req.session.user);
   if (!r.ok) return _err(res, r.error, '/admin');
-  res.redirect('/users/' + r.username);
+  res.redirect('/users/' + r.id);
 });
 router.post('/users/:id/unban', needAdmin, (req, res) => {
   const u = adminService.unbanUser(req.params.id); res.redirect('/users/' + (u || ''));
@@ -44,17 +44,17 @@ router.post('/users/:id/unban', needAdmin, (req, res) => {
 router.post('/users/:id/promote', auth.requireAuth, (req, res) => {
   const r = adminService.promoteUser(req.params.id, req.session.user);
   if (!r.ok) return _err(res, r.error, '/admin');
-  res.redirect('/users/' + r.username);
+  res.redirect('/users/' + r.id);
 });
 router.post('/users/:id/demote', auth.requireAuth, (req, res) => {
   const r = adminService.demoteUser(req.params.id, req.session.user);
   if (!r.ok) return _err(res, r.error, '/admin');
-  res.redirect('/users/' + r.username);
+  res.redirect('/users/' + r.id);
 });
 router.post('/users/:id/delete', auth.requireAuth, (req, res) => {
   const r = adminService.deleteUser(req.params.id, req.session.user);
   if (!r.ok) return _err(res, r.error, '/admin');
-  res.redirect('/users/' + r.username);
+  res.redirect('/users/' + r.id);
 });
 
 module.exports = router;

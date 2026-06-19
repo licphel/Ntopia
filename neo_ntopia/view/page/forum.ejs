@@ -1,3 +1,19 @@
+<% if (typeof followedSections !== 'undefined' && followedSections.length) { %>
+<!-- 我关注的板块 -->
+<div style="margin-bottom:16px">
+  <h3 style="font-size:14px;color:var(--c);margin:0 0 6px 0">我关注的板块</h3>
+  <% followedSections.forEach(function(s){ %>
+  <div style="padding:6px 0;border-bottom:1px dotted #e0dbd0;display:flex;align-items:flex-start;gap:10px">
+    <% if (s.image) { %><img src="<%= s.image %>" style="width:28px;height:28px;border-radius:3px;object-fit:cover;flex-shrink:0;margin-top:2px"><% } %>
+    <div style="flex:1;min-width:0">
+      <a href="/forum/<%= s.id %>" style="font-weight:bold;font-size:13px;color:#333"><%= s.name %></a>
+      <span style="font-size:11px;color:var(--c);margin-left:6px"><%= s.post_count || 0 %> 帖</span>
+    </div>
+  </div>
+  <% }) %>
+</div>
+<% } %>
+
 <!-- 热议板块 header -->
 <div class="flex-between" style="margin-bottom:8px">
   <h2 style="font-size:16px;color:var(--c);margin:0;padding-bottom:6px;border-bottom:2px solid #e0dbd0">热议板块</h2>
@@ -10,7 +26,7 @@
   <div style="padding:8px 0;border-bottom:1px dotted #e0dbd0;display:flex;align-items:flex-start;gap:10px">
     <% if (s.image) { %><img src="<%= s.image %>" style="width:32px;height:32px;border-radius:3px;object-fit:cover;flex-shrink:0;margin-top:2px"><% } %>
     <div style="flex:1;min-width:0">
-      <a href="/forum/<%= s.slug %>" style="font-weight:bold;font-size:14px;color:#333"><%= s.name %></a>
+      <a href="/forum/<%= s.id %>" style="font-weight:bold;font-size:14px;color:#333"><%= s.name %></a>
       <span style="font-size:11px;color:var(--c);margin-left:8px"><%= s.post_count || 0 %> 帖</span>
       <% if (s.description) { %><div style="font-size:12px;color:#999;margin-top:2px"><%= s.description %></div><% } %>
     </div>

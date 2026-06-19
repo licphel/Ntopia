@@ -58,7 +58,6 @@ node -e "
   require('./src/util/time');
   require('./src/util/markdown');
   require('./src/lib/auth');
-  require('./src/lib/license');
   require('./src/lib/res');
   require('./src/repo');
   require('./src/service');

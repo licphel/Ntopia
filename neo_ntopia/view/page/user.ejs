@@ -63,7 +63,7 @@
             <h3>
               <% if (p.is_deleted) { %><span style="color:#c00;font-size:10px">[已删除]</span>
                 <% } %>
-                  <a href="/<%= 'posts' %>/<%= p.slug %>">
+                  <a href="/<%= 'posts' %>/<%= p.id %>">
                     <%= p.title %>
                   </a>
             </h3>
@@ -83,7 +83,7 @@
                         <div class="cmt-header">
                           <% if (c.is_deleted) { %><span style="color:#c00;font-size:10px">[已删除]</span>
                             <% } %>
-                              评论于 <a href="/<%= 'posts' %>/<%= c.post_slug %>">
+                              评论于 <a href="/<%= 'posts' %>/<%= c.post_id %>">
                                 <%= c.post_title %>
                               </a>
                               <span style="color:#999;font-size:11px">

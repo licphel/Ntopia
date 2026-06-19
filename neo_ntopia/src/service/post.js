@@ -3,7 +3,6 @@ const config = require('../config');
 const auth = require('../lib/auth');
 const { postRepo, xpRepo, likeRepo, bookmarkRepo, commentRepo } = require('../repo');
 const { renderMarkdown, firstNLines, extractTOC, injectHeadingIds } = require('../util/markdown');
-const { postSlug } = require('../util/slug');
 const { validateTitle, validateContent } = require('../util/validator');
 const moderationService = require('./moderation');
 const time = require('../util/time');
@@ -14,24 +13,15 @@ const postService = {
     return postRepo.stats();
   },
 
-  /** List posts for blog or forum listing. */
-  listPosts(category, sort, page, opts = {}) {
+  /** List posts with filtering, sorting, and pagination. */
+  listPosts(categoryId, sort, page, opts = {}) {
     const result = postRepo.list({
-      category,
+      categoryId: categoryId || null,
+      subCategory: (opts.subCategory && opts.subCategory !== '-1') ? opts.subCategory : null,
+      isFeatured: opts.isFeatured || false,
       sort,
       page: Math.max(1, page || 1),
       limit: opts.limit || config.PAGE_SIZE,
-      categoryType: opts.categoryType || 'blog',
-    });
-    result.posts.forEach(p => { p.preview_html = firstNLines(p.content_html, 5); });
-    return result;
-  },
-
-  /** List posts by tag. */
-  listByTag(tag, page) {
-    const result = postRepo.listByTag(tag, {
-      page: Math.max(1, page || 1),
-      limit: config.PAGE_SIZE,
     });
     result.posts.forEach(p => { p.preview_html = firstNLines(p.content_html, 5); });
     return result;
@@ -46,8 +36,8 @@ const postService = {
   },
 
   /** Get a single post for display, with all context. */
-  getPost(slug, viewer, { cookieHeader = '' } = {}) {
-    const post = postRepo.findBySlug(slug);
+  getPost(id, viewer, { cookieHeader = '' } = {}) {
+    const post = postRepo.findById(id);
     if (!post) return { notFound: true };
 
     if (post.is_deleted && !auth.canViewDeleted(viewer) && !auth.isOwner(viewer, post)) {
@@ -91,7 +81,7 @@ const postService = {
       .slice(0, 160);
 
     // BibTeX
-    const bibtex = this._bibtex(post, slug);
+    const bibtex = this._bibtex(post);
 
     return {
       notFound: false,
@@ -104,39 +94,37 @@ const postService = {
   },
 
   /** Create a new post. */
-  async createPost({ title, content, category, tags, license, isDraft }, author) {
+  async createPost({ title, content, category, subCategory, isDraft }, author) {
     const titleErr = validateTitle(title);
     if (titleErr) return { ok: false, error: titleErr };
     const contentErr = validateContent(content);
     if (contentErr) return { ok: false, error: contentErr };
 
     const html = renderMarkdown(content);
-    const slug = postSlug(title);
 
     // Moderation for non-drafts by non-moderators
     if (!isDraft && !auth.canModerate(author)) {
       const result = await moderationService.review(title, content, category || '');
       if (!result.pass) {
-        return { ok: false, error: `内容审核未通过：${result.reason}`, banned: true, banDuration: '+1 hour' };
+        return { ok: false, error: `内容审核未通过：${result.reason}`, banned: true, banDuration: '+12 hour' };
       }
     }
 
-    postRepo.create({
-      title, slug, contentMd: content, contentHtml: html,
-      category, tags, authorId: author.id, isDraft, license,
+    const info = postRepo.create({
+      title, contentMd: content, contentHtml: html,
+      categoryId: parseInt(category) || null, subCategory: subCategory || '', authorId: author.id, isDraft,
     });
 
     if (!isDraft) {
-      const created = postRepo.findBySlug(slug);
-      xpRepo.award(author.id, config.XP_POST, '发布文章', created ? created.id : null);
+      xpRepo.award(author.id, config.XP_POST, '发布文章', info.lastInsertRowid);
     }
 
-    return { ok: true, slug, isDraft };
+    return { ok: true, id: info.lastInsertRowid, isDraft };
   },
 
   /** Edit an existing post. */
-  editPost(slug, { title, content, category, tags, license, isDraft }, editor) {
-    const post = postRepo.findBySlugAny(slug);
+  editPost(id, { title, content, category, subCategory, isDraft }, editor) {
+    const post = postRepo.findByIdAny(id);
     if (!auth.canEditPost(editor, post)) return { ok: false, error: '权限不足' };
 
     const html = renderMarkdown(content);
@@ -144,22 +132,22 @@ const postService = {
     // Save revision
     postRepo.createRevision(post.id, {
       title: post.title, contentMd: post.content_md,
-      contentHtml: post.content_html, category: post.category || '',
-      tags: post.tags || '', revisedBy: editor.id,
+      contentHtml: post.content_html, categoryId: post.category_id || null,
+      revisedBy: editor.id,
     });
     postRepo.trimRevisions(post.id, 10);
 
     postRepo.update(post.id, {
       title, contentMd: content, contentHtml: html,
-      category, tags, isDraft, license,
+      categoryId: parseInt(category) || null, subCategory: subCategory || '', isDraft,
     });
 
-    return { ok: true, slug: post.slug, isDraft };
+    return { ok: true, id: post.id, isDraft };
   },
 
   /** Soft-delete a post (author or mod). */
-  deletePost(slug, user) {
-    const post = postRepo.findBySlugAny(slug);
+  deletePost(id, user) {
+    const post = postRepo.findByIdAny(id);
     if (!post) return { ok: false, error: '内容不存在' };
     if (!auth.canDeletePost(user, post)) return { ok: false, error: '权限不足' };
     postRepo.softDelete(post.id);
@@ -167,8 +155,8 @@ const postService = {
   },
 
   /** Get revisions for a post. */
-  getRevisions(slug, user) {
-    const post = postRepo.findBySlugAny(slug);
+  getRevisions(id, user) {
+    const post = postRepo.findByIdAny(id);
     if (!auth.canEditPost(user, post)) return null;
     return {
       post,
@@ -177,8 +165,8 @@ const postService = {
   },
 
   /** Restore a revision. */
-  restoreRevision(slug, revId, user) {
-    const post = postRepo.findBySlugAny(slug);
+  restoreRevision(id, revId, user) {
+    const post = postRepo.findByIdAny(id);
     if (!auth.canEditPost(user, post)) return { ok: false, error: '权限不足' };
 
     const rev = postRepo.getRevision(revId, post.id);
@@ -187,22 +175,22 @@ const postService = {
     // Save current as revision first
     postRepo.createRevision(post.id, {
       title: post.title, contentMd: post.content_md,
-      contentHtml: post.content_html, category: post.category || '',
-      tags: post.tags || '', revisedBy: user.id,
+      contentHtml: post.content_html, categoryId: post.category_id || null,
+      revisedBy: user.id,
     });
 
     postRepo.update(post.id, {
       title: rev.title, contentMd: rev.content_md,
-      contentHtml: rev.content_html, category: rev.category || '',
-      tags: rev.tags || '', isDraft: false, license: post.license,
+      contentHtml: rev.content_html, categoryId: rev.category_id || null,
+      isDraft: false,
     });
 
     return { ok: true };
   },
 
   /** Get MD download data for a post. */
-  getDownloadData(slug) {
-    return postRepo.forDownload(slug);
+  getDownloadData(id) {
+    return postRepo.forDownload(id);
   },
 
   /** Generate RSS XML. */
@@ -220,11 +208,11 @@ const postService = {
       );
       items += `<item>
       <title>${escapeXml(p.title)}</title>
-      <link>${siteUrl}/posts/${p.slug}</link>
+      <link>${siteUrl}/posts/${p.id}</link>
       <description>${desc}</description>
       <author>${escapeXml(p.display_name || p.username)}</author>
       <pubDate>${new Date(p.created_at).toUTCString()}</pubDate>
-      <guid>${siteUrl}/posts/${escapeXml(p.slug)}</guid>
+      <guid>${siteUrl}/posts/${p.id}</guid>
     </item>\n`;
     });
 
@@ -246,7 +234,7 @@ ${items}</channel>
     const siteUrl = config.SITE_URL;
     let urls = `<url><loc>${siteUrl}</loc></url>\n`;
     posts.forEach(p => {
-      urls += `<url><loc>${siteUrl}/posts/${p.slug}</loc><lastmod>${p.updated_at.slice(0, 10)}</lastmod></url>\n`;
+      urls += `<url><loc>${siteUrl}/posts/${p.id}</loc><lastmod>${p.updated_at.slice(0, 10)}</lastmod></url>\n`;
     });
     return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}</urlset>`;
   },
@@ -279,12 +267,12 @@ ${items}</channel>
   },
 
   /** Generate BibTeX citation. */
-  _bibtex(post, slug) {
+  _bibtex(post) {
     const siteUrl = config.SITE_URL;
     const author = post.display_name || post.username;
     const year = new Date(post.created_at).getFullYear();
-    const key = 'ntopia-' + (post.username || 'anon') + '-' + slug.slice(-8);
-    return `@misc{${key},\n  author = {${author}},\n  title = {${post.title}},\n  year = {${year}},\n  howpublished = {\\url{${siteUrl}/posts/${slug}}},\n  note = {Accessed: ${time.now().toISOString().slice(0, 10)}}\n}`;
+    const key = 'ntopia-' + (post.username || 'anon') + '-' + post.id;
+    return `@misc{${key},\n  author = {${author}},\n  title = {${post.title}},\n  year = {${year}},\n  howpublished = {\\url{${siteUrl}/posts/${post.id}}},\n  note = {Accessed: ${time.now().toISOString().slice(0, 10)}}\n}`;
   },
 };
 

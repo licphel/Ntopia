@@ -9,30 +9,26 @@ const time = require('../util/time');
 const userRepo = require('../repo/user');
 
 const commentService = {
-  /** Add a comment to a post. */
-  async addComment(slug, { content, parentId }, author) {
+  async addComment(postId, { content, parentId }, author) {
     const contentErr = validateContent(content);
     if (contentErr) return { ok: false, error: contentErr };
 
-    const post = postRepo.findBySlug(slug);
+    const post = postRepo.findById(postId);
     if (!post) return { ok: false, error: '内容不存在' };
 
-    // Validate parent comment exists
     if (parentId) {
       const parent = commentRepo.findById(parentId);
       if (!parent) return { ok: false, error: '评论不存在' };
       if (parent.is_deleted) return { ok: false, error: '该评论已被删除，无法回复' };
     }
 
-    // Moderation for non-moderators
     if (!auth.canModerate(author)) {
       const result = await moderationService.reviewComment(content);
       if (!result.pass) {
-        return { ok: false, error: `评论审核未通过：${result.reason}`, banned: true, banDuration: '+1 minute' };
+        return { ok: false, error: `评论审核未通过：${result.reason}`, banned: true, banDuration: '+1 hour' };
       }
     }
 
-    // Process @mentions
     const mentions = extractMentions(content);
     let mentionUsers = [];
     if (mentions.length) {
@@ -46,48 +42,41 @@ const commentService = {
       contentMd: content, contentHtml: html, parentId,
     });
 
-    // Award XP
     if (xpRepo.checkDailyLimit(author.id, '评论', config.XP_COMMENT_DAILY_CAP)) {
       xpRepo.award(author.id, config.XP_COMMENT, '评论', commentId);
     }
 
-    // Send notifications
     const myName = author.display_name || author.username;
-    const base = '/posts/';
+    const postUrl = '/posts/' + post.id;
 
-    // Notify post author
     if (post.author_id !== author.id) {
-      notificationRepo.create(post.author_id, 'reply', `${myName} 评论了你的文章`, base + post.slug);
+      notificationRepo.create(post.author_id, 'reply', `${myName} 评论了你的帖子`, postUrl);
     }
 
-    // Notify @mentioned users
     mentionUsers.forEach(u => {
       if (u.id !== author.id && u.id !== post.author_id) {
-        notificationRepo.create(u.id, 'mention', `${myName} 在评论中提到了你`, base + post.slug);
+        notificationRepo.create(u.id, 'mention', `${myName} 在评论中提到了你`, postUrl);
       }
     });
 
-    // Notify parent comment author
     if (parentId) {
       const p = commentRepo.findById(parentId);
       if (p && p.author_id !== author.id) {
-        notificationRepo.create(p.author_id, 'reply', `${myName} 回复了你的评论`, base + post.slug);
+        notificationRepo.create(p.author_id, 'reply', `${myName} 回复了你的评论`, postUrl);
       }
     }
 
-    // Determine redirect thread
     let threadId = parentId;
     if (parentId) {
       const p = commentRepo.findById(parentId);
       if (p && p.parent_id) threadId = p.parent_id;
     }
 
-    return { ok: true, slug, threadId };
+    return { ok: true, postId: post.id, threadId };
   },
 
-  /** Get a comment thread. */
-  getThread(slug, commentId, viewer) {
-    const post = postRepo.findBySlug(slug);
+  getThread(postId, commentId, viewer) {
+    const post = postRepo.findById(postId);
     if (!post) return { notFound: true };
     if (post.is_draft && !auth.isOwner(viewer, post)) return { notFound: true };
 
@@ -97,7 +86,6 @@ const commentService = {
 
     const allComments = commentRepo.forPost(post.id, viewerRole);
 
-    // Compute reply tree
     const getDescendants = (pid, arr = []) => {
       for (const c of allComments) {
         if (c.parent_id === pid) { arr.push(c); getDescendants(c.id, arr); }
@@ -118,14 +106,12 @@ const commentService = {
     };
   },
 
-  /** Delete a comment (author or mod+). */
   deleteComment(commentId, user) {
     const cmt = commentRepo.findByIdWithPost(commentId);
     if (!cmt) return { ok: false, error: '评论不存在' };
     if (!auth.canDeleteComment(user, cmt)) return { ok: false, error: '权限不足' };
-
     commentRepo.softDelete(commentId);
-    return { ok: true, slug: cmt.slug };
+    return { ok: true, postId: cmt.post_id };
   },
 };
 

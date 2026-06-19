@@ -25,20 +25,20 @@ router.get('/bookmarks', auth.requireAuth, (req, res) => {
 
 // Follows (AJAX)
 router.post('/follow/:username', auth.requireAuthAPI, (req, res) => {
-  res.json(socialService.toggleFollow(req.session.user.id, req.params.username));
+  res.json(socialService.toggleFollow(req.session.user.id, req.params.id));
 });
 router.get('/follow/:username/followers', (req, res) => {
-  const p = userRepo.findByUsername(req.params.username);
+  const p = userRepo.findById(parseInt(req.params.id));
   if (!p) return res.status(404).render('page/404', { title: '404' });
   const page = parseInt(req.query.page) || 1;
-  const r = socialService.getFollowers(req.params.username, req.session.user ? req.session.user.id : null, page);
+  const r = socialService.getFollowers(req.params.id, req.session.user ? req.session.user.id : null, page);
   res.render('page/follow-list', { title: p.display_name + ' 的粉丝', profile: p, users: r.users, page: r.page, totalPages: r.totalPages, listType: 'followers' });
 });
 router.get('/follow/:username/following', (req, res) => {
-  const p = userRepo.findByUsername(req.params.username);
+  const p = userRepo.findById(parseInt(req.params.id));
   if (!p) return res.status(404).render('page/404', { title: '404' });
   const page = parseInt(req.query.page) || 1;
-  const r = socialService.getFollowing(req.params.username, req.session.user ? req.session.user.id : null, page);
+  const r = socialService.getFollowing(req.params.id, req.session.user ? req.session.user.id : null, page);
   res.render('page/follow-list', { title: p.display_name + ' 的关注', profile: p, users: r.users, page: r.page, totalPages: r.totalPages, listType: 'following' });
 });
 
@@ -48,13 +48,13 @@ router.get('/messages', auth.requireAuth, (req, res) => {
   res.render('page/messages', { title: '私信', msgs: r.msgs, sent: r.sent, msgPage: r.msgPage, msgTotalPages: r.msgTotalPages, sentPage: r.sentPage, sentTotalPages: r.sentTotalPages });
 });
 router.get('/messages/send/:username?', auth.requireAuth, (req, res) => {
-  const toUser = req.params.username ? userRepo.findByUsername(req.params.username) : null;
+  const toUser = req.params.id ? userRepo.findById(parseInt(req.params.id)) : null;
   res.render('page/send-message', { title: '发送私信', toUser, error: null });
 });
 router.post('/messages/send', auth.requireAuth, (req, res) => {
   const r = socialService.sendMessage(req.session.user, req.body.to_username, req.body.content);
   if (!r.ok) {
-    const toUser = req.body.to_username ? userRepo.findByUsername(req.body.to_username) : null;
+    const toUser = req.body.to_username ? userRepo.findById(parseInt(req.body.to_username)) : null;
     return res.render('page/send-message', { title: '发送私信', toUser, error: r.error });
   }
   res.redirect('/messages');

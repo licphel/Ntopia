@@ -1,5 +1,5 @@
 <div style="margin-bottom:16px">
-  <a href="/<%= 'posts' %>/<%= post.slug %>" style="font-size:13px">返回 <%= '文章' %></a>
+  <a href="/<%= 'posts' %>/<%= post.id %>" style="font-size:13px">返回 <%= '文章' %></a>
   <span style="color:#999;font-size:13px;margin-left:8px">
     <%= post.title %>
   </span>
@@ -10,7 +10,7 @@
     <% if (root.is_deleted) { %><span style="color:#c00;font-size:10px">[已删除]</span>
       <% } %><img src="<%= root.avatar || '/img/default-avatar.png' %>"
           style="width:20px;height:20px;vertical-align:middle;margin-right:3px"><a
-          href="/users/<%= root.username %>"><strong>
+          href="/users/<%= root.author_id %>"><strong>
             <%= root.display_name || root.username %>
           </strong></a>
         <span class="lv-badge">Lv.<%= root.level || 1 %></span>
@@ -37,11 +37,11 @@
     <div style="margin-bottom:1px;line-height:1.5">
       <% if (c.is_deleted) { %><span style="color:#c00;font-size:10px">[已删除]</span><% } %>
       <img src="<%= c.avatar || '/img/default-avatar.png' %>" style="width:16px;height:16px;vertical-align:middle;margin-right:3px">
-      <a href="/users/<%= c.username %>"><strong><%= c.display_name || c.username %></strong></a>
+      <a href="/users/<%= c.author_id %>"><strong><%= c.display_name || c.username %></strong></a>
       <span class="lv-badge">Lv.<%= c.level || 1 %></span>
       <% if (c.parent_username && c.parent_id !==root.id) { %><span style="color:var(--c);font-size:11px"> 回复 @<%= c.parent_display || c.parent_username %></span><% } %>
       <span style="color:#999;font-size:10px;margin-left:4px"><%- timeTag(c.created_at, {fmt:'short'}) %></span>
-      <% if (user) { %><a href="/posts/<%= post.slug %>/comment/<%= c.id %>" style="font-size:10px;color:var(--c);margin-left:4px">回复</a><% } %>
+      <% if (user) { %><a href="/posts/<%= post.id %>/comment/<%= c.id %>" style="font-size:10px;color:var(--c);margin-left:4px">回复</a><% } %>
       <% if (user && (user.id===c.author_id || (user.role || 0)>= 32)) { %>
         <form method="POST" action="/posts/comments/<%= c.id %>/delete" style="display:inline" onsubmit="return confirm('确认删除？')"><input type="hidden" name="_csrf" value="<%= csrf %>"><button style="background:none;border:none;color:#c00;cursor:pointer;font-size:10px;padding:0;margin-left:4px">删除</button></form>
       <% } %>
@@ -53,7 +53,7 @@
     <% if (user) { %>
       <div class="comment-form" style="margin-top:16px">
         <h4>回复此评论</h4>
-        <form method="POST" action="/<%= 'posts' %>/<%= post.slug %>/comment">
+        <form method="POST" action="/<%= 'posts' %>/<%= post.id %>/comment">
           <input type="hidden" name="_csrf" value="<%= csrf %>">
           <input type="hidden" name="parent_id" value="<%= root.id %>">
           <%- include('widget/comment-toolbar') %>

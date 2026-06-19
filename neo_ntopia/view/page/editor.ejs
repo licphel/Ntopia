@@ -21,60 +21,32 @@
 </style>
 
 <div class="editor-wrap">
-  <h2><%= post ? '编辑' : '撰写' %>文章</h2>
+  <h2><%= post ? '编辑' : '发帖' %><% if (typeof sectionName !== 'undefined') { %> 到 <a href="/forum/<%= presetCategory %>" style="color:var(--c)"><%= sectionName %></a><% } %></h2>
 
   <% if (typeof canPost !== 'undefined' && !canPost) { %>
-    <p style="color:#c00;margin-bottom:12px">每天只能发布一篇文章，你今天已经发布过了。</p>
+    <p style="color:#c00;margin-bottom:12px">每天只能发布一篇帖子，你今天已经发布过了。</p>
   <% } else { %>
 
-  <form method="POST" action="<%= post ? '/posts/' + post.slug + '/edit' : '/new-post' %>">
+  <form method="POST" action="<%= post ? '/posts/' + post.id + '/edit' : '/new-post' %>">
   <input type="hidden" name="_csrf" value="<%= csrf %>">
 
     <label>标题</label>
     <input type="text" name="title" value="<%= post ? post.title : '' %>" required>
 
-    <div style="display:flex;gap:12px">
-      <div style="flex:1">
-        <label>分类</label>
-        <% if (typeof presetCategory !== 'undefined' && presetCategory) { %>
-          <input type="hidden" name="category" value="<%= presetCategory %>">
-          <div style="padding:5px 8px;background:#f5f3eb;border:1px solid #d5d0c5;border-radius:2px;font-size:13px;color:#555"><%= presetCategory %></div>
-        <% } else { %>
-        <select name="category">
-          <% if (categories && categories.length) {
-            categories.forEach(function(c) { %>
-              <option value="<%= c.slug %>" <%= post && post.category === c.slug ? 'selected' : '' %>><%= c.name %></option>
-            <% });
-          } else { %>
-            <option value="">默认</option>
-          <% } %>
-        </select>
-        <% } %>
-      </div>
-      <% if (typeof isForum === 'undefined' || !isForum) { %>
-      <div style="flex:2">
-        <label>标签 <button type="button" onclick="addTag(event)" style="background:var(--c);color:#fff;border:none;padding:1px 8px;border-radius:2px;cursor:pointer;font-size:11px;margin-left:4px">添加标签</button></label>
-        <div id="tagChips" style="display:flex;flex-wrap:wrap;gap:4px;padding:4px 0;min-height:26px">
-          <% var existingTags = (post && post.tags) ? post.tags.split(',').map(function(t){return t.trim()}).filter(Boolean) : []; %>
-          <% existingTags.forEach(function(t) { %>
-            <span style="display:inline-flex;align-items:center;gap:2px;background:#f0ede0;border:1px solid #d5d0c5;border-radius:3px;padding:2px 6px;font-size:12px"><%= t %><button type="button" onclick="this.parentElement.remove();syncTags()" style="background:none;border:none;color:#999;cursor:pointer;font-size:14px;line-height:1;padding:0 0 0 4px">&times;</button></span>
-          <% }); %>
-        </div>
-        <input type="hidden" name="tags" id="tagsInput" value="<%= post ? post.tags : '' %>">
-      </div>
-      <% } %>
+    <input type="hidden" name="category" value="<%= typeof presetCategory !== 'undefined' ? presetCategory : (post ? post.category_id : '') %>">
+    <% if (typeof subCategories !== 'undefined' && subCategories.length) { %>
+    <div style="margin-bottom:8px">
+      <label>分类</label>
+      <select name="sub_category" style="width:auto;min-width:120px">
+        <option value="-1">默认</option>
+        <% subCategories.forEach(function(sc){ %>
+        <option value="<%= sc.name %>" <%= (typeof presetSubCategory !== 'undefined' && presetSubCategory === sc.name) || (post && post.sub_category === sc.name) ? 'selected' : '' %>><%= sc.name %></option>
+        <% }); %>
+      </select>
     </div>
-
-    <div style="display:flex;gap:12px">
-      <div style="width:180px">
-        <label>许可协议</label>
-        <select name="license">
-          <% (typeof licenses !== 'undefined' ? licenses : []).forEach(function(l){ %>
-            <option value="<%= l.key %>" <%= post && post.license === l.key ? 'selected' : '' %>><%= l.name %></option>
-          <% }); %>
-        </select>
-      </div>
-    </div>
+    <% } else { %>
+    <input type="hidden" name="sub_category" value="<%= typeof presetSubCategory !== 'undefined' ? presetSubCategory : (post && post.sub_category ? post.sub_category : '-1') %>">
+    <% } %>
 
     <label>正文（Markdown 格式，支持 $...$ 数学公式）</label>
     <%- include('widget/comment-toolbar') %>
@@ -190,33 +162,5 @@ function importMdFile(inp){
   };
   reader.readAsText(file);
   inp.value = '';
-}
-
-// ── Tag chips ──────────────────────────────────────────────────
-function syncTags(){
-  var chips = document.querySelectorAll('#tagChips > span');
-  var tags = [];
-  chips.forEach(function(c){
-    var t = c.childNodes[0].textContent.trim();
-    if (t) tags.push(t);
-  });
-  document.getElementById('tagsInput').value = tags.join(',');
-}
-
-async function addTag(e){
-  e.preventDefault();
-  var tag = await ntopiaPrompt('输入标签（单个）：');
-  if (!tag || !tag.trim()) return;
-  tag = tag.trim().replace(/,/g, '');
-  if (!tag) return;
-  var existing = document.querySelectorAll('#tagChips > span');
-  for (var i = 0; i < existing.length; i++) {
-    if (existing[i].childNodes[0].textContent.trim() === tag) return;
-  }
-  var chip = document.createElement('span');
-  chip.style.cssText = 'display:inline-flex;align-items:center;gap:2px;background:#f0ede0;border:1px solid #d5d0c5;border-radius:3px;padding:2px 6px;font-size:12px';
-  chip.innerHTML = tag + '<button type="button" onclick="this.parentElement.remove();syncTags()" style="background:none;border:none;color:#999;cursor:pointer;font-size:14px;line-height:1;padding:0 0 0 4px">&times;</button>';
-  document.getElementById('tagChips').appendChild(chip);
-  syncTags();
 }
 </script>

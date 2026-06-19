@@ -1,8 +1,8 @@
 <%# post-item — reusable post listing. Params: post, excerpt? %>
 <div class="forum-topic<%= typeof pinned !== 'undefined' && pinned ? ' pinned' : '' %>">
-  <h3><a href="/posts/<%= post.slug %>"><%= post.title %></a></h3>
+  <h3><a href="/posts/<%= post.id %>"><%= post.title %></a></h3>
   <div class="forum-meta">
-    <a href="/users/<%= post.username %>"><%= post.display_name || post.username %></a> |
+    <a href="/users/<%= post.author_id %>"><%= post.display_name || post.username %></a> |
     <%- timeTag(post.created_at) %> |
     <%= post.comment_count || 0 %> 评论
     <% if (typeof post.category_name !== 'undefined' && post.category_name) { %> | <%= post.category_name %><% } %>

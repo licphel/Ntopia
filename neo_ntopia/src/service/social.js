@@ -139,7 +139,6 @@ const socialService = {
     const userRepo = require('../repo/user');
     const toUser = userRepo.findByUsername(toUsername);
     if (!toUser) return { ok: false, error: '用户不存在' };
-    if (toUser.id === fromUser.id) return { ok: false, error: '不能给自己发私信' };
 
     const html = renderMarkdown(content || '');
     messageRepo.send(fromUser.id, toUser.id, content, html);

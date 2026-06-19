@@ -3,51 +3,49 @@ const { getDB } = require('../database');
 
 const SELECT_POST = `
   SELECT p.*, u.username, u.display_name, u.avatar, u.level, u.role,
-    COALESCE(cat.name, p.category) as category_name,
-    cat.type as category_type,
+    COALESCE(cat.name, '') as category_name,
+    
     (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
   FROM posts p
     JOIN users u ON p.author_id = u.id
-    LEFT JOIN categories cat ON p.category = cat.slug
+    LEFT JOIN categories cat ON p.category_id = cat.id
 `;
 
 const WHERE_VISIBLE = `(p.is_deleted = 0 OR p.is_deleted IS NULL) AND p.is_draft = 0`;
 
 const postRepo = {
-  /** Find a visible post by slug, with author info. */
-  findBySlug(slug) {
-    return getDB().prepare(`
-      ${SELECT_POST}
-      WHERE p.slug = ? AND p.is_draft = 0
-    `).get(slug);
-  },
-
-  /** Find a post by slug (including drafts, for owner). */
-  findBySlugAny(slug) {
-    return getDB().prepare(`
-      ${SELECT_POST}
-      WHERE p.slug = ?
-    `).get(slug);
-  },
-
-  /** Find a post by ID. */
+  /** Find a visible post by ID, with author info. */
   findById(id) {
-    return getDB().prepare('SELECT * FROM posts WHERE id = ?').get(id);
+    return getDB().prepare(`
+      ${SELECT_POST}
+      WHERE p.id = ? AND p.is_draft = 0
+    `).get(id);
+  },
+
+  /** Find a post by ID (including drafts, for owner). */
+  findByIdAny(id) {
+    return getDB().prepare(`
+      ${SELECT_POST}
+      WHERE p.id = ?
+    `).get(id);
   },
 
   /** List posts with filtering, sorting, and pagination. */
-  list({ category, sort = 'newest', page = 1, limit = 10, categoryType = 'blog' }) {
+  list({ categoryId, subCategory, isFeatured, sort = 'newest', page = 1, limit = 10 }) {
     const offset = (page - 1) * limit;
 
     let catFilter = '';
     const params = [];
-    if (category) {
-      catFilter = 'AND p.category = ?';
-      params.push(category);
-    } else {
-      // Filter by category type: only show posts whose category matches the given type
-      catFilter = `AND p.category IN (SELECT slug FROM categories WHERE type = ?)`;
-      params.push(categoryType);
+    if (categoryId) {
+      catFilter = 'AND p.category_id = ?';
+      params.push(categoryId);
+    }
+    if (subCategory && subCategory !== '-1') {
+      catFilter += ' AND p.sub_category = ?';
+      params.push(subCategory);
+    }
+    if (isFeatured) {
+      catFilter += ' AND p.is_featured = 1';
     }
 
     // Count total
@@ -94,22 +92,6 @@ const postRepo = {
     return { drafts, total: total.c, page, totalPages: Math.ceil(total.c / limit) };
   },
 
-  /** List posts by tag. */
-  listByTag(tag, { page = 1, limit = 10 } = {}) {
-    const offset = (page - 1) * limit;
-    const tagLike = '%,' + tag + ',%';
-    const posts = getDB().prepare(`
-      ${SELECT_POST}
-      WHERE ${WHERE_VISIBLE} AND (',' || p.tags || ',') LIKE ?
-      ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT ? OFFSET ?
-    `).all(tagLike, limit, offset);
-    const total = getDB().prepare(`
-      SELECT COUNT(*) as c FROM posts
-      WHERE ${WHERE_VISIBLE.replace(/p\./g, '')} AND (',' || tags || ',') LIKE ?
-    `).get(tagLike);
-    return { posts, total: total.c, page, totalPages: Math.ceil(total.c / limit) };
-  },
-
   /** List posts by user ID. */
   listByUser(userId, { page = 1, limit = 10, isOwner = false } = {}) {
     const offset = (page - 1) * limit;
@@ -127,19 +109,19 @@ const postRepo = {
   },
 
   /** Create a new post. */
-  create({ title, slug, contentMd, contentHtml, category, tags, authorId, isDraft, license }) {
+  create({ title, contentMd, contentHtml, categoryId, subCategory, authorId, isDraft }) {
     return getDB().prepare(`
-      INSERT INTO posts (title, slug, content_md, content_html, category, tags, author_id, is_draft, license)
-      VALUES (?,?,?,?,?,?,?,?,?)
-    `).run(title, slug, contentMd, contentHtml, category || '', tags || '', authorId, isDraft ? 1 : 0, license || '');
+      INSERT INTO posts (title, content_md, content_html, category_id, sub_category, author_id, is_draft)
+      VALUES (?,?,?,?,?,?,?)
+    `).run(title, contentMd, contentHtml, categoryId || null, subCategory || '', authorId, isDraft ? 1 : 0);
   },
 
   /** Update a post. */
-  update(id, { title, contentMd, contentHtml, category, tags, isDraft, license }) {
+  update(id, { title, contentMd, contentHtml, categoryId, subCategory, isDraft }) {
     getDB().prepare(`
-      UPDATE posts SET title=?, content_md=?, content_html=?, category=?, tags=?, is_draft=?, license=?, updated_at=CURRENT_TIMESTAMP
+      UPDATE posts SET title=?, content_md=?, content_html=?, category_id=?, sub_category=?, is_draft=?, updated_at=CURRENT_TIMESTAMP
       WHERE id=?
-    `).run(title, contentMd, contentHtml, category || '', tags || '', isDraft ? 1 : 0, license || '', id);
+    `).run(title, contentMd, contentHtml, categoryId || null, subCategory || '', isDraft ? 1 : 0, id);
   },
 
   /** Soft-delete a post. */
@@ -167,17 +149,22 @@ const postRepo = {
     getDB().prepare('UPDATE posts SET is_pinned = ? WHERE id = ?').run(currentPinned ? 0 : 1, id);
   },
 
+  /** Toggle featured (精华). */
+  toggleFeatured(id, current) {
+    getDB().prepare('UPDATE posts SET is_featured = ? WHERE id = ?').run(current ? 0 : 1, id);
+  },
+
   /** Increment view count. */
   incrementView(id) {
     getDB().prepare('UPDATE posts SET view_count = view_count + 1 WHERE id = ?').run(id);
   },
 
   /** Create a revision snapshot. */
-  createRevision(postId, { title, contentMd, contentHtml, category, tags, revisedBy }) {
+  createRevision(postId, { title, contentMd, contentHtml, categoryId, revisedBy }) {
     getDB().prepare(`
-      INSERT INTO post_revisions (post_id, title, content_md, content_html, category, tags, revised_by)
-      VALUES (?,?,?,?,?,?,?)
-    `).run(postId, title, contentMd, contentHtml, category || '', tags || '', revisedBy);
+      INSERT INTO post_revisions (post_id, title, content_md, content_html, category_id, revised_by)
+      VALUES (?,?,?,?,?,?)
+    `).run(postId, title, contentMd, contentHtml, categoryId || null, revisedBy);
   },
 
   /** Trim revisions to keep max 10. */
@@ -229,18 +216,18 @@ const postRepo = {
       const like = `%${query}%`;
       const total = getDB().prepare(`
         SELECT COUNT(*) as c FROM posts WHERE is_deleted = 0
-          AND (title LIKE ? OR content_md LIKE ? OR tags LIKE ?
-            OR category LIKE ? OR category IN (SELECT slug FROM categories WHERE name LIKE ?))
-      `).get(like, like, like, like, like);
+          AND (title LIKE ? OR content_md LIKE ?
+            OR category_id IN (SELECT id FROM categories WHERE name LIKE ?))
+      `).get(like, like, like);
       const posts = getDB().prepare(`
         SELECT p.*, u.username, u.display_name,
           (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
         FROM posts p JOIN users u ON p.author_id = u.id
         WHERE p.is_deleted = 0
-          AND (p.title LIKE ? OR p.content_md LIKE ? OR p.tags LIKE ?
-            OR p.category LIKE ? OR p.category IN (SELECT slug FROM categories WHERE name LIKE ?))
+          AND (p.title LIKE ? OR p.content_md LIKE ?
+            OR p.category_id IN (SELECT id FROM categories WHERE name LIKE ?))
         ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT ? OFFSET ?
-      `).all(like, like, like, like, like, limit, offset);
+      `).all(like, like, like, limit, offset);
       return { posts, total: total?.c || 0, page, totalPages: Math.ceil((total?.c || 0) / limit) };
     }
   },
@@ -260,12 +247,12 @@ const postRepo = {
   },
 
   /** Get post for download (MD export). */
-  forDownload(slug) {
+  forDownload(id) {
     return getDB().prepare(`
-      SELECT p.title, p.content_md, p.license, p.created_at, u.display_name, u.username
+      SELECT p.title, p.content_md, p.created_at, u.display_name, u.username
       FROM posts p JOIN users u ON p.author_id = u.id
-      WHERE p.slug = ? AND p.is_deleted = 0 AND p.is_draft = 0
-    `).get(slug);
+      WHERE p.id = ? AND p.is_deleted = 0 AND p.is_draft = 0
+    `).get(id);
   },
 
   /** Get posts for RSS feed. */
@@ -281,7 +268,7 @@ const postRepo = {
   /** Get posts for sitemap. */
   forSitemap() {
     return getDB().prepare(`
-      SELECT slug, updated_at FROM posts WHERE is_deleted = 0 ORDER BY updated_at DESC
+      SELECT id, updated_at FROM posts WHERE is_deleted = 0 ORDER BY updated_at DESC
     `).all();
   },
 
@@ -295,52 +282,31 @@ const postRepo = {
   /** Forum sections with post counts, sorted by popularity. */
   forumSections({ page = 1, limit = 20 } = {}) {
     const offset = (page - 1) * limit;
-    const total = getDB().prepare(`
-      SELECT COUNT(*) as c FROM categories WHERE type = 'forum'
-    `).get();
+    const total = getDB().prepare('SELECT COUNT(*) as c FROM categories').get();
     const sections = getDB().prepare(`
       SELECT c.*, COUNT(p.id) as post_count
-      FROM categories c LEFT JOIN posts p ON p.category = c.slug AND p.is_deleted = 0 AND p.is_draft = 0
-      WHERE c.type = 'forum'
+      FROM categories c LEFT JOIN posts p ON p.category_id = c.id AND p.is_deleted = 0 AND p.is_draft = 0
       GROUP BY c.id ORDER BY post_count DESC, c.sort_order LIMIT ? OFFSET ?
     `).all(limit, offset);
     return { sections, total: total.c, page, totalPages: Math.ceil(total.c / limit) };
   },
 
-  /** Search forum sections by name or slug. */
+  /** Search sections by name or description. */
   searchSections(query, limit = 10) {
     const like = `%${query}%`;
     return getDB().prepare(`
       SELECT c.*, COUNT(p.id) as post_count
-      FROM categories c LEFT JOIN posts p ON p.category = c.slug AND p.is_deleted = 0 AND p.is_draft = 0
-      WHERE c.type = 'forum' AND (c.name LIKE ? OR c.slug LIKE ? OR c.description LIKE ?)
+      FROM categories c LEFT JOIN posts p ON p.category_id = c.id AND p.is_deleted = 0 AND p.is_draft = 0
+      WHERE c.name LIKE ? OR c.description LIKE ?
       GROUP BY c.id ORDER BY post_count DESC LIMIT ?
-    `).all(like, like, like, limit);
-  },
-
-  /** Get all distinct tags. */
-  allTags(limit = 20) {
-    const rows = getDB().prepare(`
-      SELECT DISTINCT tags FROM posts
-      WHERE tags != '' AND is_deleted = 0 AND is_draft = 0
-    `).all();
-    const seen = new Set();
-    const tags = [];
-    for (const r of rows) {
-      for (const tag of (r.tags || '').split(',')) {
-        const t = tag.trim();
-        if (t && !seen.has(t)) { seen.add(t); tags.push(t); }
-      }
-    }
-    return tags.slice(0, limit);
+    `).all(like, like, limit);
   },
 
   /** Get recent posts for sidebar. */
   recentPosts(limit = 10) {
     return getDB().prepare(`
-      SELECT id, title, slug, created_at FROM posts
+      SELECT id, title, created_at FROM posts
       WHERE is_deleted = 0 AND is_draft = 0
-        AND (category IN (SELECT slug FROM categories WHERE type = 'blog') OR category = '' OR category IS NULL)
       ORDER BY created_at DESC LIMIT ?
     `).all(limit);
   },
@@ -349,7 +315,7 @@ const postRepo = {
   recentComments(limit = 10) {
     return getDB().prepare(`
       SELECT c.id, c.created_at, u.username, u.display_name,
-             c.content_html as cmt_content, p.title as post_title, p.slug as post_slug
+             c.content_html as cmt_content, p.title as post_title, p.id as post_id
       FROM comments c
         JOIN users u ON c.author_id = u.id
         JOIN posts p ON c.post_id = p.id

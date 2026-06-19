@@ -119,11 +119,23 @@ function canCreateSection(user) {
   return (user.level || 1) >= 5 || hasRole(user, LEVEL.MOD);
 }
 
-/** User can moderate a forum section (is the section moderator, or MOD+). */
-function canModerateSection(user, section) {
+/** User is the section owner (moderator_id). */
+function isSectionOwner(user, section) {
+  if (!isAuthenticated(user)) return false;
+  return section && user.id === section.moderator_id;
+}
+
+/** User is any section moderator (owner or sub-mod). */
+function isSectionModerator(user, section, isSubMod) {
+  if (!isAuthenticated(user)) return false;
+  return isSectionOwner(user, section) || !!isSubMod;
+}
+
+/** User can moderate a forum section (is section mod, sub-mod, or MOD+). */
+function canModerateSection(user, section, isSubMod) {
   if (!isAuthenticated(user)) return false;
   if (hasRole(user, LEVEL.MOD)) return true;
-  return section && user.id === section.moderator_id;
+  return isSectionModerator(user, section, isSubMod);
 }
 
 // ── User management permissions ────────────────────────────────
@@ -317,6 +329,8 @@ module.exports = {
   canViewDeleted,
   canModerate,
   canCreateSection,
+  isSectionOwner,
+  isSectionModerator,
   canModerateSection,
   canManageUser,
   canBanUser,

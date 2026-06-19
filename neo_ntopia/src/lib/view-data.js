@@ -4,7 +4,7 @@
 
 const postRepo = require('../repo/post');
 
-/** Sidebar data — owner info, recent posts, tags, stats. */
+/** Sidebar data — owner info, recent posts, stats. */
 function sidebarData() {
   try {
     const db = require('../database').getDB();
@@ -13,12 +13,11 @@ function sidebarData() {
         || { username: 'admin', display_name: 'Administrator', avatar: '/img/default-avatar.png', bio: '' },
       recentPosts: postRepo.recentPosts(10),
       recentComments: postRepo.recentComments(10),
-      tagList: postRepo.allTags(20),
       stats: postRepo.stats(),
       infoPages: getInfoPages(),
     };
   } catch (_) {
-    return { recentPosts: [], recentComments: [], tagList: [], stats: {}, infoPages: [] };
+    return { admin: { id: 1, username: 'admin', display_name: 'Administrator', avatar: '/img/default-avatar.png', bio: '' }, recentPosts: [], recentComments: [], stats: {}, infoPages: [] };
   }
 }
 

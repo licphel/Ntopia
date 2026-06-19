@@ -1,0 +1,145 @@
+<div style="max-width:600px">
+  <h2>板块设置 — <%= section.name %></h2>
+
+  <!-- Avatar -->
+  <div style="margin-bottom:16px">
+    <label style="font-weight:bold;display:block;margin-bottom:4px">头像</label>
+    <div style="display:flex;align-items:center;gap:12px">
+      <% if (section.image) { %><img src="<%= section.image %>" id="sectImg" style="width:80px;height:80px;border-radius:6px;object-fit:cover;border:2px solid #e0dbd0"><% } else { %><div id="sectImg" style="width:80px;height:80px;border-radius:6px;background:#e0dbd0;display:flex;align-items:center;justify-content:center;font-size:28px;color:#999"><%= (section.name||'?')[0] %></div><% } %>
+      <div>
+        <button onclick="document.getElementById('imgInput').click()" style="background:var(--c);color:#fff;border:none;padding:4px 12px;border-radius:3px;cursor:pointer;font-size:12px">上传新头像</button>
+        <input type="file" accept="image/*" id="imgInput" style="display:none" onchange="uploadImg(this)">
+        <div style="font-size:11px;color:#999;margin-top:4px">支持 JPG/PNG/WebP</div>
+      </div>
+    </div>
+  </div>
+
+  <form method="POST" action="/forum/<%= section.id %>/settings">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+
+    <div style="margin-bottom:12px">
+      <label style="font-weight:bold;display:block;margin-bottom:4px">名称</label>
+      <input type="text" name="name" value="<%= section.name %>" required style="width:100%">
+    </div>
+
+    <div style="margin-bottom:12px">
+      <label style="font-weight:bold;display:block;margin-bottom:4px">简介</label>
+      <input type="text" name="description" value="<%= section.description || '' %>" maxlength="200" style="width:100%">
+    </div>
+
+    <button type="submit" class="cmt-btn" style="padding:8px 20px">保存</button>
+    <a href="/forum/<%= section.id %>" style="margin-left:8px;color:#999;font-size:13px">取消</a>
+  </form>
+  <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e0dbd0">
+    <button onclick="deleteSection()" style="background:none;border:1px solid #c00;color:#c00;cursor:pointer;font-size:12px;padding:4px 12px;border-radius:2px">删除板块</button>
+    <div style="font-size:11px;color:#999;margin-top:4px">仅当板块内无帖子时可删除</div>
+  </div>
+
+  <!-- Sub-category management -->
+  <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e0dbd0">
+    <h3>分类管理</h3>
+    <div id="subCatList" style="margin-bottom:8px">
+      <% if (typeof subCats !== 'undefined' && subCats.length) { %>
+        <% subCats.forEach(function(sc){ %>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px dotted #e0dbd0">
+          <span><%= sc.name %> <span style="color:#999;font-size:11px">(<%= sc.post_count || 0 %> 帖)</span></span>
+          <span>
+            <button onclick="editSubCat(<%= sc.id %>,'<%= sc.name %>')" style="background:none;border:1px solid var(--c);color:var(--c);cursor:pointer;font-size:11px;padding:1px 6px;border-radius:2px">编辑</button>
+            <button onclick="deleteSubCat(<%= sc.id %>)" style="background:none;border:1px solid #c00;color:#c00;cursor:pointer;font-size:11px;padding:1px 6px;border-radius:2px;margin-left:4px">删除</button>
+          </span>
+        </div>
+        <% }); %>
+      <% } else { %>
+        <div style="color:#999;font-size:12px">暂无分类</div>
+      <% } %>
+    </div>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="subCatName" placeholder="分类名称" style="flex:1;padding:3px 8px;font-size:12px">
+      <button onclick="addSubCat()" style="background:var(--c);color:#fff;border:none;padding:3px 10px;border-radius:2px;cursor:pointer;font-size:12px;white-space:nowrap">添加</button>
+    </div>
+  </div>
+
+  <!-- Sub-moderator management (owner only) -->
+  <% if (typeof isOwner !== 'undefined' && isOwner) { %>
+  <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e0dbd0">
+    <h3>小版主管理</h3>
+    <div id="subModList" style="margin-bottom:8px">
+      <% if (typeof subMods !== 'undefined' && subMods.length) { %>
+        <% subMods.forEach(function(m){ %>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px dotted #e0dbd0">
+          <span><img src="<%= m.avatar || '/img/default-avatar.png' %>" style="width:20px;height:20px;vertical-align:middle;margin-right:6px"><%= m.display_name || m.username %></span>
+          <button onclick="removeSubMod(<%= m.id %>)" style="background:none;border:1px solid #c00;color:#c00;cursor:pointer;font-size:11px;padding:1px 6px;border-radius:2px">解雇</button>
+        </div>
+        <% }); %>
+      <% } else { %>
+        <div style="color:#999;font-size:12px">暂无小版主</div>
+      <% } %>
+    </div>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="subModUser" placeholder="输入用户名" style="flex:1;padding:3px 8px;font-size:12px">
+      <button onclick="addSubMod()" style="background:var(--c);color:#fff;border:none;padding:3px 10px;border-radius:2px;cursor:pointer;font-size:12px;white-space:nowrap">提拔</button>
+    </div>
+  </div>
+  <% } %>
+</div>
+
+<script>
+async function uploadImg(inp){
+  var file = inp.files[0];
+  if (!file) return;
+  var fd = new FormData();
+  fd.append('image', file);
+  var resp = await fetch('/forum/<%= section.id %>/settings/image', { method:'POST', headers:{'x-csrf-token':'<%= csrf %>'}, body:fd });
+  var d = await resp.json();
+  if (d.ok) location.reload();
+  else ntopiaAlert(d.error || '上传失败');
+}
+
+async function addSubCat(){
+  var name = document.getElementById('subCatName').value.trim();
+  if (!name) return;
+  var resp = await fetch('/forum/<%= section.id %>/subcats', { method:'POST', headers:{'Content-Type':'application/json','x-csrf-token':'<%= csrf %>'}, body:JSON.stringify({name}) });
+  var d = await resp.json();
+  if (d.ok) location.reload();
+  else ntopiaAlert(d.error || '添加失败');
+}
+async function editSubCat(id, oldName){
+  var name = await ntopiaPrompt('修改分类名称：', oldName);
+  if (!name || !name.trim()) return;
+  var resp = await fetch('/forum/<%= section.id %>/subcats/' + id + '/edit', { method:'POST', headers:{'Content-Type':'application/json','x-csrf-token':'<%= csrf %>'}, body:JSON.stringify({name}) });
+  var d = await resp.json();
+  if (d.ok) location.reload();
+  else ntopiaAlert(d.error || '编辑失败');
+}
+async function deleteSubCat(id){
+  if (!await ntopiaConfirm('确认删除该分类？')) return;
+  var resp = await fetch('/forum/<%= section.id %>/subcats/' + id + '/delete', { method:'POST', headers:{'x-csrf-token':'<%= csrf %>'} });
+  var d = await resp.json();
+  if (d.ok) location.reload();
+  else ntopiaAlert(d.error || '删除失败');
+}
+async function deleteSection(){
+  if (!await ntopiaConfirm('确认删除该板块？此操作不可撤销。')) return;
+  var resp = await fetch('/forum/<%= section.id %>/delete', { method:'POST', headers:{'x-csrf-token':'<%= csrf %>'} });
+  var d = await resp.json();
+  if (d.ok) location.href='/forum';
+  else ntopiaAlert(d.error || '删除失败');
+}
+
+async function addSubMod(){
+  var username = document.getElementById('subModUser').value.trim();
+  if (!username) return;
+  var resp = await fetch('/forum/<%= section.id %>/mods', { method:'POST', headers:{'Content-Type':'application/json','x-csrf-token':'<%= csrf %>'}, body:JSON.stringify({username}) });
+  var d = await resp.json();
+  if (d.ok) location.reload();
+  else alert(d.error || '操作失败');
+}
+
+async function removeSubMod(userId){
+  if (!await ntopiaConfirm('确认解雇该小版主？')) return;
+  var resp = await fetch('/forum/<%= section.id %>/mods/' + userId + '/remove', { method:'POST', headers:{'x-csrf-token':'<%= csrf %>'} });
+  var d = await resp.json();
+  if (d.ok) location.reload();
+  else alert(d.error || '操作失败');
+}
+</script>

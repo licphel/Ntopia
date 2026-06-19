@@ -1,4 +1,5 @@
-<div class="Post">
+<div class="Post" style="position:relative">
+  <% if (post.is_featured) { %><span style="position:absolute;top:2px;right:4px;z-index:1;pointer-events:none;font-size:13px;font-weight:bold;background:linear-gradient(135deg,#f90,#f60);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;transform:rotate(8deg)">精华</span><% } %>
   <div class="PostHead">
     <div class="date-col">
       <div class="date-wrap">
@@ -9,8 +10,7 @@
           <%- timeTag(post.created_at, {fmt:'month'}) %>
         </span>
       </div>
-      <% var catUrl = (post.category_type === 'forum') ? '/forum/' + post.category : '/blog?cat=' + post.category; %>
-<div class="date-cat"><% if (post.category) { %><a href="<%= catUrl %>"><%= post.category_name || post.category %></a><% } else { %>·<% } %></div>
+      <div class="date-cat"><%- timeTag(post.created_at, {fmt:'year'}) %></div>
     </div>
     <div class="title-wrap">
       <h2>
@@ -19,7 +19,7 @@
       <span class="submitted">
         <img src="<%= post.avatar || '/img/default-avatar.png' %>"
           style="width:20px;height:20px;border-radius:2px;vertical-align:middle;margin-right:3px">
-        <a href="/users/<%= post.username %>">
+        <a href="/users/<%= post.author_id %>">
           <%= post.display_name || post.username %>
         </a>
         <% var b=roleBadge(post.role || 0); %>
@@ -29,7 +29,7 @@
           </span>
           <span class="lv-badge">Lv.<%= post.level || 1 %></span> |
           <%- timeTag(post.created_at) %>
-            <% if (post.category) { %> | <a href="<%= catUrl %>"><%= post.category_name || post.category %></a><% } %>
+            <% if (post.category_id) { %> | <a href="/forum/<%= post.category_id %>"><%= post.category_name || post.category %></a><% } %>
                 | <%= post.comment_count %> 评论
                   | <%= post.view_count %> 阅读
       </span>
@@ -50,12 +50,7 @@
     <% } %>
       <div class="PostContent"><%- post.content_html %></div>
       <div class="tools" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px">
-        <span>
-          <% if (post.tags) { %>
-            标签: <% post.tags.split(',').forEach(function(t) { %><a href="/tags/<%= encodeURIComponent(t.trim()) %>"><%= t.trim() %></a> <% }); %>
-          <% } %>
-          <% if (post.license) { %> | 许可: <%= post.license %><% } %>
-        </span>
+        <span></span>
         <span style="display:flex;gap:6px;align-items:center">
           <a href="#" onclick="toggleLike(event, <%= post.id %>, null)" id="like-post-<%= post.id %>" style="font-size:11px;color:<%= userLiked ? 'var(--c)' : '#999' %>"><%= userLiked ? '已赞' : '点赞' %><% if (likeCount) { %>(<%= likeCount %>)<% } %></a>
           <a href="#" onclick="toggleBookmark(event, <%= post.id %>)" id="bookmark-<%= post.id %>" style="font-size:11px;color:<%= userBookmarked ? 'var(--c)' : '#999' %>"><%= userBookmarked ? '已收藏' : '收藏' %><% if (bookmarkCount) { %>(<%= bookmarkCount %>)<% } %></a>
@@ -63,12 +58,13 @@
           <a href="#" onclick="downloadPost(event)" style="font-size:11px;color:#999">下载 MD</a>
           <a href="#" onclick="toggleCite();return false" style="font-size:11px;color:#999">CITE</a>
           <% if (user && (user.id===post.author_id || (user.role || 0)>= LEVEL.ADMIN)) { %>
-            <a href="/posts/<%= post.slug %>/edit" style="font-size:11px;color:#999">编辑</a>
-            <a href="/posts/<%= post.slug %>/revisions" style="font-size:11px;color:#999">历史</a>
+            <a href="/posts/<%= post.id %>/edit" style="font-size:11px;color:#999">编辑</a>
+            <a href="/posts/<%= post.id %>/revisions" style="font-size:11px;color:#999">历史</a>
             <a href="#" onclick="delPost(event)" style="font-size:11px;color:#c00">删除</a>
           <% } %>
           <% if (user && (user.role || 0) >= LEVEL.MOD) { %>
-            <form method="POST" action="/admin/posts/<%= post.slug %>/pin" style="display:inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><button style="background:none;border:none;color:var(--c);cursor:pointer;font-size:11px;padding:0"><%= post.is_pinned ? '取消置顶' : '置顶' %></button></form>
+            <a href="#" onclick="togglePin(event,<%= post.id %>)" style="font-size:11px;color:var(--c)"><%= post.is_pinned ? '取消置顶' : '置顶' %></a>
+            <a href="#" onclick="toggleFeatured(event,<%= post.id %>)" style="font-size:11px;color:var(--c);margin-left:6px"><%= post.is_featured ? '取消精华' : '加精' %></a>
           <% } %>
         </span>
       </div>
@@ -82,15 +78,26 @@ function toggleCite(){
 }
 async function downloadPost(e){
   e.preventDefault();
-  await ntopiaAlert('本文章遵循 <%= (post.license || 'All Rights Reserved').replace(/'/g, "\\'") %> 许可协议，请确保分发时合规！');
-  location.href = '/posts/<%= post.slug %>/download';
+  await ntopiaAlert('注意：下载则代表您已同意：仅在作者允许、保留原作者署名和链接的情况下转载和分发！');
+  location.href = '/posts/<%= post.id %>/download';
+}
+async function togglePin(e,postId){
+  e.preventDefault();
+  await fetch('/admin/posts/'+postId+'/pin',{method:'POST',headers:{'x-csrf-token':'<%= csrf %>'}});
+  location.reload();
+}
+async function toggleFeatured(e,postId){
+  e.preventDefault();
+  var r=await fetch('/posts/'+postId+'/toggle-featured',{method:'POST',headers:{'x-csrf-token':'<%= csrf %>'}});
+  var d=await r.json();
+  if(d.ok) location.reload();
 }
 async function delPost(e){
   e.preventDefault();
   var ok = await ntopiaConfirm('确认删除这篇文章？');
   if (ok) {
     var f = document.createElement('form');
-    f.method = 'POST'; f.action = '/posts/<%= post.slug %>/delete-self'; f.style.display = 'none';
+    f.method = 'POST'; f.action = '/posts/<%= post.id %>/delete-self'; f.style.display = 'none';
     var csrf = document.createElement('input'); csrf.type = 'hidden'; csrf.name = '_csrf'; csrf.value = '<%= csrf %>';
     f.appendChild(csrf);
     document.body.appendChild(f); f.submit();
@@ -110,11 +117,11 @@ async function delPost(e){
         <div style="margin-bottom:2px;line-height:1.5">
           <% if (c.is_deleted) { %><span style="color:#c00;font-size:10px">[已删除]</span><% } %>
           <img src="<%= c.avatar || '/img/default-avatar.png' %>" style="width:16px;height:16px;vertical-align:middle;margin-right:3px">
-          <a href="/users/<%= c.username %>"><strong><%= c.display_name || c.username %></strong></a>
+          <a href="/users/<%= c.author_id %>"><strong><%= c.display_name || c.username %></strong></a>
           <span class="lv-badge">Lv.<%= c.level || 1 %></span>
           <span style="color:#999;font-size:10px;margin-left:4px"><%- timeTag(c.created_at, {fmt:'short'}) %></span>
           <% var rc=comments.filter(function(x){return x.parent_id===c.id}).length; %>
-          <a href="/posts/<%= post.slug %>/comment/<%= c.id %>" style="font-size:11px;color:var(--c);margin-left:6px"><%= rc>0 ? rc+'条回复' : '回复' %></a>
+          <a href="/posts/<%= post.id %>/comment/<%= c.id %>" style="font-size:11px;color:var(--c);margin-left:6px"><%= rc>0 ? rc+'条回复' : '回复' %></a>
           <% if (user) { %><a href="#" onclick="submitReport('comment', <%= c.id %>);return false" style="font-size:10px;color:#999;margin-left:4px">举报</a><% } %>
           <% if (user && (user.id===c.author_id || (user.role || 0)>= LEVEL.ADMIN)) { %>
             <button onclick="delConfirm(event,'/posts/comments/<%= c.id %>/delete')" style="background:none;border:none;color:#c00;cursor:pointer;font-size:11px;padding:0;margin-left:4px">删除</button>
@@ -127,7 +134,7 @@ async function delPost(e){
 
 <% if (cmtTotalPages> 1) { %>
   <div class="pages-nav">
-    <% var baseUrl='/' + 'posts/' + post.slug; %>
+    <% var baseUrl='/' + 'posts/' + post.id; %>
       <% for (var i=1; i <=cmtTotalPages; i++) { %>
         <% if (i===cmtPage) { %><span class="current">
             <%= i %>
@@ -141,7 +148,7 @@ async function delPost(e){
   <% } %>
     <% if (user) { %>
       <div style="margin-top:4px;padding:10px 0">
-        <form method="POST" action="/posts/<%= post.slug %>/comment">
+        <form method="POST" action="/posts/<%= post.id %>/comment">
           <input type="hidden" name="_csrf" value="<%= csrf %>">
           <%- include('widget/comment-toolbar') %>
             <textarea name="content" placeholder="发表新评论..."

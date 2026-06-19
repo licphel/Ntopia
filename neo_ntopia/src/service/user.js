@@ -12,8 +12,8 @@ const time = require('../util/time');
 
 const userService = {
   /** Get user profile with all related data. */
-  getProfile(username, viewer, { postPage = 1, cmtPage = 1 } = {}) {
-    const profile = userRepo.findByUsername(username);
+  getProfile(id, viewer, { postPage = 1, cmtPage = 1 } = {}) {
+    const profile = userRepo.findById(id);
     if (!profile) return { notFound: true };
 
     // Render bio description as markdown
@@ -66,8 +66,8 @@ const userService = {
   },
 
   /** Update user profile. */
-  updateProfile(username, { displayName, bio, desc, newUsername, newPassword, newPassword2 }, user) {
-    const profile = userRepo.findByUsername(username);
+  updateProfile(id, { displayName, bio, desc, newUsername, newPassword, newPassword2 }, user) {
+    const profile = userRepo.findById(id);
     if (!profile || profile.id !== user.id) return { ok: false, error: '权限不足' };
 
     // Validate
@@ -97,7 +97,7 @@ const userService = {
     }
 
     userRepo.updateProfile(profile.id, { displayName, bio, desc });
-    return { ok: true, username: uname, displayName };
+    return { ok: true, id: profile.id, username: uname, displayName };
   },
 
   /** Change account password via email verification. */
