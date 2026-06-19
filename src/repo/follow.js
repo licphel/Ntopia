@@ -24,32 +24,32 @@ const followRepo = {
   },
 
   /** Get followers of a user. */
-  followers(username, { page = 1, limit = 20 } = {}) {
+  followers(userId, { page = 1, limit = 20 } = {}) {
     const offset = (page - 1) * limit;
     const users = getDB().prepare(`
       SELECT u.id, u.username, u.display_name, u.avatar, u.bio, f.created_at as followed_at
       FROM follows f JOIN users u ON f.user_id = u.id
-      WHERE f.follow_id = (SELECT id FROM users WHERE username = ?)
+      WHERE f.follow_id = ?
       ORDER BY f.created_at DESC LIMIT ? OFFSET ?
-    `).all(username, limit, offset);
+    `).all(userId, limit, offset);
     const count = getDB().prepare(
-      'SELECT COUNT(*) as c FROM follows WHERE follow_id = (SELECT id FROM users WHERE username = ?)'
-    ).get(username);
+      'SELECT COUNT(*) as c FROM follows WHERE follow_id = ?'
+    ).get(userId);
     return { users, total: count.c, page, totalPages: Math.ceil(count.c / limit) };
   },
 
   /** Get users that a user follows. */
-  following(username, { page = 1, limit = 20 } = {}) {
+  following(userId, { page = 1, limit = 20 } = {}) {
     const offset = (page - 1) * limit;
     const users = getDB().prepare(`
       SELECT u.id, u.username, u.display_name, u.avatar, u.bio, f.created_at as followed_at
       FROM follows f JOIN users u ON f.follow_id = u.id
-      WHERE f.user_id = (SELECT id FROM users WHERE username = ?)
+      WHERE f.user_id = ?
       ORDER BY f.created_at DESC LIMIT ? OFFSET ?
-    `).all(username, limit, offset);
+    `).all(userId, limit, offset);
     const count = getDB().prepare(
-      'SELECT COUNT(*) as c FROM follows WHERE user_id = (SELECT id FROM users WHERE username = ?)'
-    ).get(username);
+      'SELECT COUNT(*) as c FROM follows WHERE user_id = ?'
+    ).get(userId);
     return { users, total: count.c, page, totalPages: Math.ceil(count.c / limit) };
   },
 

@@ -53,22 +53,20 @@ const socialService = {
   // ── Follows ──────────────────────────────────────────────────
 
   /** Toggle follow. */
-  toggleFollow(followerId, targetUsername) {
+  toggleFollow(followerId, targetId) {
     const userRepo = require('../repo/user');
-    const target = userRepo.findByUsername(targetUsername);
+    const target = userRepo.findById(targetId);
     if (!target || target.id === followerId) return { ok: false, error: '无法操作' };
 
     const result = followRepo.toggle(followerId, target.id);
 
-    // Notify on new follow
     if (result.following) {
-      // Follower's display name
       const follower = userRepo.findById(followerId);
       const myName = (follower.display_name || follower.username);
       notificationRepo.create(
         target.id, 'follow',
         `${myName} 关注了你`,
-        '/users/' + follower.username
+        '/users/' + follower.id
       );
     }
 
@@ -76,13 +74,12 @@ const socialService = {
   },
 
   /** Get followers list. */
-  getFollowers(username, viewerId, page) {
-    const result = followRepo.followers(username, {
+  getFollowers(userId, viewerId, page) {
+    const result = followRepo.followers(userId, {
       page: Math.max(1, page || 1),
       limit: config.FOLLOW_PAGE_SIZE,
     });
 
-    // Mark which users viewer follows
     if (viewerId && result.users.length) {
       const followedSet = followRepo.followedSet(
         viewerId, result.users.map(u => u.id)
@@ -94,8 +91,8 @@ const socialService = {
   },
 
   /** Get following list. */
-  getFollowing(username, viewerId, page) {
-    const result = followRepo.following(username, {
+  getFollowing(userId, viewerId, page) {
+    const result = followRepo.following(userId, {
       page: Math.max(1, page || 1),
       limit: config.FOLLOW_PAGE_SIZE,
     });
@@ -112,7 +109,6 @@ const socialService = {
 
   // ── Messages ─────────────────────────────────────────────────
 
-  /** Get inbox (received + sent). */
   getInbox(userId, { msgPage = 1, sentPage = 1 } = {}) {
     const inbox = messageRepo.inbox(userId, {
       page: Math.max(1, msgPage),
@@ -123,7 +119,6 @@ const socialService = {
       limit: config.PAGE_SIZE,
     });
 
-    // Mark all as read
     messageRepo.markAllRead(userId);
 
     return {
@@ -135,9 +130,9 @@ const socialService = {
   },
 
   /** Send a private message. */
-  sendMessage(fromUser, toUsername, content) {
+  sendMessage(fromUser, toUserId, content) {
     const userRepo = require('../repo/user');
-    const toUser = userRepo.findByUsername(toUsername);
+    const toUser = userRepo.findById(toUserId);
     if (!toUser) return { ok: false, error: '用户不存在' };
 
     const html = renderMarkdown(content || '');

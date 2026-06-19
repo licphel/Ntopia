@@ -321,7 +321,7 @@ const postRepo = {
   /** Get recent comments for sidebar. */
   recentComments(limit = 10) {
     return getDB().prepare(`
-      SELECT c.id, c.created_at, u.username, u.display_name,
+      SELECT c.id, c.created_at, u.username, u.display_name, u.id as author_id,
              c.content_html as cmt_content, p.title as post_title, p.id as post_id
       FROM comments c
         JOIN users u ON c.author_id = u.id

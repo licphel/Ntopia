@@ -208,8 +208,8 @@ router.get('/posts/:id(\\d+)/download', (req, res) => {
 
 router.post('/posts/:id(\\d+)/delete-self', auth.requireAuth, (req, res) => {
   const r = postService.deletePost(req.params.id, req.session.user);
-  if (!r.ok) return res.status(403).json(api.err(r.error, 403));
-  res.json(api.redirect('/'));
+  if (!r.ok) return res.status(403).render('page/error', { title: '错误', code: 403, message: r.error, detail: '', back: '/' });
+  res.redirect('/drafts');
 });
 
 router.get('/posts/:id(\\d+)/revisions', auth.requireAuth, (req, res) => {
@@ -236,7 +236,7 @@ router.post('/posts/:id(\\d+)/toggle-featured', auth.requireAuth, (req, res) => 
 });
 
 // ── Section follow ────────────────────────────────────────────────
-router.post('/forum/:id(\\d+)/follow', auth.requireAuth, (req, res) => {
+router.post('/forum/:id(\\d+)/follow', auth.requireAuthAPI, (req, res) => {
   const section = categoryRepo.findById(parseInt(req.params.id));
   if (!section) return res.json(api.err('板块不存在', 404));
   const r = sectionFollowRepo.toggle(req.session.user.id, section.id);

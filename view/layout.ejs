@@ -1474,9 +1474,9 @@
       var d = await r.json();
       ntopiaAlert(d.ok ? '举报已提交，管理员会尽快处理。' : (d.error || '举报失败'));
     }
-    async function toggleFollow(btn, username) {
+    async function toggleFollow(btn, userId) {
       if (!<%= user ? 'true' : 'false' %>) return;
-      var r = await fetch('/follow/' + username, { method: 'POST', headers: { 'x-csrf-token': window._csrf || '' } });
+      var r = await fetch('/follow/' + userId, { method: 'POST', headers: { 'x-csrf-token': window._csrf || '' } });
       var d = await r.json();
       if (d.ok) {
         btn.textContent = d.following ? '已关注' : '+ 关注';
