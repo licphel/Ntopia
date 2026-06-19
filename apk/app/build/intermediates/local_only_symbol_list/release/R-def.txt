@@ -1,6 +1,0 @@
-R_DEF: Internal format may change without notice
-local
-id progress
-id webview
-layout activity_main
-style Theme.Ntopia

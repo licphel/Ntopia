@@ -1,0 +1,50 @@
+<h2>编辑历史: <a href="/posts/<%= post.id %>">
+    <%= post.title %>
+  </a></h2>
+
+<% if (revisions.length===0) { %>
+  <p style="color:var(--text-muted);text-align:center;padding:40px 0">暂无编辑历史。</p>
+  <% } %>
+
+    <% revisions.forEach(function(r, idx) { %>
+      <div class="comment" style="margin-bottom:8px;<%= idx === 0 ? 'border:2px solid var(--c)' : '' %>">
+        <div style="margin-bottom:2px">
+          <strong>
+            <%= idx===0 ? '(最新)' : '#' + (revisions.length - idx) %>
+          </strong>
+          <span style="color:var(--text-muted);font-size:11px"><%- timeTag(r.created_at) %></span>
+          <span style="color:var(--text-muted);font-size:11px"> by <a href="/users/<%= r.revised_by_id %>">
+              <%= r.display_name || r.username %>
+            </a></span>
+        </div>
+        <div style="font-size:13px;color:var(--text-soft);margin:4px 0">
+          <strong>
+            <%= r.title %>
+          </strong>
+        </div>
+        <div
+          style="font-size:12px;line-height:1.6;max-height:200px;overflow-y:auto;border:var(--border-style) var(--border);padding:6px 10px;background:#fff">
+          <%- r.content_html.slice(0, 2000) %>
+            <% if (r.content_html.length> 2000) { %><p style="color:var(--text-muted)">... 内容过长，仅显示前 2000 字符</p>
+              <% } %>
+        </div>
+        <div style="margin-top:4px;font-size:11px">
+          <button onclick="restoreRev(event,<%= post.id %>,<%= r.id %>)"
+            style="background:var(--btn-accent-bg);color:var(--text-inverse);border:none;padding:2px 8px;border-radius:var(--radius);cursor:pointer;font-size:11px">恢复此版本</button>
+        </div>
+      </div>
+      <% }); %>
+
+        <p style="margin-top:12px"><a href="/posts/<%= post.id %>">返回文章</a></p>
+
+        <script>
+          async function restoreRev(e, postId, revId) {
+            e.preventDefault();
+            var ok = await ntopiaConfirm('恢复到该版本？当前内容将被保存为历史记录。');
+            if (!ok) return;
+            var f = document.createElement('form');
+            f.method = 'POST'; f.action = '/posts/' + postId + '/restore/' + revId; f.style.display = 'none';
+            var i = document.createElement('input'); i.type = 'hidden'; i.name = '_csrf'; i.value = '<%= csrf %>';
+            f.appendChild(i); document.body.appendChild(f); f.submit();
+          }
+        </script>

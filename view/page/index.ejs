@@ -1,0 +1,96 @@
+<% if (typeof section !=='undefined' ) { %>
+  <div
+    style="background:var(--bg-card);border:var(--border-style) var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:12px;display:flex;gap:14px;align-items:center">
+    <% if (section.image) { %><img src="<%= section.image %>"
+        style="width:64px;height:64px;border-radius:var(--radius-lg);object-fit:cover;border:2px var(--border-style) var(--border);flex-shrink:0">
+      <% } else { %>
+        <div
+          style="width:64px;height:64px;border-radius:var(--radius-lg);background:var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--text-muted)">
+          <%= (section.name||'?')[0] %>
+        </div>
+        <% } %>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+              <h2 style="margin:0;padding:0;border:none;font-size:18px">
+                <%= section.name %>
+              </h2>
+              <% if (user) { %><button onclick="toggleSectionFollow(event,'<%= section.id %>')"
+                  id="sf-btn-<%= section.id %>"
+                  style="background:none;border:1px solid var(--border-light);border-radius:var(--radius);cursor:pointer;font-size:11px;padding:2px 8px;white-space:nowrap">
+                  <%= (typeof sectionFollowed !=='undefined' && sectionFollowed) ? '已关注' : '关注' %>
+                </button>
+                <% } %>
+                  <% if (typeof isSectionMod !=='undefined' && isSectionMod) { %><a
+                      href="/forum/<%= section.id %>/settings"
+                      style="font-size:11px;color:var(--c);margin-left:4px;white-space:nowrap">设置</a>
+                    <% } %>
+            </div>
+            <% if (section.description) { %>
+              <div style="font-size:13px;color:var(--text-soft)">
+                <%= section.description %>
+              </div>
+              <% } %>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px"><span
+                    id="sf-count-<%= section.id %>">
+                    <%= typeof followerCount !=='undefined' ? followerCount : 0 %>
+                  </span> 人关注</div>
+          </div>
+  </div>
+  <% } %>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h2 style="margin:0;padding:0;border:none">
+        <%= typeof section !=='undefined' ? '' : '论坛' %>
+      </h2>
+      <% if (user) { %>
+        <a href="/new-post<%= (typeof section !== 'undefined' && section) ? '?cat=' + section.id : '' %>"
+          style="background:var(--btn-accent-bg);color:var(--text-inverse);padding:6px 14px;border-radius:var(--radius);font-size:13px;text-decoration:none">+
+          发帖</a>
+        <% } %>
+    </div>
+
+    <% var ft=(typeof featured !=='undefined' && featured) ? '&featured=1' : '' ; %>
+      <% if (typeof subCategories !=='undefined' && subCategories.length) { %>
+        <div class="search-tabs" style="margin-bottom:8px">
+          <a href="/forum/<%= section.id %>?sort=<%= sort || 'newest' %><%= ft %>"
+            class="<%= !subCat ? 'active' : '' %>">全部(<%= typeof sectionTotal !=='undefined' ? sectionTotal : 0 %>)</a>
+          <% subCategories.forEach(function(sc){ %>
+            <a href="/forum/<%= section.id %>?sub=<%= encodeURIComponent(sc.name) %>&sort=<%= sort || 'newest' %><%= ft %>"
+              class="<%= subCat === sc.name ? 'active' : '' %>">
+              <%= sc.name %>(<%= sc.post_count || 0 %>)
+            </a>
+            <% }); %>
+        </div>
+        <% } %>
+
+          <div style="display:flex;gap:0;font-size:12px;margin-bottom:12px">
+            <% var base=typeof section !=='undefined' ? '/forum/' + section.id + '?' + (subCat ? 'sub=' +
+              encodeURIComponent(subCat) + '&' : '' ) + (featured ? 'featured=1&' : '' ) : '?' ; %>
+              <a href="<%= base %>sort=newest"
+                style="padding:3px 10px;border:1px solid var(--border-light);<%= (sort||'newest')==='newest'?'background:var(--btn-accent-bg);color:var(--text-inverse);':'' %>">最新</a>
+              <a href="<%= base %>sort=replies"
+                style="padding:3px 10px;border:1px solid var(--border-light);border-left:none;<%= sort==='replies'?'background:var(--btn-accent-bg);color:var(--text-inverse);':'' %>">回复</a>
+              <a href="<%= base %>sort=hot"
+                style="padding:3px 10px;border:1px solid var(--border-light);border-left:none;<%= sort==='hot'?'background:var(--btn-accent-bg);color:var(--text-inverse);':'' %>">热门</a>
+              <% if (typeof section !=='undefined' ) { %>
+                <label style="margin-left:12px;font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer">
+                  <input type="checkbox"
+                    onchange="location.href='/forum/<%= section.id %>?sort=<%= sort %><%= subCat ? '&sub=' + encodeURIComponent(subCat) : '' %>&featured='+(this.checked?'1':'0')"
+                    <%=featured ? 'checked' : '' %>> 只看精华
+                </label>
+                <% } %>
+          </div>
+
+          <% if (posts.length===0) { %>
+            <p style="color:var(--text-muted);text-align:center;padding:40px 0">还没有文章。</p>
+            <% } %>
+
+              <% posts.forEach(function(post) { %>
+                <div style="position:relative">
+                      <%- include('widget/post-item', { post: post, excerpt: true }) %>
+                </div>
+                <% }); %>
+
+                  <% if (totalPages> 1) { %><%- include("pagination", { page: page, totalPages: totalPages, baseUrl:
+                      (typeof section !=='undefined' ? '/forum/' + section.id : '/forum' ), param: "page" }) %>
+                      <% } %>

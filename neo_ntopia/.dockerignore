@@ -1,9 +1,0 @@
-node_modules
-data
-.git
-test
-script
-.env
-.env.example
-*.md
-.gitignore

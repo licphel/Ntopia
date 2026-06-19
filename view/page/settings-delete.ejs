@@ -1,0 +1,40 @@
+<h2 style="color:var(--text-danger)">删除账号</h2>
+<p style="font-size:12px;color:var(--text-muted);margin-bottom:8px">删除后你的所有文章和评论将被标记为删除，私信和通知将被清除。此操作不可撤销。</p>
+<div class="auth-form" style="margin-top:0;border-color:var(--text-danger);max-width:400px">
+  <form method="POST" action="/settings/delete" onsubmit="return confirm('确定要删除账号吗？此操作不可撤销！')">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <label>邮箱验证码</label>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:6px">验证码将发送至：<strong>
+        <%= user && user.email ? user.email : '未绑定' %>
+      </strong></p>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <input type="text" name="email_code" required placeholder="6位验证码" style="flex:1;margin-bottom:0">
+      <button type="button" id="delSendBtn" onclick="sendDelCode()"
+        style="background:#c00;color:var(--text-inverse);border:none;padding:7px 14px;border-radius:var(--radius);cursor:pointer;font-size:12px;white-space:nowrap">发送验证码</button>
+      <span id="delSendStatus" style="font-size:11px;color:var(--text-muted);margin-left:4px"></span>
+    </div>
+    <button type="submit" class="submit-btn" style="background:#c00">确认删除账号</button>
+  </form>
+</div>
+
+<script>
+  var delCd = 0;
+  function sendDelCode() {
+    if (delCd > 0) return;
+    var st = document.getElementById('delSendStatus');
+  <% if (user && user.email) { %>
+  var btn = document.getElementById('delSendBtn');
+      btn.textContent = '发送中...'; btn.disabled = true; st.textContent = '';
+      fetch('/email/send', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': '<%= csrf %>' }, body: JSON.stringify({ email:<% - JSON.stringify(user.email) %>}) })
+        .then(r => r.json()).then(d => {
+          if (d.ok) { delCd = 60; st.textContent = '已发送'; st.style.color = 'var(--c)'; delTick(btn); }
+          else { btn.textContent = '发送验证码'; btn.disabled = false; st.textContent = d.error || '失败'; st.style.color = '#c00'; }
+        }).catch(function () { btn.textContent = '发送验证码'; btn.disabled = false; st.textContent = '网络错误'; st.style.color = '#c00'; });
+  <% } %>
+}
+  function delTick(btn) {
+    if (delCd <= 0) { btn.textContent = '发送验证码'; btn.disabled = false; st.textContent = ''; return; }
+    btn.textContent = delCd + 's后重发'; btn.disabled = true;
+    delCd--; setTimeout(function () { delTick(btn) }, 1000);
+  }
+</script>

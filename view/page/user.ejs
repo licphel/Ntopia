@@ -1,0 +1,124 @@
+<div class="profile-header">
+  <div class="profile-avatar">
+    <img src="<%= profile.avatar || '/img/default-avatar.png' %>" alt="avatar">
+  </div>
+  <div class="profile-info">
+    <h2>
+      <%= profile.display_name || profile.username %>
+        <% var b=roleBadge(profile.role || 0); %>
+          <span class="lv-badge" data-level="LEVEL=<%= profile.role %>"
+            style="background:<%= b.bg %>;color:<%= b.color %>">
+            <%= b.text %>
+          </span>
+          <span class="lv-badge">Lv.<%= profile.level || 1 %></span>
+    </h2>
+    <div style="color:var(--text-muted);font-size:13px;line-height:2">
+      @<%= profile.username %> <span style="font-size:10px">(ID: <%= profile.id %>)</span>
+        <span style="margin-left:8px">
+          <%= profile.xp || 0 %> XP
+        </span>
+        <% if (profile.banned) { %><span style="color:var(--text-danger);margin-left:4px">[已封禁]</span>
+          <% } %>
+            <% if (user && user.id===profile.id) { %>
+              <a href="/users/<%= profile.id %>/edit" style="font-size:11px;color:var(--c);margin-left:8px">编辑资料</a>
+              <% } else if (user && user.id !==profile.id) { %>
+                <a href="#" id="followBtn" onclick="toggleFollow(this,'<%= profile.id %>');return false"
+                  style="font-size:11px;color:var(--c);margin-left:8px">
+                  <%= isFollowing ? '已关注' : '+ 关注' %>
+                </a>
+                <% } %>
+                  <% if (typeof canManage !=='undefined' && canManage) { %>
+                    <% if (!profile.banned) { %>
+                      <form method="POST" action="/admin/users/<%= profile.id %>/ban"
+                        style="display:inline;margin-left:8px"><input type="hidden" name="_csrf"
+                          value="<%= csrf %>"><button
+                          style="background:none;border:none;color:var(--text-danger);cursor:pointer;font-size:11px;padding:0">封禁</button>
+                      </form>
+                      <% } else { %>
+                        <form method="POST" action="/admin/users/<%= profile.id %>/unban"
+                          style="display:inline;margin-left:8px"><input type="hidden" name="_csrf"
+                            value="<%= csrf %>"><button
+                            style="background:none;border:none;color:var(--c);cursor:pointer;font-size:11px;padding:0">解封</button>
+                        </form>
+                        <% } %>
+                          <form method="POST" action="/admin/users/<%= profile.id %>/promote" style="display:inline">
+                            <input type="hidden" name="_csrf" value="<%= csrf %>"><button
+                              style="background:none;border:none;color:#1a6fb5;cursor:pointer;font-size:11px;padding:0">提权</button>
+                          </form>
+                          <form method="POST" action="/admin/users/<%= profile.id %>/demote" style="display:inline">
+                            <input type="hidden" name="_csrf" value="<%= csrf %>"><button
+                              style="background:none;border:none;color:#f0a030;cursor:pointer;font-size:11px;padding:0">降权</button>
+                          </form>
+                          <button onclick="delConfirm(event,'/admin/users/<%= profile.id %>/delete')"
+                            style="background:none;border:none;color:var(--text);cursor:pointer;font-size:11px;padding:0">删除用户</button>
+                          <% } %>
+    </div>
+    <div style="margin:6px 0;font-size:12px;color:var(--text-muted)">
+      EXP: <%= profile.xp || 0 %> / <%= xpNextTotal %>
+          <% if (xpProgress < 100) { %>(<%= xpProgress %>%; 到 Lv.<%= profile.level + 1 %>)<% } else { %>(已满级)<% } %>
+    </div>
+    <% if (profile.bio) { %>
+      <div
+        style="margin:4px 0;font-size:13px;color:var(--text-soft);font-style:italic;max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+        <%= profile.bio %>
+      </div>
+      <% } %>
+        <div class="meta">
+          注册于 <%- timeTag(profile.created_at, {fmt:'date'}) %> |
+            签到 <%= checkinCount %> 天 | 连续 <%= profile.consecutive_days || 0 %> 天 |
+                <a href="/follow/<%= profile.id %>/followers"><span id="followerCount">
+                    <%= followerCount || 0 %>
+                  </span> 粉丝</a> |
+                <a href="/follow/<%= profile.id %>/following">
+                  <%= followingCount || 0 %> 关注
+                </a>
+                <% if (profile.email && (user && (user.role>= 128 || user.id === profile.id))) { %> | <%= profile.email
+                    %>
+                    <% } %>
+                      <% if (lastLogin && (user && user.role>= 128)) { %> | 最近登录: <%= lastLogin.ip %> <%-
+                            timeTag(lastLogin.created_at, {fmt:'short'}) %>
+                            <% } %>
+        </div>
+  </div>
+</div>
+
+<% if (profile.desc) { %>
+  <div
+    style="margin-bottom:16px;padding:10px 14px;border:var(--border-style) var(--border);background:var(--bg-card);font-size:13px;line-height:1.7;overflow:hidden">
+    <%- profile.desc_html %>
+  </div>
+  <% } %>
+
+    <h3>文章</h3>
+    <% if (posts.length===0) { %>
+      <p style="color:var(--text-muted)">暂无内容。</p>
+      <% } %>
+        <% posts.forEach(function(p) { %><%- include('widget/post-item', { post: p, detailed: false }) %>
+            <% }); %>
+              <%- include('pagination', { page: postPage, totalPages: postPages, baseUrl: '/users/' + profile.id
+                + '?cp=' + cmtPage, param: 'pp' }) %>
+
+                <h3>评论记录</h3>
+                <% if (comments.length===0) { %>
+                  <p style="color:var(--text-muted)">暂无评论。</p>
+                  <% } %>
+                    <% comments.forEach(function(c) { %>
+                      <div class="comment"
+                        style="<%= c.is_deleted ? 'opacity:0.5;border-color:var(--text-danger)' : '' %>">
+                        <div class="cmt-header">
+                          <% if (c.is_deleted) { %><span style="color:var(--text-danger);font-size:10px">[已删除]</span>
+                            <% } %>
+                              评论于 <a href="/<%= 'posts' %>/<%= c.post_id %>">
+                                <%= c.post_title %>
+                              </a>
+                              <span style="color:var(--text-muted);font-size:11px">
+                                <%- timeTag(c.created_at) %>
+                              </span>
+                        </div>
+                        <div class="cmt-body"><%- (c.content_html || '' ).slice(0, 300) %></div>
+                      </div>
+                      <% }); %>
+                        <%- include('pagination', { page: cmtPage, totalPages: cmtPages, baseUrl: '/users/' + profile.id
+                          + '?pp=' + postPage, param: 'cp' }) %>
+
+                          <input type="hidden" name="_csrf" value="<%= csrf %>">

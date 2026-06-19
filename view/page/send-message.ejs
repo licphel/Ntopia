@@ -1,0 +1,14 @@
+<div class="auth-form" style="max-width:500px">
+  <h2>发送私信</h2>
+  <% if (error) { %><div class="auth-error"><%= error %></div><% } %>
+  <form method="POST" action="/messages/send">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <label>收件人</label>
+    <input type="text" name="to_username" value="<%= toUser ? toUser.username : '' %>" placeholder="输入用户名" required>
+    <label>内容（Markdown）</label>
+    <textarea name="content" style="width:100%;min-height:120px;padding:8px;border:1px solid var(--border-light);border-radius:4px;font-family:inherit;font-size:14px" placeholder="私信内容..."></textarea>
+    <button type="submit" class="submit-btn">发送</button>
+  </form>
+</div>
+
+<input type="hidden" name="_csrf" value="<%= csrf %>">

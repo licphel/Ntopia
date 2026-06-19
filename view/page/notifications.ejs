@@ -1,0 +1,18 @@
+<h2>消息通知</h2>
+
+<% if (notifs.length === 0) { %>
+  <p style="color:var(--text-muted);text-align:center;padding:40px 0">暂无通知。</p>
+<% } %>
+
+<% notifs.forEach(function(n) { %>
+<div class="comment" style="<%= n.is_read ? '' : 'border-left:3px solid var(--c);background:var(--bg-card)' %>">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <span>
+      <% if (n.type === 'reply') { %>回复<% } else if (n.type === 'message') { %>私信<% } else { %>通知<% } %>
+      <%= n.content %>
+    </span>
+    <span style="color:var(--text-muted);font-size:11px"><%- timeTag(n.created_at) %></span>
+  </div>
+  <a href="<%= n.link %>" style="font-size:12px">查看 →</a>
+</div>
+<% }); %>

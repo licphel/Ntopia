@@ -1,0 +1,120 @@
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+  <h2 style="margin:0;padding:0;border:none">网盘</h2>
+  <div style="display:flex;gap:6px">
+    <button onclick="mkdirPrompt()" style="background:#999;color:var(--text-inverse);border:none;padding:5px 12px;border-radius:var(--radius);cursor:pointer;font-size:13px">+ 文件夹</button>
+    <button onclick="toggleUpload()" style="background:var(--btn-accent-bg);color:var(--text-inverse);border:none;padding:5px 14px;border-radius:var(--radius);cursor:pointer;font-size:13px">+ 上传</button>
+  </div>
+</div>
+
+<!-- Breadcrumb -->
+<div style="margin-bottom:10px;font-size:12px;color:var(--text-muted)">
+  <% (typeof crumbs !== 'undefined' ? crumbs : [{name:'根目录',path:'/'}]).forEach(function(c, i) { %>
+    <% if (i > 0) { %> / <% } %><a href="/files?path=<%= encodeURIComponent(c.path) %>"><%= c.name %></a>
+  <% }); %>
+</div>
+
+<!-- Upload form -->
+<div id="uploadForm" style="display:none;margin-bottom:16px;padding:14px;border:var(--border-style) var(--border);background:var(--bg-card);border-radius:var(--radius)">
+  <form id="upForm" enctype="multipart/form-data">
+    <input type="hidden" name="path" value="<%= typeof vpath !== 'undefined' ? vpath : '/' %>">
+    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+      <div>
+        <label style="font-size:12px;color:var(--text-soft)">上传到：<strong style="color:var(--c)"><%= typeof vpath !== 'undefined' ? vpath : '/' %></strong></label><br>
+        <input type="file" name="file" id="upFile" required style="display:none" onchange="document.getElementById('upFileName').textContent=this.files[0]?.name||'未选择'">
+        <button type="button" onclick="document.getElementById('upFile').click()" class="cmt-btn" style="margin:0">选择文件</button>
+        <span id="upFileName" style="font-size:11px;color:var(--text-muted);margin-left:6px">未选择</span>
+      </div>
+      <div>
+        <button type="submit" class="cmt-btn" style="margin:0">上传</button>
+        <button type="button" onclick="toggleUpload()" style="background:#999;color:var(--text-inverse);border:none;padding:5px 14px;border-radius:var(--radius);cursor:pointer;font-size:12px;margin-left:4px">取消</button>
+      </div>
+    </div>
+    <div id="upStatus" style="font-size:12px;color:var(--text-muted);margin-top:6px"></div>
+  </form>
+</div>
+
+<!-- Search -->
+<form method="GET" action="/files" style="margin-bottom:12px;display:flex;gap:6px">
+  <input type="text" name="q" value="<%= typeof query !== 'undefined' ? query : '' %>" placeholder="搜索文件名..." style="flex:1;padding:5px 10px;border:1px solid var(--border-light);font-size:13px">
+  <button type="submit" style="background:var(--btn-accent-bg);color:var(--text-inverse);border:none;padding:5px 14px;cursor:pointer;font-size:13px">搜索</button>
+  <% if (query) { %><a href="/files" style="padding:5px 10px;font-size:13px;color:var(--text-muted)">清除</a><% } %>
+</form>
+
+<% if ((typeof folders === 'undefined' || !folders.length) && files.length === 0) { %>
+  <p style="color:var(--text-muted);text-align:center;padding:40px 0">暂无文件。</p>
+<% } %>
+
+<table style="width:100%;border-collapse:collapse;font-size:12px">
+<!-- Folders -->
+<% if (typeof folders !== 'undefined' && folders.length) { %>
+<% folders.forEach(function(f) { %>
+  <tr style="border-bottom:1px solid #eee">
+    <td style="padding:6px 8px">
+      <a href="/files?path=<%= encodeURIComponent((typeof vpath !== 'undefined' && vpath !== '/' ? vpath : '') + '/' + f.name) %>" style="font-weight:bold;color:var(--c)"><%= f.name %>/</a>
+      <div style="color:var(--text-muted);font-size:10px">文件夹</div>
+    </td>
+    <td></td>
+  </tr>
+<% }); } %>
+
+<!-- Files -->
+<% files.forEach(function(f) { %>
+  <tr style="border-bottom:1px solid #eee">
+    <td style="padding:6px 8px">
+      <a href="/files/download/<%= f.id %>" style="color:var(--c)"><%= f.filename %></a>
+      <div style="color:var(--text-muted);font-size:10px"><%= (f.file_size / 1024).toFixed(1) %> KB · <%= f.download_count %> 次下载 · <%- timeTag(f.created_at) %> · <a href="/users/<%= f.user_id %>">@<%= f.display_name || f.username %></a></div>
+    </td>
+    <td style="text-align:right;white-space:nowrap">
+      <button onclick="citeFile(<%= f.id %>,'<%= f.filename.replace(/'/g,"\\'") %>')" style="background:none;border:none;color:var(--c);cursor:pointer;font-size:10px;padding:0;margin-right:6px">引用</button>
+      <% if (user && (user.id === f.user_id || (user.role || 0) >= 32)) { %>
+        <form method="POST" action="/files/delete/<%= f.id %>" style="display:inline" onsubmit="return confirm('确认删除？')">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <button style="background:none;border:none;color:var(--text-danger);cursor:pointer;font-size:10px;padding:0">删除</button>
+        </form>
+      <% } %>
+    </td>
+  </tr>
+<% }); %>
+</table>
+
+<%- include('pagination', { page: page, totalPages: totalPages, baseUrl: '/files' + (typeof baseQuery !== 'undefined' ? baseQuery : ''), param: 'page' }) %>
+
+<script>
+function citeFile(id, name){
+  var md = '[' + name + '](/files/download/' + id + ')';
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(md).then(function(){ ntopiaAlert('已复制：<code>' + md + '</code>'); });
+  } else {
+    ntopiaPrompt('复制以下内容到编辑器：', md);
+  }
+}
+function toggleUpload(){ var el = document.getElementById('uploadForm'); el.style.display = el.style.display === 'none' ? 'block' : 'none'; }
+async function mkdirPrompt(){
+  var name = await ntopiaPrompt('新建文件夹名称：');
+  if (!name) return;
+  var r = await fetch('/files/mkdir', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-csrf-token':window._csrf||''},
+    body:JSON.stringify({parent:'<%= typeof vpath !== "undefined" ? vpath : "/" %>', name:name})
+  });
+  var d = await r.json();
+  if (d.ok) { location.href = '/files?path=' + encodeURIComponent(d.path); }
+  else { ntopiaAlert(d.error || '创建失败'); }
+}
+document.getElementById('upForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  var st = document.getElementById('upStatus');
+  var file = document.getElementById('upFile').files[0];
+  if (!file) { st.textContent = '请选择文件'; st.style.color = '#c00'; return; }
+  st.textContent = '上传中...'; st.style.color = '#999';
+  var fd = new FormData();
+  fd.append('file', file);
+  fd.append('path', this.querySelector('[name=path]').value || '/');
+  try {
+    var r = await fetch('/files/upload', { method: 'POST', body: fd, headers: { 'x-csrf-token': window._csrf } });
+    var d = await r.json();
+    if (d.ok) { location.reload(); }
+    else { st.textContent = d.error || '上传失败'; st.style.color = '#c00'; }
+  } catch(ex) { st.textContent = '网络错误'; st.style.color = '#c00'; }
+});
+</script>
