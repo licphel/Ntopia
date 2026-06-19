@@ -4,10 +4,15 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 const bcrypt = require('bcryptjs');
+require('dotenv').config();
+
+// Init new DB schema first
+const { initDB } = require('./src/database');
+initDB();
 
 const oldDB = new Database(path.join(__dirname, 'old.db'));
-const newDB = new Database(path.join(__dirname, 'data', 'ntopia.db'));
-newDB.pragma('foreign_keys = ON');
+const { getDB } = require('./src/database');
+const newDB = getDB();
 
 // ── Find target section ──────────────────────────────────────
 const techSection = newDB.prepare("SELECT id FROM categories WHERE name = '技术交流'").get();
@@ -40,8 +45,8 @@ for (const p of oldPosts) {
   const newAuthorId = userMap[p.author_id];
   if (!newAuthorId) { console.log('Post skip (no author): ' + p.title); continue; }
 
-  const info = newDB.prepare(`INSERT INTO posts (title, content_md, content_html, category_id, author_id, is_draft, is_deleted, view_count, created_at, updated_at)
-    VALUES (?,?,?,?,?,0,0,?,?,?)`).run(
+  const info = newDB.prepare(`INSERT INTO posts (title, content_md, content_html, category_id, sub_category, author_id, is_draft, is_deleted, view_count, created_at, updated_at)
+    VALUES (?,?,?,?,'-1',?,0,0,?,?,?)`).run(
     p.title, p.content_md, p.content_html, techSection.id, newAuthorId,
     p.view_count || 0, p.created_at, p.updated_at || p.created_at
   );
