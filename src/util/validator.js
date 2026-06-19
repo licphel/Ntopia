@@ -1,13 +1,13 @@
 // Input validation helpers — centralized validation rules.
 const config = require('../config');
 
-const USERNAME_RE = /^[a-zA-Z0-9_一-鿿]+$/;
+const USERNAME_RE = /^[a-z0-9_]+$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function validateUsername(username) {
   if (!username || username.length < 2) return '用户名至少2个字符';
   if (username.length > config.MAX_USERNAME_LENGTH) return '用户名过长';
-  if (!USERNAME_RE.test(username)) return '用户名只能包含字母、数字、下划线和中文';
+  if (!USERNAME_RE.test(username)) return '用户名只能包含小写字母、数字和下划线';
   return null;
 }
 
