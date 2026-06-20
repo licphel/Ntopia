@@ -1409,35 +1409,33 @@
           </div>
           <% } %>
 
-            <% if (path==='/' ) { %>
-              <div id="InfoBar">
-                <div class="ib-block">
-                  <div style="display:flex;gap:20px">
-                    <div style="flex:1">
-                      <h3>关于本站</h3>
-                      <p>Ntopia 是由 Licphel 创建的论坛社区。请勿发布违法违规内容。
-                        支持 Markdown 与 LaTeX，内容遵循开源协议。
-                        注册即可发文章、讨论、私信，签到升级。
-                        感谢所有参与讨论、分享知识的朋友们。欢迎通过评论或私信进行交流。</p>
-                    </div>
-                    <div style="flex:1">
-                      <h3>站务信息（重要）</h3>
-                      <div class="notice-board"
-                        style="max-height:100px;overflow-y:auto;border:var(--border-style) var(--border);background:#fff;padding:4px 8px;border-radius:var(--radius);font-size:11px">
-                        <ul style="list-style:none;padding:0;margin:0">
-                          <% if (typeof infoPages !=='undefined' ) { infoPages.forEach(function(pg) { %>
-                            <li style="padding:2px 0;border-bottom:1px dotted #eee"><a href="<%= pg.url %>"
-                                style="color:var(--c)">
-                                <%= pg.title %>
-                              </a></li>
-                            <% }); } %>
-                        </ul>
-                      </div>
+            <div id="InfoBar">
+              <div class="ib-block">
+                <div style="display:flex;gap:20px">
+                  <div style="flex:1">
+                    <h3>关于本站</h3>
+                    <p>Ntopia 是由 Licphel 创建的论坛社区。请勿发布违法违规内容。
+                      支持 Markdown 与 LaTeX，内容遵循开源协议。
+                      注册即可发文章、讨论、私信，签到升级。
+                      感谢所有参与讨论、分享知识的朋友们。欢迎通过评论或私信进行交流。</p>
+                  </div>
+                  <div style="flex:1">
+                    <h3>站务信息（重要）</h3>
+                    <div class="notice-board"
+                      style="max-height:100px;overflow-y:auto;border:var(--border-style) var(--border);background:#fff;padding:4px 8px;border-radius:var(--radius);font-size:11px">
+                      <ul style="list-style:none;padding:0;margin:0">
+                        <% if (typeof infoPages !=='undefined' ) { infoPages.forEach(function(pg) { %>
+                          <li style="padding:2px 0;border-bottom:1px dotted #eee"><a href="<%= pg.url %>"
+                              style="color:var(--c)">
+                              <%= pg.title %>
+                            </a></li>
+                          <% }); } %>
+                      </ul>
                     </div>
                   </div>
                 </div>
               </div>
-              <% } %>
+            </div>
 
                 <div id="MainBody" <%=(typeof hideSidebar !=='undefined' && hideSidebar)
                   ? ' style="max-width:860px;margin:0 auto"' : '' %>>

@@ -3,7 +3,7 @@ const path = require('path');
 const express = require('express');
 const userService = require('../service/user');
 const fileService = require('../service/file');
-const { userRepo } = require('../repo');
+const { userRepo, categoryRepo } = require('../repo');
 const auth = require('../lib/auth');
 const config = require('../config');
 const router = express.Router();
@@ -11,7 +11,8 @@ const router = express.Router();
 router.get('/:id(\\d+)', (req, res) => {
   const r = userService.getProfile(req.params.id, req.session.user, { postPage: parseInt(req.query.pp) || 1, cmtPage: parseInt(req.query.cp) || 1 });
   if (r.notFound) return res.status(404).render('page/404', { title: '404' });
-  res.render('page/user', { title: r.profile.display_name || r.profile.username, ...r });
+  const moderatedSections = categoryRepo.listByModerator(parseInt(req.params.id));
+  res.render('page/user', { title: r.profile.display_name || r.profile.username, ...r, moderatedSections });
 });
 
 router.get('/:id(\\d+)/edit', auth.requireAuth, (req, res) => {

@@ -18,9 +18,7 @@ function canMod(user, section) {
   return auth.canModerateSection(user, section, isSub);
 }
 
-router.get('/', (req, res) => {
-  res.render('page/home', { title: 'Ntopia', infoPages: getInfoPages() });
-});
+router.get('/', (req, res) => res.redirect('/forum'));
 
 // Forum main — show sections with pagination
 router.get('/forum', (req, res) => {
@@ -30,6 +28,7 @@ router.get('/forum', (req, res) => {
   res.render('page/forum', {
     title: '论坛', sections, page, totalPages,
     followedSections: user ? sectionFollowRepo.listByUser(user.id, 10) : [],
+    infoPages: getInfoPages(),
   });
 });
 
@@ -164,6 +163,9 @@ router.get('/new-post', auth.requireActive, (req, res) => {
   if (!cat) return res.redirect('/forum');
   const section = categoryRepo.findById(parseInt(cat));
   if (!section) return res.redirect('/forum');
+  // Private board: only moderator can post
+  if (section.is_private && section.moderator_id !== req.session.user.id)
+    return res.status(403).render('page/error', { title: '错误', code: 403, message: '私板仅限版主发帖', detail: '', back: '/forum/' + section.id });
   const presetSub = req.query.sub || '';
   res.render('page/editor', {
     title: '发帖', post: null,
@@ -175,6 +177,12 @@ router.get('/new-post', auth.requireActive, (req, res) => {
 router.post('/new-post', auth.requireActive, async (req, res) => {
   const { title, content, category, sub_category } = req.body;
   const isDraft = req.body.is_draft === '1';
+  // Private board check
+  if (category) {
+    const sec = categoryRepo.findById(parseInt(category));
+    if (sec && sec.is_private && sec.moderator_id !== req.session.user.id)
+      return res.status(403).render('page/error', { title: '错误', code: 403, message: '私板仅限版主发帖', detail: '', back: '/forum/' + sec.id });
+  }
   const r = await postService.createPost(
     { title, content, category: parseInt(category) || null, subCategory: sub_category || '', isDraft }, req.session.user);
   if (!r.ok) {
@@ -323,6 +331,16 @@ router.post('/forum/:id(\\d+)/transfer', auth.requireAuth, (req, res) => {
   sectionSubModRepo.remove(section.id, target.id); // remove from sub-mods if present
   sectionSubModRepo.add(section.id, req.session.user.id); // old owner becomes sub-mod
   res.json(api.ok({ newOwner: { id: target.id, username: target.username } }));
+});
+
+// Toggle private mode (section owner only)
+router.post('/forum/:id(\\d+)/toggle-private', auth.requireAuth, (req, res) => {
+  const section = categoryRepo.findById(parseInt(req.params.id));
+  if (!section) return res.json(api.err('板块不存在', 404));
+  if (!auth.isSectionOwner(req.session.user, section))
+    return res.json(api.err('仅大版主可操作', 403));
+  const v = categoryRepo.togglePrivate(section.id);
+  res.json(api.ok({ is_private: v }));
 });
 
 // ── Section settings ──────────────────────────────────────────────

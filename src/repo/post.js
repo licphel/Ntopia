@@ -19,13 +19,15 @@ function sortOrder(sort) {
   return 'ORDER BY p.created_at DESC';
 }
 
-function likeSearch(query, page, limit, orderBy) {
+function likeSearch(query, page, limit, orderBy, categoryId) {
   const offset = (page - 1) * limit;
   const like = `%${query}%`;
+  const catSQL = categoryId ? 'AND p.category_id = ' + categoryId : '';
   const total = getDB().prepare(`
-    SELECT COUNT(*) as c FROM posts WHERE is_deleted = 0
-      AND (title LIKE ? OR content_md LIKE ?
-        OR category_id IN (SELECT id FROM categories WHERE name LIKE ?))
+    SELECT COUNT(*) as c FROM posts p WHERE p.is_deleted = 0
+      AND (p.title LIKE ? OR p.content_md LIKE ?
+        OR p.category_id IN (SELECT id FROM categories WHERE name LIKE ?))
+      ${catSQL}
   `).get(like, like, like);
   const posts = getDB().prepare(`
     SELECT p.*, u.username, u.display_name, u.avatar, u.role, u.level,
@@ -34,6 +36,7 @@ function likeSearch(query, page, limit, orderBy) {
     WHERE p.is_deleted = 0
       AND (p.title LIKE ? OR p.content_md LIKE ?
         OR p.category_id IN (SELECT id FROM categories WHERE name LIKE ?))
+      ${catSQL}
     ${orderBy} LIMIT ? OFFSET ?
   `).all(like, like, like, limit, offset);
   return { posts, total: total?.c || 0, page, totalPages: Math.ceil((total?.c || 0) / limit) };
@@ -207,18 +210,20 @@ const postRepo = {
     ).get(revId, postId);
   },
 
-  /** Full-text search with pagination. Returns { posts, total }. */
-  search(query, { page = 1, limit = 10, sort = 'newest' } = {}) {
+  /** Full-text search with pagination. categoryId: optional section filter. */
+  search(query, { page = 1, limit = 10, sort = 'newest', categoryId = null } = {}) {
     const offset = (page - 1) * limit;
     let orderBy = 'ORDER BY p.created_at DESC';
     if (sort === 'replies') orderBy = 'ORDER BY comment_count DESC';
     else if (sort === 'hot') { const time = require('../util/time'); const hotNow = time.toSQL().split(' ')[0]; orderBy = `ORDER BY (comment_count * 3.0 + p.view_count * 0.1) / ((julianday('${hotNow}') - julianday(p.created_at)) * 24.0 + 4.0) DESC`; }
 
+    const catFilter = categoryId ? 'AND p.category_id = ' + categoryId : '';
+
     try {
       const ftsQuery = query.split(/\s+/).map(w => `"${w}"`).join(' ');
       const total = getDB().prepare(`
         SELECT COUNT(*) as c FROM posts_fts f JOIN posts p ON f.rowid = p.id
-        WHERE posts_fts MATCH ? AND p.is_deleted = 0
+        WHERE posts_fts MATCH ? AND p.is_deleted = 0 ${catFilter}
       `).get(ftsQuery);
       const posts = getDB().prepare(`
         SELECT p.*, u.username, u.display_name, u.avatar, u.role, u.level,
@@ -227,15 +232,14 @@ const postRepo = {
         FROM posts_fts f
           JOIN posts p ON f.rowid = p.id
           JOIN users u ON p.author_id = u.id
-        WHERE posts_fts MATCH ? AND p.is_deleted = 0
+        WHERE posts_fts MATCH ? AND p.is_deleted = 0 ${catFilter}
         ${orderBy} LIMIT ? OFFSET ?
       `).all(ftsQuery, limit, offset);
       const result = { posts, total: total?.c || 0, page, totalPages: Math.ceil((total?.c || 0) / limit) };
       if (result.posts.length > 0) return result;
-      // FTS returned 0 — fallback to LIKE (for CJK etc.)
-      return likeSearch(query, page, limit, orderBy);
+      return likeSearch(query, page, limit, orderBy, categoryId);
     } catch (_) {
-      return likeSearch(query, page, limit, orderBy);
+      return likeSearch(query, page, limit, orderBy, categoryId);
     }
   },
 

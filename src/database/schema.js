@@ -41,7 +41,8 @@ function initSchema(db) {
       description TEXT DEFAULT '',
       image       TEXT DEFAULT '',
       moderator_id INTEGER REFERENCES users(id),
-      sort_order  INTEGER DEFAULT 0
+      sort_order  INTEGER DEFAULT 0,
+      is_private  INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS posts (
@@ -247,6 +248,12 @@ function initIndexes(db) {
     CREATE INDEX IF NOT EXISTS idx_attachments_name ON attachments(filename);
     CREATE INDEX IF NOT EXISTS idx_email_codes_email ON email_codes(email, expires_at);
   `);
+
+  // Migration: add is_private to categories if missing
+  const cols = db.prepare("PRAGMA table_info(categories)").all().map(c => c.name);
+  if (!cols.includes('is_private')) {
+    db.exec('ALTER TABLE categories ADD COLUMN is_private INTEGER DEFAULT 0');
+  }
 }
 
 function initFTS(db) {
@@ -254,7 +261,7 @@ function initFTS(db) {
     DROP TABLE IF EXISTS posts_fts;
     CREATE VIRTUAL TABLE posts_fts
       USING fts5(title, content_md, content=posts, content_rowid=id,
-                 tokenize='unicode61 remove_diacritics 2');
+                 tokenize='unicode61');
     INSERT INTO posts_fts(rowid, title, content_md) SELECT id, title, content_md FROM posts;
   `);
   db.exec(`

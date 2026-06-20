@@ -51,6 +51,21 @@ const categoryRepo = {
     this.delete(id);
   },
 
+  /** Toggle private mode. */
+  togglePrivate(id) {
+    const cur = getDB().prepare('SELECT is_private FROM categories WHERE id = ?').get(id);
+    const next = cur && cur.is_private ? 0 : 1;
+    getDB().prepare('UPDATE categories SET is_private = ? WHERE id = ?').run(next, id);
+    return next;
+  },
+
+  /** List sections where a user is the moderator (owner). */
+  listByModerator(userId) {
+    return getDB().prepare(
+      'SELECT c.*, (SELECT COUNT(*) FROM posts WHERE category_id = c.id AND is_deleted = 0 AND is_draft = 0) as post_count FROM categories c WHERE c.moderator_id = ? ORDER BY c.sort_order'
+    ).all(userId);
+  },
+
   /** Delete a category. */
   delete(id) {
     getDB().prepare('DELETE FROM categories WHERE id = ?').run(id);

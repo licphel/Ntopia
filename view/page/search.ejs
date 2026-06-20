@@ -52,7 +52,7 @@
                   <% if (typeof postResults !=='undefined' && postResults.length) { %>
                     <h3>文章 (<%= postTotal %>)</h3>
                     <div style="display:flex;gap:0;font-size:12px;margin-bottom:8px">
-                      <% var sbase='/search?q='+encodeURIComponent(query)+'&type='+type; %>
+                      <% var sbase='/search?q='+encodeURIComponent(query)+'&type='+type+(typeof cat !== 'undefined' && cat ? '&cat=' + cat : ''); %>
                       <a href="<%= sbase %>&sort=newest" style="padding:2px 8px;border:1px solid var(--border-light);<%= (sort||'newest')==='newest'?'background:var(--btn-accent-bg);color:var(--text-inverse);':'' %>">最新</a>
                       <a href="<%= sbase %>&sort=replies" style="padding:2px 8px;border:1px solid var(--border-light);border-left:none;<%= sort==='replies'?'background:var(--btn-accent-bg);color:var(--text-inverse);':'' %>">回复</a>
                       <a href="<%= sbase %>&sort=hot" style="padding:2px 8px;border:1px solid var(--border-light);border-left:none;<%= sort==='hot'?'background:var(--btn-accent-bg);color:var(--text-inverse);':'' %>">热门</a>
@@ -63,7 +63,8 @@
                           <%- include('widget/pagination', { page: typeof postPage !=='undefined' ? postPage : 1,
                             totalPages: typeof postTotalPages !=='undefined' ? postTotalPages : 1, baseUrl: '/search' ,
                             extraParams: 'q=' + encodeURIComponent(typeof query !=='undefined' ? query : '' ) + '&type='
-                            + (typeof type !=='undefined' ? type : 'all' ) + '&sort=' + (typeof sort !=='undefined' ? sort : 'newest') }) %>
+                            + (typeof type !=='undefined' ? type : 'all' ) + '&sort=' + (typeof sort !=='undefined' ? sort : 'newest')
+                            + (typeof cat !== 'undefined' && cat ? '&cat=' + cat : '') }) %>
                             <% } %>
 
                               <% if (typeof userResults !=='undefined' && userResults.length) { %>

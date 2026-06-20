@@ -66,11 +66,21 @@
       <h2 style="margin:0;padding:0;border:none">
         <%= typeof section !=='undefined' ? '' : '论坛' %>
       </h2>
-      <% if (user) { %>
+      <div style="display:flex;align-items:center;gap:8px">
+        <% if (typeof section !== 'undefined') { %>
+        <form action="/search" method="get" style="display:flex;align-items:center;gap:4px">
+          <input type="hidden" name="cat" value="<%= section.id %>">
+          <input type="hidden" name="type" value="posts">
+          <input type="text" name="q" placeholder="板块内搜索..." style="padding:3px 8px;border:1px solid var(--border-light);border-radius:var(--radius);font:12px var(--font);width:140px">
+          <button type="submit" style="background:none;border:1px solid var(--border-light);padding:3px 8px;border-radius:var(--radius);cursor:pointer;font-size:11px;color:var(--text-muted);white-space:nowrap">搜索</button>
+        </form>
+        <% } %>
+        <% if (user) { %>
         <a href="/new-post<%= (typeof section !== 'undefined' && section) ? '?cat=' + section.id : '' %>"
-          style="background:var(--btn-accent-bg);color:var(--text-inverse);padding:6px 14px;border-radius:var(--radius);font-size:13px;text-decoration:none">+
+          style="background:var(--btn-accent-bg);color:var(--text-inverse);padding:6px 14px;border-radius:var(--radius);font-size:13px;text-decoration:none;white-space:nowrap">+
           发帖</a>
         <% } %>
+      </div>
     </div>
 
     <% var ft=(typeof featured !=='undefined' && featured) ? '&featured=1' : '' ; %>

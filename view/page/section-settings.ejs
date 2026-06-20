@@ -39,6 +39,18 @@
     <button type="submit" class="cmt-btn" style="padding:8px 20px">保存</button>
     <a href="/forum/<%= section.id %>" style="margin-left:8px;color:var(--text-muted);font-size:13px">取消</a>
   </form>
+
+  <% if (typeof isOwner !== 'undefined' && isOwner) { %>
+  <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+    <label style="font-weight:bold;display:block;margin-bottom:4px">私板模式</label>
+    <p style="font-size:12px;color:var(--text-muted);margin:0 0 6px 0">开启后仅版主可发帖和编辑，适合个人博客。</p>
+    <button id="privateBtn" onclick="togglePrivate()"
+      style="background:none;border:1px solid var(--border);padding:4px 14px;border-radius:var(--radius);cursor:pointer;font-size:12px;color:<%= section.is_private ? 'var(--text-danger)' : 'var(--c)' %>">
+      <%= section.is_private ? '关闭私板' : '开启私板' %>
+    </button>
+  </div>
+  <% } %>
+
   <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border)">
     <button onclick="deleteSection()"
       style="background:none;border:1px solid #c00;color:var(--text-danger);cursor:pointer;font-size:12px;padding:4px 12px;border-radius:var(--radius)">删除板块</button>
@@ -174,6 +186,16 @@
     var d = await resp.json();
     if (d.ok) location.reload();
     else alert(d.error || '操作失败');
+  }
+
+  async function togglePrivate() {
+    var resp = await fetch('/forum/<%= section.id %>/toggle-private', { method: 'POST', headers: { 'x-csrf-token': '<%= csrf %>' } });
+    var d = await resp.json();
+    if (d.ok) {
+      var btn = document.getElementById('privateBtn');
+      btn.textContent = d.is_private ? '关闭私板' : '开启私板';
+      btn.style.color = d.is_private ? 'var(--text-danger)' : 'var(--c)';
+    } else alert(d.error || '操作失败');
   }
 
   async function transferMod() {
