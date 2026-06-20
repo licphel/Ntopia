@@ -24,9 +24,7 @@
             <a href="/users/<%= admin.id %>"><img src="<%= admin.avatar || '/img/default-avatar.png' %>"
                 style="width:48px;height:48px;border:2px var(--border-style) var(--border);float:left;margin:2px 10px 6px 0"
                 alt=""></a>
-            <a href="/users/<%= admin.id %>" style="font-weight:bold;font-size:14px">
-              <%= admin.display_name || admin.username %>
-            </a>
+            <%- include('widget/user-name', { u: admin, showLevel: false }) %>
             <span style="font-size:10px;color:var(--text-muted);margin-left:4px">@<%= admin.username %></span>
             <% if (admin.bio) { %>
               <div style="font-size:12px;color:var(--text-soft);margin-top:3px;line-height:1.5">
@@ -62,7 +60,7 @@
                 <ul>
                   <% recentComments.forEach(function(c) { %>
                     <li style="margin-bottom:6px;padding-bottom:4px;border-bottom:1px dotted var(--border-light)">
-                      <a href="/users/<%= c.author_id || '' %>" style="font-weight:bold"><%= c.display_name || c.username %></a>
+                      <%- include('widget/user-name', { u: c }) %>
                       <span style="font-size:10px;color:var(--text-muted)"> | <%- timeTag(c.created_at, {fmt:'short'}) %></span>
                       <span style="font-size:10px;color:var(--text-muted)"> 于 <a href="/posts/<%= c.post_id %>"><%= (c.post_title || '').slice(0,20) %></a>：</span>
                       <span style="font-size:11px"><%= (c.cmt_content || '' ).replace(/<[^>]*>/g, '').slice(0, 40) %></span>
@@ -82,14 +80,17 @@
                   </div>
                 </div>
                 <% } %>
+                  <% if (typeof friendLinks !== 'undefined' && friendLinks.length) { %>
                   <div class="sb-box">
                     <h3>友情链接</h3>
                     <div class="sb-inner">
                       <ul>
-                        <li><a href="https://kexue.fm" target="_blank" rel="noopener">科学空间</a></li>
-                        <li><a href="https://licphel.github.io" target="_blank" rel="noopener">Licphel 个人主页</a></li>
+                        <% friendLinks.forEach(function(link) { %>
+                        <li><a href="<%= link.url %>" target="_blank" rel="noopener"><%= link.name %></a></li>
+                        <% }); %>
                       </ul>
                     </div>
                   </div>
+                  <% } %>
 
 </div>

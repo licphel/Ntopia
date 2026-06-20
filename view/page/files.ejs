@@ -62,7 +62,7 @@
   <tr style="border-bottom:1px solid #eee">
     <td style="padding:6px 8px">
       <a href="/files/download/<%= f.id %>" style="color:var(--c)"><%= f.filename %></a>
-      <div style="color:var(--text-muted);font-size:10px"><%= (f.file_size / 1024).toFixed(1) %> KB · <%= f.download_count %> 次下载 · <%- timeTag(f.created_at) %> · <a href="/users/<%= f.user_id %>">@<%= f.display_name || f.username %></a></div>
+      <div style="color:var(--text-muted);font-size:10px"><%= (f.file_size / 1024).toFixed(1) %> KB · <%= f.download_count %> 次下载 · <%- timeTag(f.created_at) %> · <%- include('widget/user-name', { u: f, showLevel: false }) %></div>
     </td>
     <td style="text-align:right;white-space:nowrap">
       <button onclick="citeFile(<%= f.id %>,'<%= f.filename.replace(/'/g,"\\'") %>')" style="background:none;border:none;color:var(--c);cursor:pointer;font-size:10px;padding:0;margin-right:6px">引用</button>

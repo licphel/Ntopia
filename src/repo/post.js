@@ -28,7 +28,7 @@ function likeSearch(query, page, limit, orderBy) {
         OR category_id IN (SELECT id FROM categories WHERE name LIKE ?))
   `).get(like, like, like);
   const posts = getDB().prepare(`
-    SELECT p.*, u.username, u.display_name, u.avatar,
+    SELECT p.*, u.username, u.display_name, u.avatar, u.role, u.level,
       (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
     FROM posts p JOIN users u ON p.author_id = u.id
     WHERE p.is_deleted = 0
@@ -111,7 +111,7 @@ const postRepo = {
     const offset = (page - 1) * limit;
     const deleteFilter = isOwner ? '' : 'AND is_deleted = 0';
     const posts = getDB().prepare(`
-      SELECT p.*, u.username, u.display_name, u.avatar,
+      SELECT p.*, u.username, u.display_name, u.avatar, u.role, u.level,
         (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
       FROM posts p JOIN users u ON p.author_id = u.id
       WHERE p.author_id = ? AND p.is_draft = 0 ${deleteFilter.replace('is_deleted', 'p.is_deleted')}
@@ -194,7 +194,7 @@ const postRepo = {
   /** Get revisions for a post. */
   getRevisions(postId) {
     return getDB().prepare(`
-      SELECT r.*, u.username, u.display_name, u.id as revised_by_id
+      SELECT r.*, u.username, u.display_name, u.role, u.level, u.id as revised_by_id
       FROM post_revisions r JOIN users u ON r.revised_by = u.id
       WHERE r.post_id = ? ORDER BY r.created_at DESC
     `).all(postId);
@@ -221,7 +221,7 @@ const postRepo = {
         WHERE posts_fts MATCH ? AND p.is_deleted = 0
       `).get(ftsQuery);
       const posts = getDB().prepare(`
-        SELECT p.*, u.username, u.display_name, u.avatar,
+        SELECT p.*, u.username, u.display_name, u.avatar, u.role, u.level,
           (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count,
           rank
         FROM posts_fts f
@@ -322,7 +322,7 @@ const postRepo = {
   recentComments(limit = 10) {
     return getDB().prepare(`
       SELECT c.id, c.created_at, u.username, u.display_name, u.id as author_id,
-             c.content_html as cmt_content, p.title as post_title, p.id as post_id
+             u.role, u.level, c.content_html as cmt_content, p.title as post_title, p.id as post_id
       FROM comments c
         JOIN users u ON c.author_id = u.id
         JOIN posts p ON c.post_id = p.id

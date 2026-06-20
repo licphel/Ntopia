@@ -444,23 +444,49 @@
       cursor: default
     }
 
-    .lv-badge[data-level] {
-      position: relative
+    .user-name {
+      font-weight: bold;
+      color: var(--role)
     }
 
-    .lv-badge[data-level]:hover::after {
-      content: attr(data-level);
-      position: absolute;
-      top: -18px;
-      left: 0;
-      background: #333;
-      color: var(--text-inverse);
-      font-size: 10px;
-      padding: 1px 5px;
-      border-radius: 2px;
-      white-space: nowrap;
-      z-index: 10
+    /* MC enchantment shimmer — mod+ only, subtle tone shift */
+    .name-mod {
+      background: var(--role);
+      background: linear-gradient(110deg,
+          var(--role) 0%,
+          color-mix(in srgb, var(--role) 75%, #fff) 28%,
+          var(--role) 46%,
+          color-mix(in srgb, var(--role) 75%, #fff) 64%,
+          var(--role) 82%,
+          color-mix(in srgb, var(--role) 75%, #fff) 100%);
+      background-size: 250% 100%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: enchantShimmer 6s ease-in-out infinite
     }
+    @keyframes enchantShimmer {
+      0% { background-position: 100% 0; }
+      100% { background-position: -100% 0; }
+    }
+
+    /* role tooltip — follows cursor */
+    #roleTip {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      background: #fafaf5;
+      color: var(--text);
+      font-size: 10px;
+      padding: 2px 6px;
+      border: 1px solid var(--border);
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.15s;
+      font-weight: normal;
+      font-family: var(--font)
+    }
+    #roleTip.show { opacity: 1 }
 
     .PostContent {
       margin-top: 8px;
@@ -1377,9 +1403,7 @@
       <% } %>
         <% if (user) { %>
           <div id="UserBar">
-            欢迎回来，<a href="/users/<%= user.id %>"><%= user.display_name || user.username %></a>
-            <% var b=roleBadge(user.role || 0); %>
-            <span class="lv-badge" data-level="LEVEL=<%= user.role %>" style="background:<%= b.bg %>;color:<%= b.color %>"><%= b.text %></span>
+            欢迎回来，<%- include('widget/user-name', { u: user, showLevel: false }) %>
             <span class="xp-badge">Lv.<%= user.level || 1 %> (<%= user.xp || 0 %>/<%= user.xpNextTotal || 5 %> EXP)</span>
             <button class="checkin-btn" id="checkinBtn" onclick="doCheckin()">签到</button>
           </div>
@@ -1718,6 +1742,30 @@
       document.querySelectorAll('.nav-drop').forEach(function (d) { d.classList.remove('open'); });
     });
   </script>
+
+<div id="roleTip"></div>
+<script>
+(function(){
+  var tip = document.getElementById('roleTip');
+  var active = null;
+  document.addEventListener('mouseover', function(e){
+    var el = e.target.closest('.user-name[data-role]');
+    if (!el) return;
+    active = el;
+    tip.textContent = el.getAttribute('data-role');
+    tip.classList.add('show');
+  });
+  document.addEventListener('mouseout', function(e){
+    var el = e.target.closest('.user-name[data-role]');
+    if (el === active) { active = null; tip.classList.remove('show'); }
+  });
+  document.addEventListener('mousemove', function(e){
+    if (!active) return;
+    tip.style.left = (e.clientX + 14) + 'px';
+    tip.style.top = (e.clientY + 14) + 'px';
+  });
+})();
+</script>
 
 </body>
 

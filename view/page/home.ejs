@@ -1,0 +1,21 @@
+<div style="max-width:600px;margin:0 auto;padding:20px 0">
+  <h1 style="font-size:24px;color:var(--c);margin:0 0 8px 0">Ntopia</h1>
+  <p style="font-size:13px;color:var(--text-soft);margin:0 0 20px 0;line-height:1.7">
+    一个自由、理性的知识交流社区。欢迎所有热爱思考的朋友。
+  </p>
+
+  <div style="margin-bottom:24px">
+    <a href="/forum" style="display:inline-block;background:var(--btn-accent-bg);color:var(--text-inverse);padding:8px 20px;border-radius:var(--radius);font-size:14px;text-decoration:none">进入论坛</a>
+  </div>
+
+  <% if (typeof infoPages !== 'undefined' && infoPages.length) { %>
+  <div style="border-top:1px solid var(--border);padding-top:16px">
+    <h2 style="font-size:14px;color:var(--c);margin:0 0 10px 0">站务信息</h2>
+    <% infoPages.forEach(function(p) { %>
+    <div style="padding:6px 0;border-bottom:1px dotted var(--border-light)">
+      <a href="<%= p.url %>" style="font-size:14px;color:var(--text)"><%= p.title %></a>
+    </div>
+    <% }); %>
+  </div>
+  <% } %>
+</div>

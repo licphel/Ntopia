@@ -60,16 +60,6 @@ const socialService = {
 
     const result = followRepo.toggle(followerId, target.id);
 
-    if (result.following) {
-      const follower = userRepo.findById(followerId);
-      const myName = (follower.display_name || follower.username);
-      notificationRepo.create(
-        target.id, 'follow',
-        `${myName} 关注了你`,
-        '/users/' + follower.id
-      );
-    }
-
     return { ok: true, following: result.following };
   },
 
@@ -137,14 +127,6 @@ const socialService = {
 
     const html = renderMarkdown(content || '');
     messageRepo.send(fromUser.id, toUser.id, content, html);
-
-    // Notify recipient
-    const myName = fromUser.display_name || fromUser.username;
-    notificationRepo.create(
-      toUser.id, 'message',
-      `${myName} 给你发了一条私信`,
-      '/messages'
-    );
 
     return { ok: true };
   },

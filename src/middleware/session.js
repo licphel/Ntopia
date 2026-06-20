@@ -33,6 +33,7 @@ function locals(req, res, next) {
   res.locals.theme = themeCookie ? themeCookie[1] : 'retro';
   res.locals.path = req.path;
   res.locals.siteUrl = config.SITE_URL;
+  res.locals.roleLabel = auth.roleLabel;
   res.locals.roleBadge = auth.roleBadge;
   res.locals.timeTag = time.timeTag;
   res.locals.LEVEL = auth.LEVEL;

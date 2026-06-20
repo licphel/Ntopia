@@ -44,7 +44,7 @@ const sectionFollowRepo = {
   /** List followers of a section (with user info). */
   listFollowers(sectionId, limit = 50) {
     return getDB().prepare(`
-      SELECT u.id, u.username, u.display_name, u.avatar, sf.created_at
+      SELECT u.id, u.username, u.display_name, u.avatar, u.role, u.level, sf.created_at
       FROM section_follows sf
       JOIN users u ON sf.user_id = u.id
       WHERE sf.section_id = ?

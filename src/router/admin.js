@@ -42,7 +42,7 @@ router.post('/comments/:id/delete-mod', needMod, (req, res) => {
 
 router.post('/users/:id/ban', needAdmin, (req, res) => {
   const r = adminService.banUser(req.params.id, req.session.user);
-  if (!r.ok) return _err(res, r.error, '/admin');
+  if (!r.ok) return _err(res, r.error, '/users/' + r.id);
   res.redirect('/users/' + r.id);
 });
 router.post('/users/:id/unban', needAdmin, (req, res) => {
@@ -50,17 +50,17 @@ router.post('/users/:id/unban', needAdmin, (req, res) => {
 });
 router.post('/users/:id/promote', auth.requireAuth, (req, res) => {
   const r = adminService.promoteUser(req.params.id, req.session.user);
-  if (!r.ok) return _err(res, r.error, '/admin');
+  if (!r.ok) return _err(res, r.error, '/users/' + r.id);
   res.redirect('/users/' + r.id);
 });
 router.post('/users/:id/demote', auth.requireAuth, (req, res) => {
   const r = adminService.demoteUser(req.params.id, req.session.user);
-  if (!r.ok) return _err(res, r.error, '/admin');
+  if (!r.ok) return _err(res, r.error, '/users/' + r.id);
   res.redirect('/users/' + r.id);
 });
 router.post('/users/:id/delete', auth.requireAuth, (req, res) => {
   const r = adminService.deleteUser(req.params.id, req.session.user);
-  if (!r.ok) return _err(res, r.error, '/admin');
+  if (!r.ok) return _err(res, r.error, '/users/' + r.id);
   res.redirect('/users/' + r.id);
 });
 

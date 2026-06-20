@@ -86,7 +86,7 @@
               style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px dotted var(--border)">
               <span><img src="<%= m.avatar || '/img/default-avatar.png' %>"
                   style="width:20px;height:20px;vertical-align:middle;margin-right:6px">
-                <%= m.display_name || m.username %>
+                <%- include('widget/user-name', { u: m }) %>
               </span>
               <button onclick="removeSubMod(<%= m.id %>)"
                 style="background:none;border:1px solid #c00;color:var(--text-danger);cursor:pointer;font-size:11px;padding:1px 6px;border-radius:var(--radius)">解雇</button>
@@ -100,6 +100,17 @@
         <input type="text" id="subModUser" placeholder="输入用户名" style="flex:1;padding:3px 8px;font-size:12px">
         <button onclick="addSubMod()"
           style="background:var(--btn-accent-bg);color:var(--text-inverse);border:none;padding:3px 10px;border-radius:var(--radius);cursor:pointer;font-size:12px;white-space:nowrap">提拔</button>
+      </div>
+    </div>
+
+    <!-- Moderator transfer (owner only) -->
+    <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border)">
+      <h3 style="color:var(--text-danger)">转让版主</h3>
+      <p style="font-size:12px;color:var(--text-muted);margin:4px 0 8px 0">转让后你将失去大版主权限，降级为小版主。此操作不可撤销。</p>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="transferUser" placeholder="输入新大版主的用户名" style="flex:1;padding:3px 8px;font-size:12px">
+        <button onclick="transferMod()"
+          style="background:none;border:1px solid #c00;color:var(--text-danger);cursor:pointer;font-size:12px;padding:3px 10px;border-radius:var(--radius);white-space:nowrap">转让</button>
       </div>
     </div>
     <% } %>
@@ -160,6 +171,16 @@
   async function removeSubMod(userId) {
     if (!await ntopiaConfirm('确认解雇该小版主？')) return;
     var resp = await fetch('/forum/<%= section.id %>/mods/' + userId + '/remove', { method: 'POST', headers: { 'x-csrf-token': '<%= csrf %>' } });
+    var d = await resp.json();
+    if (d.ok) location.reload();
+    else alert(d.error || '操作失败');
+  }
+
+  async function transferMod() {
+    var username = document.getElementById('transferUser').value.trim();
+    if (!username) return;
+    if (!await ntopiaConfirm('确认将版主转让给 ' + username + '？转让后你将成为小版主，此操作不可撤销。')) return;
+    var resp = await fetch('/forum/<%= section.id %>/transfer', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': '<%= csrf %>' }, body: JSON.stringify({ username }) });
     var d = await resp.json();
     if (d.ok) location.reload();
     else alert(d.error || '操作失败');

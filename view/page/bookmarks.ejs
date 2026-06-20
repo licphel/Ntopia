@@ -5,7 +5,7 @@
   <div style="flex:1">
     <h3><a href="/posts/<%= p.id %>"><%= p.title %></a></h3>
     <div class="forum-meta">
-      By <a href="/users/<%= p.author_id %>"><%= p.display_name || p.username %></a> |
+      <%- include('widget/user-name', { u: p }) %> |
       <%- timeTag(p.created_at) %> |
       收藏于 <%- timeTag(p.bookmarked_at, {fmt:'short'}) %>
     </div>

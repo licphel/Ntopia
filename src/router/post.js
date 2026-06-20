@@ -7,6 +7,7 @@ const { postRepo, categoryRepo, subCategoryRepo, sectionFollowRepo, sectionSubMo
 const config = require('../config');
 const time = require('../util/time');
 const xpRepo = require('../repo/xp');
+const { getInfoPages } = require('../lib/view-data');
 
 const router = express.Router();
 
@@ -17,7 +18,9 @@ function canMod(user, section) {
   return auth.canModerateSection(user, section, isSub);
 }
 
-router.get('/', (req, res) => res.redirect('/forum'));
+router.get('/', (req, res) => {
+  res.render('page/home', { title: 'Ntopia', infoPages: getInfoPages() });
+});
 
 // Forum main — show sections with pagination
 router.get('/forum', (req, res) => {
@@ -54,19 +57,29 @@ router.get('/forum/:id(\\d+)', (req, res) => {
   const sectionTotal = require('../database').getDB().prepare(
     'SELECT COUNT(*) as c FROM posts WHERE category_id = ? AND is_deleted = 0 AND is_draft = 0'
   ).get(section.id)?.c || 0;
+  // Fetch moderator and sub-mod user info for section header
+  const db = require('../database').getDB();
+  const sectionMod = section.moderator_id
+    ? db.prepare('SELECT id, username, display_name, avatar, role, level FROM users WHERE id = ?').get(section.moderator_id)
+    : null;
+  const sectionSubMods = sectionSubModRepo.listBySection(section.id);
+  const sectionSubModIds = new Set(sectionSubMods.map(m => m.id));
   res.render('page/index', {
     title: section.name, ...r, sort, subCat, featured,
     section, subCategories, sectionTotal,
     sectionFollowed: user ? sectionFollowRepo.isFollowing(user.id, section.id) : false,
     followerCount: sectionFollowRepo.countFollowers(section.id),
     isSectionMod: user ? canMod(user, section) : false,
+    sectionMod, sectionSubMods,
+    sectionModId: section.moderator_id,
+    sectionSubModIds,
   });
 });
 
 // Create forum section (level >= 5 or MOD+)
 router.post('/forum/sections', auth.requireAuth, (req, res) => {
   if (!auth.canCreateSection(req.session.user))
-    return res.status(403).render('page/error', { title: '错误', code: 403, message: '权限不足', detail: '需要等级5或Mod权限才能创建板块', back: '/forum' });
+    return res.status(403).render('page/error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/forum' });
   const { name, description } = req.body;
   if (!name || !name.trim()) return res.redirect('/forum');
   categoryRepo.create(name.trim(), description || '');
@@ -141,11 +154,22 @@ router.get('/posts/:id(\\d+)', (req, res) => {
     viewed.push(String(r.post.id)); if (viewed.length > 20) viewed.shift();
     res.cookie('ntopia_views', viewed.join(','), { maxAge: 86400000, httpOnly: true, sameSite: 'lax' });
   }
+  // Section staff info for in-section display (post author + comments)
+  let sectionModId = null;
+  let sectionSubModIds = new Set();
+  if (r.post.category_id) {
+    const sec = categoryRepo.findById(r.post.category_id);
+    if (sec) {
+      sectionModId = sec.moderator_id;
+      sectionSubModIds = new Set(sectionSubModRepo.listBySection(sec.id).map(m => m.id));
+    }
+  }
   res.render('page/post', {
     title: r.post.title, post: r.post, comments: r.comments, toc: r.toc,
     cmtPage: parseInt(req.query.cp) || 1, metaDesc: r.metaDesc, bibtex: r.bibtex,
     userLiked: r.userLiked, userBookmarked: r.userBookmarked,
     likeCount: r.likeCount, bookmarkCount: r.bookmarkCount,
+    sectionModId, sectionSubModIds,
   });
 });
 
@@ -286,6 +310,25 @@ router.post('/forum/:id(\\d+)/mods/:userId/remove', auth.requireAuth, (req, res)
     return res.status(403).json(api.err('仅大版主可解雇小版主', 403));
   sectionSubModRepo.remove(section.id, parseInt(req.params.userId));
   res.json(api.ok({}));
+});
+
+// Transfer moderator ownership (only section owner)
+router.post('/forum/:id(\\d+)/transfer', auth.requireAuth, (req, res) => {
+  const section = categoryRepo.findById(parseInt(req.params.id));
+  if (!section) return res.status(404).json(api.err('板块不存在', 404));
+  if (!auth.isSectionOwner(req.session.user, section))
+    return res.status(403).json(api.err('仅大版主或超级管理员可转让', 403));
+  const { username } = req.body;
+  if (!username) return res.json(api.err('请输入用户名', 400));
+  const db = require('../database').getDB();
+  const target = db.prepare('SELECT id, username FROM users WHERE username = ?').get(username.toLowerCase());
+  if (!target) return res.json(api.err('用户不存在', 404));
+  if (target.id === section.moderator_id) return res.json(api.err('不能转让给自己', 400));
+  // Transfer: set new moderator, demote old owner to sub-mod
+  db.prepare('UPDATE categories SET moderator_id = ? WHERE id = ?').run(target.id, section.id);
+  sectionSubModRepo.remove(section.id, target.id); // remove from sub-mods if present
+  sectionSubModRepo.add(section.id, req.session.user.id); // old owner becomes sub-mod
+  res.json(api.ok({ newOwner: { id: target.id, username: target.username } }));
 });
 
 // ── Section settings ──────────────────────────────────────────────

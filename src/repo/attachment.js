@@ -7,7 +7,7 @@ const attachmentRepo = {
     const offset = (page - 1) * limit;
     const vpathEscaped = vpath === '/' ? '/' : vpath;
     const files = getDB().prepare(`
-      SELECT a.*, u.username, u.display_name
+      SELECT a.*, u.username, u.display_name, u.role, u.level
       FROM attachments a JOIN users u ON a.user_id = u.id
       WHERE a.virtual_path = ? AND a.filename != '.folder'
       ORDER BY a.created_at DESC LIMIT ? OFFSET ?
@@ -58,7 +58,7 @@ const attachmentRepo = {
   search(query, { page = 1, limit = 20 } = {}) {
     const offset = (page - 1) * limit;
     const files = getDB().prepare(`
-      SELECT a.*, u.username, u.display_name
+      SELECT a.*, u.username, u.display_name, u.role, u.level
       FROM attachments a JOIN users u ON a.user_id = u.id
       WHERE a.filename LIKE ? ORDER BY a.created_at DESC LIMIT ? OFFSET ?
     `).all('%' + query + '%', limit, offset);

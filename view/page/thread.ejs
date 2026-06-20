@@ -8,12 +8,8 @@
 <div class="comment" style="padding:12px 14px;margin-bottom:12px;border:2px solid var(--c)">
   <div style="margin-bottom:6px">
     <% if (root.is_deleted) { %><span style="color:var(--text-danger);font-size:10px">[已删除]</span>
-      <% } %><img src="<%= root.avatar || '/img/default-avatar.png' %>"
-          style="width:20px;height:20px;vertical-align:middle;margin-right:3px"><a
-          href="/users/<%= root.author_id %>"><strong>
-            <%= root.display_name || root.username %>
-          </strong></a>
-        <span class="lv-badge">Lv.<%= root.level || 1 %></span>
+      <% } %><img src="<%= root.avatar || '/img/default-avatar.png' %>" style="width:20px;height:20px;vertical-align:middle;margin-right:3px"><% var rIsStaff = (typeof sectionModId !== 'undefined' && root.author_id === sectionModId) || (typeof sectionSubModIds !== 'undefined' && sectionSubModIds.has(root.author_id)); %>
+<%- include('widget/user-name', rIsStaff ? { u: root, color: '#2b7cbe', label: '操作员' } : { u: root }) %>
         <span style="color:var(--text-muted);font-size:11px;float:right">
           <%- timeTag(root.created_at) %>
         </span>
@@ -40,10 +36,8 @@
         <% } %>
           <img src="<%= c.avatar || '/img/default-avatar.png' %>"
             style="width:16px;height:16px;vertical-align:middle;margin-right:3px">
-          <a href="/users/<%= c.author_id %>"><strong>
-              <%= c.display_name || c.username %>
-            </strong></a>
-          <span class="lv-badge">Lv.<%= c.level || 1 %></span>
+          <% var cIsStaff = (typeof sectionModId !== 'undefined' && c.author_id === sectionModId) || (typeof sectionSubModIds !== 'undefined' && sectionSubModIds.has(c.author_id)); %>
+          <%- include('widget/user-name', cIsStaff ? { u: c, color: '#2b7cbe', label: '操作员' } : { u: c }) %>
           <% if (c.parent_username && c.parent_id !==root.id) { %><span style="color:var(--c);font-size:11px"> 回复 @<%=
                 c.parent_display || c.parent_username %></span>
             <% } %>

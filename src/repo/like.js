@@ -93,7 +93,7 @@ const bookmarkRepo = {
   listByUser(userId, { page = 1, limit = 10 } = {}) {
     const offset = (page - 1) * limit;
     const posts = getDB().prepare(`
-      SELECT p.*, u.username, u.display_name, b.created_at as bookmarked_at
+      SELECT p.*, u.username, u.display_name, u.role, u.level, b.created_at as bookmarked_at
       FROM bookmarks b
         JOIN posts p ON b.post_id = p.id
         JOIN users u ON p.author_id = u.id

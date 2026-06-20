@@ -7,15 +7,9 @@
           <span class="submitted">
             <img src="<%= post.avatar || '/img/default-avatar.png' %>"
               style="width:20px;height:20px;border-radius:var(--radius);vertical-align:middle;margin-right:3px">
-            <a href="/users/<%= post.author_id %>">
-              <%= post.display_name || post.username %>
-            </a>
-            <% var b=roleBadge(post.role || 0); %>
-              <span class="lv-badge" data-level="LEVEL=<%= post.role %>"
-                style="background:<%= b.bg %>;color:<%= b.color %>">
-                <%= b.text %>
-              </span>
-              <span class="lv-badge">Lv.<%= post.level || 1 %></span> |
+            <% var pIsStaff = (typeof sectionModId !== 'undefined' && post.author_id === sectionModId) || (typeof sectionSubModIds !== 'undefined' && sectionSubModIds.has(post.author_id)); %>
+            <%- include('widget/user-name', pIsStaff ? { u: post, color: '#2b7cbe', label: '操作员' } : { u: post }) %>
+              |
               <%- timeTag(post.created_at) %>
                 <% if (post.category_id) { %> | <a href="/forum/<%= post.category_id %>">
                     <%= post.category_name || post.category %>
@@ -133,10 +127,8 @@
             <% } %>
               <img src="<%= c.avatar || '/img/default-avatar.png' %>"
                 style="width:16px;height:16px;vertical-align:middle;margin-right:3px">
-              <a href="/users/<%= c.author_id %>"><strong>
-                  <%= c.display_name || c.username %>
-                </strong></a>
-              <span class="lv-badge">Lv.<%= c.level || 1 %></span>
+              <% var cIsStaff = (typeof sectionModId !== 'undefined' && c.author_id === sectionModId) || (typeof sectionSubModIds !== 'undefined' && sectionSubModIds.has(c.author_id)); %>
+              <%- include('widget/user-name', cIsStaff ? { u: c, color: '#2b7cbe', label: '操作员' } : { u: c }) %>
               <span style="color:var(--text-muted);font-size:10px;margin-left:4px"><%- timeTag(c.created_at,
                   {fmt:'short'}) %></span>
               <% var rc=0; for (var ri=0; ri<comments.length; ri++) { if (comments[ri].parent_id===c.id) rc++; } %>

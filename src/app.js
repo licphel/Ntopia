@@ -23,7 +23,27 @@ app.use(helmet({
 for (const d of [config.DATA_DIR, config.UPLOADS_DIR, config.SESSIONS_DIR, config.ATTACHMENTS_DIR]) {
   fs.mkdirSync(d, { recursive: true, mode: 0o700 });
 }
-try { for (const f of fs.readdirSync(config.SESSIONS_DIR)) { if (f.endsWith('.lock')) fs.unlinkSync(path.join(config.SESSIONS_DIR, f)); } } catch (_) {}
+// Clean up lock files and expired session files on startup
+try {
+  const now = Date.now();
+  const maxAgeMs = config.SESSION_MAX_AGE_MS;
+  let cleaned = 0;
+  for (const f of fs.readdirSync(config.SESSIONS_DIR)) {
+    const fp = path.join(config.SESSIONS_DIR, f);
+    if (f.endsWith('.lock')) {
+      fs.unlinkSync(fp);
+    } else if (f.endsWith('.ses')) {
+      try {
+        const stat = fs.statSync(fp);
+        if (now - stat.mtimeMs > maxAgeMs) {
+          fs.unlinkSync(fp);
+          cleaned++;
+        }
+      } catch (_) { /* file may have been deleted concurrently */ }
+    }
+  }
+  if (cleaned > 0) console.log(`[session] cleaned ${cleaned} expired session files`);
+} catch (_) {}
 
 // ── Session ──────────────────────────────────────────────────
 const sessionSecret = config.SESSION_SECRET || (() => {

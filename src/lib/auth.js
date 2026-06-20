@@ -122,7 +122,7 @@ function canCreateSection(user) {
 /** User is the section owner (moderator_id). */
 function isSectionOwner(user, section) {
   if (!isAuthenticated(user)) return false;
-  return section && user.id === section.moderator_id;
+  return section && (user.id === section.moderator_id || hasRole(user, LEVEL.SUPER));
 }
 
 /** User is any section moderator (owner or sub-mod). */
@@ -282,12 +282,20 @@ function refreshSession(session) {
 // Display helpers
 // ═══════════════════════════════════════════════════════════════
 
+function roleLabel(role) {
+  if (role >= LEVEL.OWNER) return '站长';
+  if (role >= LEVEL.SUPER) return '超级管理员';
+  if (role >= LEVEL.ADMIN) return '管理员';
+  if (role >= LEVEL.MOD) return '操作员';
+  return '用户';
+}
+
 function roleBadge(role) {
-  if (role >= LEVEL.OWNER) return { text: 'Owner', bg: '#f3e5f5', color: '#8e44ad' };
-  if (role >= LEVEL.SUPER) return { text: 'Super', bg: '#fce4e4', color: '#c0392b' };
-  if (role >= LEVEL.ADMIN) return { text: 'Admin', bg: '#fef5e7', color: '#e67e22' };
-  if (role >= LEVEL.MOD) return { text: 'Mod', bg: '#eaf0f8', color: '#2b7cbe' };
-  return { text: 'User', bg: '#ecf0f1', color: '#7f8c8d' };
+  if (role >= LEVEL.OWNER) return { text: roleLabel(LEVEL.OWNER), bg: '#f3e5f5', color: '#8e44ad' };
+  if (role >= LEVEL.SUPER) return { text: roleLabel(LEVEL.SUPER), bg: '#fce4e4', color: '#c0392b' };
+  if (role >= LEVEL.ADMIN) return { text: roleLabel(LEVEL.ADMIN), bg: '#fef5e7', color: '#e67e22' };
+  if (role >= LEVEL.MOD) return { text: roleLabel(LEVEL.MOD), bg: '#eaf0f8', color: '#2b7cbe' };
+  return { text: roleLabel(LEVEL.USER), bg: '#ecf0f1', color: '#7f8c8d' };
 }
 
 /** Compute XP progress for a user (for display). */
@@ -351,6 +359,7 @@ module.exports = {
   refreshSession,
 
   // Display
+  roleLabel,
   roleBadge,
   xpProgress,
 };

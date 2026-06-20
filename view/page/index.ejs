@@ -34,6 +34,30 @@
                     id="sf-count-<%= section.id %>">
                     <%= typeof followerCount !=='undefined' ? followerCount : 0 %>
                   </span> 人关注</div>
+                <% if (typeof sectionMod !=='undefined' && sectionMod) { %>
+                <div style="margin-top:4px;font-size:12px;color:var(--text-soft);display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                  <span style="color:var(--text-muted)">版主：</span>
+                  <img src="<%= sectionMod.avatar || '/img/default-avatar.png' %>" style="width:18px;height:18px;border-radius:50%;vertical-align:middle">
+                  <%- include('widget/user-name', { u: sectionMod, color: '#2b7cbe', label: '版主' }) %>
+                  <% if (typeof sectionSubMods !=='undefined' && sectionSubMods.length) { %>
+                  <span style="color:var(--text-muted);margin-left:4px">小版主：</span>
+                  <span style="position:relative;display:inline-block">
+                    <span id="subModToggle-<%= section.id %>" onclick="document.getElementById('subModList-<%= section.id %>').style.display='block'" style="cursor:pointer;color:var(--c);font-size:11px;border:1px solid var(--border-light);padding:1px 6px;border-radius:var(--radius)">
+                      <%= sectionSubMods.length %> 人 ▾
+                    </span>
+                    <div id="subModList-<%= section.id %>" style="display:none;position:absolute;top:100%;left:0;background:var(--bg-card);border:var(--border-style) var(--border);border-radius:var(--radius);padding:4px 0;z-index:20;min-width:140px;box-shadow:0 4px 12px rgba(0,0,0,.1)"
+                         onmouseleave="this.style.display='none'">
+                      <% sectionSubMods.forEach(function(m){ %>
+                      <a href="/users/<%= m.id %>" class="user-name name-mod" data-role="小版主" style="display:flex;align-items:center;gap:6px;padding:4px 10px;font-size:12px;text-decoration:none;white-space:nowrap;--role:#2b7cbe">
+                        <img src="<%= m.avatar || '/img/default-avatar.png' %>" style="width:18px;height:18px;border-radius:50%">
+                        <%= m.display_name || m.username %>
+                      </a>
+                      <% }); %>
+                    </div>
+                  </span>
+                  <% } %>
+                </div>
+                <% } %>
           </div>
   </div>
   <% } %>

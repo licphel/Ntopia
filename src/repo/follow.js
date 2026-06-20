@@ -27,7 +27,7 @@ const followRepo = {
   followers(userId, { page = 1, limit = 20 } = {}) {
     const offset = (page - 1) * limit;
     const users = getDB().prepare(`
-      SELECT u.id, u.username, u.display_name, u.avatar, u.bio, f.created_at as followed_at
+      SELECT u.id, u.username, u.display_name, u.avatar, u.bio, u.role, u.level, f.created_at as followed_at
       FROM follows f JOIN users u ON f.user_id = u.id
       WHERE f.follow_id = ?
       ORDER BY f.created_at DESC LIMIT ? OFFSET ?
@@ -42,7 +42,7 @@ const followRepo = {
   following(userId, { page = 1, limit = 20 } = {}) {
     const offset = (page - 1) * limit;
     const users = getDB().prepare(`
-      SELECT u.id, u.username, u.display_name, u.avatar, u.bio, f.created_at as followed_at
+      SELECT u.id, u.username, u.display_name, u.avatar, u.bio, u.role, u.level, f.created_at as followed_at
       FROM follows f JOIN users u ON f.follow_id = u.id
       WHERE f.user_id = ?
       ORDER BY f.created_at DESC LIMIT ? OFFSET ?

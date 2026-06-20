@@ -12,8 +12,8 @@
   <tr style="border-bottom:1px dotted var(--border)">
     <td style="padding:3px 8px"><%= u.id %></td>
     <td style="padding:3px 8px"><a href="/users/<%= u.id %>"><%= u.username %></a></td>
-    <td style="padding:3px 8px"><%= u.display_name || '' %></td>
-    <td style="padding:3px 8px"><%= u.role %></td>
+    <td style="padding:3px 8px"><%- include('widget/user-name', { u: u }) %></td>
+    <td style="padding:3px 8px"><%= typeof roleLabel === 'function' ? roleLabel(u.role || 0) : '' %></td>
     <td style="padding:3px 8px"><%= u.email || '' %></td>
     <td style="padding:3px 8px;font-size:11px"><%- timeTag(u.created_at) %></td>
   </tr>

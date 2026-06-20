@@ -4,13 +4,7 @@
   </div>
   <div class="profile-info">
     <h2>
-      <%= profile.display_name || profile.username %>
-        <% var b=roleBadge(profile.role || 0); %>
-          <span class="lv-badge" data-level="LEVEL=<%= profile.role %>"
-            style="background:<%= b.bg %>;color:<%= b.color %>">
-            <%= b.text %>
-          </span>
-          <span class="lv-badge">Lv.<%= profile.level || 1 %></span>
+      <%- include('widget/user-name', { u: profile }) %>
     </h2>
     <div style="color:var(--text-muted);font-size:13px;line-height:2">
       @<%= profile.username %> <span style="font-size:10px">(ID: <%= profile.id %>)</span>

@@ -9,16 +9,27 @@ function sidebarData() {
   try {
     const db = require('../database').getDB();
     return {
-      admin: db.prepare('SELECT id, username, display_name, avatar, bio FROM users WHERE id = 1').get()
+      admin: db.prepare('SELECT id, username, display_name, avatar, bio, role, level FROM users WHERE id = 1').get()
         || { username: 'admin', display_name: 'Administrator', avatar: '/img/default-avatar.png', bio: '' },
       recentPosts: postRepo.recentPosts(10),
       recentComments: postRepo.recentComments(10),
       stats: postRepo.stats(),
       infoPages: getInfoPages(),
+      friendLinks: getFriendLinks(),
     };
   } catch (_) {
-    return { admin: { id: 1, username: 'admin', display_name: 'Administrator', avatar: '/img/default-avatar.png', bio: '' }, recentPosts: [], recentComments: [], stats: {}, infoPages: [] };
+    return { admin: { id: 1, username: 'admin', display_name: 'Administrator', avatar: '/img/default-avatar.png', bio: '' }, recentPosts: [], recentComments: [], stats: {}, infoPages: [], friendLinks: [] };
   }
+}
+
+function getFriendLinks() {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const LINKS_FILE = path.join(__dirname, '..', '..', 'public', 'friend-links.json');
+    if (!fs.existsSync(LINKS_FILE)) return [];
+    return JSON.parse(fs.readFileSync(LINKS_FILE, 'utf8'));
+  } catch (_) { return []; }
 }
 
 function getInfoPages() {
@@ -40,4 +51,4 @@ function getInfoPages() {
   } catch (_) { return []; }
 }
 
-module.exports = { sidebarData };
+module.exports = { sidebarData, getInfoPages };

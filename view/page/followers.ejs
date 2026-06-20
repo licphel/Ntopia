@@ -7,7 +7,7 @@
   <div style="padding:6px 0;border-bottom:1px dotted var(--border);display:flex;align-items:center;gap:10px">
     <img src="<%= u.avatar || '/img/default-avatar.png' %>" style="width:32px;height:32px;border-radius:var(--radius)">
     <div>
-      <a href="/users/<%= u.id %>" style="font-weight:bold"><%= u.display_name || u.username %></a>
+      <%- include('widget/user-name', { u: u }) %>
       <span style="color:var(--text-muted);font-size:11px;margin-left:6px"><%- timeTag(u.created_at) %></span>
     </div>
   </div>

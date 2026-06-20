@@ -6,7 +6,7 @@ const messageRepo = {
   inbox(userId, { page = 1, limit = 10 } = {}) {
     const offset = (page - 1) * limit;
     const msgs = getDB().prepare(`
-      SELECT m.*, u.username, u.display_name, u.avatar
+      SELECT m.*, u.username, u.display_name, u.avatar, u.role, u.level
       FROM messages m JOIN users u ON m.from_id = u.id
       WHERE m.to_id = ? AND (m.is_deleted = 0 OR m.is_deleted IS NULL)
       ORDER BY m.created_at DESC LIMIT ? OFFSET ?
@@ -21,7 +21,7 @@ const messageRepo = {
   sent(userId, { page = 1, limit = 10 } = {}) {
     const offset = (page - 1) * limit;
     const sent = getDB().prepare(`
-      SELECT m.*, u.username, u.display_name
+      SELECT m.*, u.username, u.display_name, u.role, u.level
       FROM messages m JOIN users u ON m.to_id = u.id
       WHERE m.from_id = ? AND (m.is_deleted = 0 OR m.is_deleted IS NULL)
       ORDER BY m.created_at DESC LIMIT ? OFFSET ?

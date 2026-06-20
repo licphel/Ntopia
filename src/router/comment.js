@@ -24,7 +24,18 @@ router.post('/:id(\\d+)/comment', auth.requireActive, async (req, res) => {
 router.get('/:id(\\d+)/comment/:cid', (req, res) => {
   const r = commentService.getThread(parseInt(req.params.id), req.params.cid, req.session.user);
   if (r.notFound) return res.status(404).render('page/404', { title: '404' });
-  res.render('page/thread', { title: '文章: ' + r.post.title, post: r.post, root: r.root, replies: r.replies, replyCount: r.replyCount });
+  // Section staff info
+  let sectionModId = null;
+  let sectionSubModIds = new Set();
+  if (r.post.category_id) {
+    const { categoryRepo, sectionSubModRepo } = require('../repo');
+    const sec = categoryRepo.findById(r.post.category_id);
+    if (sec) {
+      sectionModId = sec.moderator_id;
+      sectionSubModIds = new Set(sectionSubModRepo.listBySection(sec.id).map(m => m.id));
+    }
+  }
+  res.render('page/thread', { title: '文章: ' + r.post.title, post: r.post, root: r.root, replies: r.replies, replyCount: r.replyCount, sectionModId, sectionSubModIds });
 });
 
 router.post('/comments/:id/delete', auth.requireAuth, (req, res) => {

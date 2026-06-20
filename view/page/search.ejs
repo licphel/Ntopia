@@ -73,9 +73,7 @@
                                     <img src="<%= u.avatar || '/img/default-avatar.png' %>"
                                       style="width:40px;height:40px;border-radius:var(--radius);border:2px solid #e8e4d8">
                                     <div>
-                                      <a href="/users/<%= u.id %>" style="font-weight:bold;font-size:14px">
-                                        <%= u.display_name || u.username %>
-                                      </a>
+                                      <%- include('widget/user-name', { u: u }) %>
                                       <span style="color:var(--text-muted);font-size:12px">@<%= u.username %></span>
                                       <div style="font-size:11px;color:var(--text-muted)">
                                         <%= u.post_count %> 篇文章 | <%= (u.bio || '' ).slice(0, 60) %>

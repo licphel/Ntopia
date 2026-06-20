@@ -27,4 +27,4 @@ function requireRole(level) {
   };
 }
 
-module.exports = { requireAuth, requireAuthAPI, requireActive, requireRole, LEVEL: auth.LEVEL, roleBadge: auth.roleBadge };
+module.exports = { requireAuth, requireAuthAPI, requireActive, requireRole, LEVEL: auth.LEVEL, roleLabel: auth.roleLabel, roleBadge: auth.roleBadge };

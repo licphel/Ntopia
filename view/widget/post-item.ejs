@@ -17,7 +17,8 @@
     </h3>
     <div class="forum-meta" style="font-size:11px;color:var(--text-muted);margin-top:2px">
       <img src="<%= post.avatar || '/img/default-avatar.png' %>" style="width:16px;height:16px;border-radius:2px;vertical-align:middle;margin-right:3px">
-      <a href="/users/<%= post.author_id %>"><%= post.display_name || post.username %></a>
+      <% var isStaff = (typeof sectionModId !== 'undefined' && post.author_id === sectionModId) || (typeof sectionSubModIds !== 'undefined' && sectionSubModIds.has(post.author_id)); %>
+      <%- include('widget/user-name', isStaff ? { u: post, color: '#2b7cbe', label: '操作员' } : { u: post }) %>
       <% if (typeof post.category_name !== 'undefined' && post.category_name) { %> | <a href="/forum/<%= post.category_id %>"><%= post.category_name %></a><% } %>
       | <%- timeTag(post.created_at) %>
       | <%= post.view_count || 0 %> 阅读 | <%= post.comment_count || 0 %> 回复

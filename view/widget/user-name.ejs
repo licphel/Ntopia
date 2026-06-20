@@ -1,0 +1,11 @@
+<%# user-name — unified colored user name link with enchant shimmer for mod+ %>
+<%# Params: u (user fields), showLevel? (default true), color? (override), label? (override data-role) %>
+<%
+var uid = u.user_id || u.to_id || u.from_id || u.revised_by_id || u.author_id || u.id;
+var b = typeof roleBadge === 'function' ? roleBadge(u.role || 0) : { text: '用户', bg: '#ecf0f1', color: '#7f8c8d' };
+var clr = (typeof color !== 'undefined') ? color : b.color;
+var lbl = (typeof label !== 'undefined') ? label : b.text;
+var showLvl = typeof showLevel === 'undefined' ? true : showLevel;
+var isMod = (typeof color !== 'undefined') || (u.role || 0) >= 16;
+%>
+<a href="/users/<%= uid %>" class="user-name<%= isMod ? ' name-mod' : '' %>" style="--role:<%= clr %>" data-role="<%= lbl %>"><%= u.display_name || u.username %></a><% if (showLvl) { %><span class="lv-badge">Lv.<%= u.level || 1 %></span><% } %>
