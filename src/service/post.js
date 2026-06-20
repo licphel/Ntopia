@@ -1,11 +1,20 @@
 // Post service — business logic for creating, editing, listing, and deleting posts.
 const config = require('../config');
 const auth = require('../lib/auth');
-const { postRepo, xpRepo, likeRepo, bookmarkRepo, commentRepo } = require('../repo');
+const { postRepo, xpRepo, likeRepo, bookmarkRepo, commentRepo, categoryRepo, sectionSubModRepo } = require('../repo');
 const { renderMarkdown, firstNLines, extractTOC, injectHeadingIds } = require('../util/markdown');
 const { validateTitle, validateContent } = require('../util/validator');
 const moderationService = require('./moderation');
 const time = require('../util/time');
+
+// Check if user is section mod/sub-mod for a post's section
+function _isSectionMod(user, post) {
+  if (!user || !post || !post.category_id) return false;
+  const sec = categoryRepo.findById(post.category_id);
+  if (!sec) return false;
+  if (sec.moderator_id === user.id) return true;
+  return sectionSubModRepo.isSubMod(sec.id, user.id);
+}
 
 const postService = {
   /** Get landing page stats. */
@@ -125,7 +134,7 @@ const postService = {
   /** Edit an existing post. */
   editPost(id, { title, content, category, subCategory, isDraft }, editor) {
     const post = postRepo.findByIdAny(id);
-    if (!auth.canEditPost(editor, post)) return { ok: false, error: '权限不足' };
+    if (!auth.canEditPost(editor, post, _isSectionMod(editor, post), post.role)) return { ok: false, error: '权限不足' };
 
     const html = renderMarkdown(content);
 
@@ -149,7 +158,7 @@ const postService = {
   deletePost(id, user) {
     const post = postRepo.findByIdAny(id);
     if (!post) return { ok: false, error: '内容不存在' };
-    if (!auth.canDeletePost(user, post)) return { ok: false, error: '权限不足' };
+    if (!auth.canDeletePost(user, post, _isSectionMod(user, post), post.role)) return { ok: false, error: '权限不足' };
     postRepo.softDelete(post.id);
     return { ok: true };
   },
@@ -157,7 +166,7 @@ const postService = {
   /** Get revisions for a post. */
   getRevisions(id, user) {
     const post = postRepo.findByIdAny(id);
-    if (!auth.canEditPost(user, post)) return null;
+    if (!auth.canEditPost(user, post, _isSectionMod(user, post), post.role)) return null;
     return {
       post,
       revisions: postRepo.getRevisions(post.id),
@@ -167,7 +176,7 @@ const postService = {
   /** Restore a revision. */
   restoreRevision(id, revId, user) {
     const post = postRepo.findByIdAny(id);
-    if (!auth.canEditPost(user, post)) return { ok: false, error: '权限不足' };
+    if (!auth.canEditPost(user, post, _isSectionMod(user, post), post.role)) return { ok: false, error: '权限不足' };
 
     const rev = postRepo.getRevision(revId, post.id);
     if (!rev) return { ok: false, error: '版本不存在' };

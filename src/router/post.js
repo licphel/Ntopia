@@ -3,7 +3,7 @@ const api = require('../lib/res');
 const auth = require('../lib/auth');
 const express = require('express');
 const postService = require('../service/post');
-const { postRepo, categoryRepo, subCategoryRepo, sectionFollowRepo, sectionSubModRepo } = require('../repo');
+const { postRepo, categoryRepo, subCategoryRepo, sectionFollowRepo, sectionSubModRepo, userRepo } = require('../repo');
 const config = require('../config');
 const time = require('../util/time');
 const xpRepo = require('../repo/xp');
@@ -54,14 +54,9 @@ router.get('/forum/:id(\\d+)', (req, res) => {
   const r = postService.listPosts(parseInt(req.params.id), sort, page, { subCategory: subCat, isFeatured: featured });
   const user = req.session.user;
   const subCategories = subCategoryRepo.listWithCounts(section.id);
-  const sectionTotal = require('../database').getDB().prepare(
-    'SELECT COUNT(*) as c FROM posts WHERE category_id = ? AND is_deleted = 0 AND is_draft = 0'
-  ).get(section.id)?.c || 0;
+  const sectionTotal = categoryRepo.countPosts(section.id);
   // Fetch moderator and sub-mod user info for section header
-  const db = require('../database').getDB();
-  const sectionMod = section.moderator_id
-    ? db.prepare('SELECT id, username, display_name, avatar, role, level FROM users WHERE id = ?').get(section.moderator_id)
-    : null;
+  const sectionMod = section.moderator_id ? userRepo.findById(section.moderator_id) : null;
   const sectionSubMods = sectionSubModRepo.listBySection(section.id);
   const sectionSubModIds = new Set(sectionSubMods.map(m => m.id));
   res.render('page/index', {
@@ -82,12 +77,8 @@ router.post('/forum/sections', auth.requireAuth, (req, res) => {
     return res.status(403).render('page/error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/forum' });
   const { name, description } = req.body;
   if (!name || !name.trim()) return res.redirect('/forum');
-  categoryRepo.create(name.trim(), description || '');
-  const db = require('../database').getDB();
-  const created = db.prepare('SELECT id FROM categories ORDER BY id DESC LIMIT 1').get();
-  if (created) {
-    db.prepare('UPDATE categories SET moderator_id = ? WHERE id = ?').run(req.session.user.id, created.id);
-  }
+  const newId = categoryRepo.create(name.trim(), description || '');
+  categoryRepo.setModerator(newId, req.session.user.id);
   res.redirect('/forum');
 });
 
@@ -97,8 +88,7 @@ router.post('/forum/:id(\\d+)/edit', auth.requireAuth, (req, res) => {
   if (!section) return res.status(404).render('page/404', { title: '404' });
   if (!canMod(req.session.user, section))
     return res.status(403).render('page/error', { title: '错误', code: 403, message: '权限不足', detail: '只有版主或Mod才能编辑板块', back: '/forum' });
-  const db = require('../database').getDB();
-  if (req.body.name) db.prepare('UPDATE categories SET name = ?, description = ? WHERE id = ?').run(req.body.name.trim(), (req.body.description || '').trim(), section.id);
+  if (req.body.name) categoryRepo.update(section.id, req.body.name, req.body.description || '');
   res.redirect('/forum/' + req.params.id);
 });
 
@@ -108,13 +98,9 @@ router.post('/forum/:id(\\d+)/delete', auth.requireAuth, (req, res) => {
   if (!section) return res.json(api.err('板块不存在', 404));
   if (!canMod(req.session.user, section))
     return res.json(api.err('权限不足', 403));
-  const db = require('../database').getDB();
-  const count = db.prepare('SELECT COUNT(*) as c FROM posts WHERE category_id = ? AND is_deleted = 0').get(section.id);
-  if (count.c > 0) return res.json(api.err('板块内有 ' + count.c + ' 篇文章，无法删除', 400));
-  db.prepare('DELETE FROM sub_categories WHERE section_id = ?').run(section.id);
-  db.prepare('DELETE FROM section_sub_mods WHERE section_id = ?').run(section.id);
-  db.prepare('DELETE FROM section_follows WHERE section_id = ?').run(section.id);
-  categoryRepo.delete(section.id);
+  const postCount = categoryRepo.countPosts(section.id);
+  if (postCount > 0) return res.json(api.err('板块内有 ' + postCount + ' 篇文章，无法删除', 400));
+  categoryRepo.deleteCascade(section.id);
   res.json(api.ok({}));
 });
 
@@ -136,7 +122,7 @@ router.post('/forum/:id(\\d+)/image', auth.requireAuth, async (req, res) => {
   const fileService = require('../service/file');
   const result = await fileService.processImage(file.path, file.originalname);
   if (!result.ok) return res.json(result);
-  require('../database').getDB().prepare('UPDATE categories SET image = ? WHERE id = ?').run(result.url, section.id);
+  categoryRepo.setImage(section.id, result.url);
   res.json({ ok: true, url: result.url });
 });
 
@@ -193,8 +179,7 @@ router.post('/new-post', auth.requireActive, async (req, res) => {
     { title, content, category: parseInt(category) || null, subCategory: sub_category || '', isDraft }, req.session.user);
   if (!r.ok) {
     if (r.banned) {
-      require('../database').getDB().prepare("UPDATE users SET banned=1,banned_until=? WHERE id=?")
-        .run(time.sqlFromNow(r.banDuration), req.session.user.id);
+      userRepo.ban(req.session.user.id, time.sqlFromNow(r.banDuration));
       return res.status(403).render('page/error', { title: '错误', code: 403, message: '内容审核未通过', detail: r.error, back: '/' });
     }
     return res.status(400).render('page/error', { title: '错误', code: 400, message: r.error, detail: '', back: '/' });
@@ -207,7 +192,9 @@ router.post('/new-post', auth.requireActive, async (req, res) => {
 
 router.get('/posts/:id(\\d+)/edit', auth.requireAuth, (req, res) => {
   const p = postRepo.findByIdAny(req.params.id);
-  if (!auth.canEditPost(req.session.user, p)) return res.status(403).render('page/error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
+  const secEdit = p && p.category_id ? categoryRepo.findById(p.category_id) : null;
+  const isSecMod = secEdit ? canMod(req.session.user, secEdit) : false;
+  if (!auth.canEditPost(req.session.user, p, isSecMod, p.role)) return res.status(403).render('page/error', { title: '错误', code: 403, message: '权限不足', detail: '你无权执行此操作', back: '/' });
   res.render('page/editor', { title: '编辑文章', post: p, presetCategory: p.category_id, subCategories: subCategoryRepo.listBySection(p.category_id) });
 });
 
@@ -259,6 +246,17 @@ router.post('/posts/:id(\\d+)/toggle-featured', auth.requireAuth, (req, res) => 
   res.json(api.ok({ featured: !p.is_featured }));
 });
 
+// Toggle pin (置顶) — section mod or MOD+
+router.post('/posts/:id(\\d+)/toggle-pin', auth.requireAuth, (req, res) => {
+  const p = postRepo.findByIdAny(req.params.id);
+  if (!p) return res.json(api.err('文章不存在', 404));
+  const section = p.category_id ? categoryRepo.findById(p.category_id) : null;
+  if (!canMod(req.session.user, section))
+    return res.json(api.err('权限不足', 403));
+  postRepo.togglePin(p.id, p.is_pinned);
+  res.json(api.ok({ pinned: !p.is_pinned }));
+});
+
 // ── Section follow ────────────────────────────────────────────────
 router.post('/forum/:id(\\d+)/follow', auth.requireAuthAPI, (req, res) => {
   const section = categoryRepo.findById(parseInt(req.params.id));
@@ -280,9 +278,7 @@ router.get('/forum/:id(\\d+)/mods', (req, res) => {
   const section = categoryRepo.findById(parseInt(req.params.id));
   if (!section) return res.status(404).json(api.err('板块不存在', 404));
   const subMods = sectionSubModRepo.listBySection(section.id);
-  const owner = require('../database').getDB().prepare(
-    'SELECT id, username, display_name, avatar FROM users WHERE id = ?'
-  ).get(section.moderator_id);
+  const owner = section.moderator_id ? userRepo.findById(section.moderator_id) : null;
   res.json(api.ok({ owner, subMods }));
 });
 
@@ -294,8 +290,7 @@ router.post('/forum/:id(\\d+)/mods', auth.requireAuth, (req, res) => {
     return res.status(403).json(api.err('仅大版主可提拔小版主', 403));
   const { username } = req.body;
   if (!username) return res.json(api.err('请输入用户名', 400));
-  const db = require('../database').getDB();
-  const target = db.prepare('SELECT id, username FROM users WHERE username = ?').get(username.toLowerCase());
+  const target = userRepo.findByUsername(username.toLowerCase());
   if (!target) return res.json(api.err('用户不存在', 404));
   if (target.id === section.moderator_id) return res.json(api.err('不能提拔大版主自己', 400));
   sectionSubModRepo.add(section.id, target.id);
@@ -320,12 +315,11 @@ router.post('/forum/:id(\\d+)/transfer', auth.requireAuth, (req, res) => {
     return res.status(403).json(api.err('仅大版主或超级管理员可转让', 403));
   const { username } = req.body;
   if (!username) return res.json(api.err('请输入用户名', 400));
-  const db = require('../database').getDB();
-  const target = db.prepare('SELECT id, username FROM users WHERE username = ?').get(username.toLowerCase());
+  const target = userRepo.findByUsername(username.toLowerCase());
   if (!target) return res.json(api.err('用户不存在', 404));
   if (target.id === section.moderator_id) return res.json(api.err('不能转让给自己', 400));
   // Transfer: set new moderator, demote old owner to sub-mod
-  db.prepare('UPDATE categories SET moderator_id = ? WHERE id = ?').run(target.id, section.id);
+  categoryRepo.setModerator(section.id, target.id);
   sectionSubModRepo.remove(section.id, target.id); // remove from sub-mods if present
   sectionSubModRepo.add(section.id, req.session.user.id); // old owner becomes sub-mod
   res.json(api.ok({ newOwner: { id: target.id, username: target.username } }));
@@ -351,8 +345,7 @@ router.post('/forum/:id(\\d+)/settings', auth.requireAuth, (req, res) => {
   if (!canMod(req.session.user, section))
     return res.status(403).render('page/error', { title: '错误', code: 403, message: '权限不足', detail: '', back: '/forum/' + section.id });
   const { name, description } = req.body;
-  const db = require('../database').getDB();
-  if (name && name.trim()) db.prepare('UPDATE categories SET name = ?, description = ? WHERE id = ?').run(name.trim(), (description || '').trim(), section.id);
+  if (name && name.trim()) categoryRepo.update(section.id, name, description || '');
   res.redirect('/forum/' + req.params.id);
 });
 
@@ -380,7 +373,7 @@ router.post('/forum/:id(\\d+)/settings/image', auth.requireAuth, async (req, res
     const fileService = require('../service/file');
     const result = await fileService.processImage(data.file.path, data.file.originalname);
     if (!result.ok) return res.json({ ok: false, error: result.error });
-    require('../database').getDB().prepare('UPDATE categories SET image = ? WHERE id = ?').run(result.url, section.id);
+    categoryRepo.setImage(section.id, result.url);
     res.json({ ok: true, url: result.url });
   } catch (e) {
     console.error('[section-image]', e);

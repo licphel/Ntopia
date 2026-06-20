@@ -170,6 +170,11 @@ const userRepo = {
     `).all(like, like, like, limit);
   },
 
+  /** Ban a user until a given time. */
+  ban(id, until) {
+    getDB().prepare('UPDATE users SET banned = 1, banned_until = ? WHERE id = ?').run(until, id);
+  },
+
   /** Record login. */
   logLogin(userId, ip, userAgent) {
     getDB().prepare(

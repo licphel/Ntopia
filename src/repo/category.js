@@ -12,12 +12,43 @@ const categoryRepo = {
     return getDB().prepare('SELECT * FROM categories WHERE id = ?').get(id);
   },
 
-  /** Create a category. */
+  /** Create a category. Returns the new category's id. */
   create(name, description) {
     const max = getDB().prepare('SELECT MAX(sort_order) as m FROM categories').get();
-    getDB().prepare(
+    const info = getDB().prepare(
       'INSERT INTO categories (name, description, sort_order) VALUES (?,?,?)'
     ).run(name, description || '', (max.m || 0) + 1);
+    return info.lastInsertRowid;
+  },
+
+  /** Set moderator for a category. */
+  setModerator(id, userId) {
+    getDB().prepare('UPDATE categories SET moderator_id = ? WHERE id = ?').run(userId, id);
+  },
+
+  /** Update name and description. */
+  update(id, name, description) {
+    getDB().prepare('UPDATE categories SET name = ?, description = ? WHERE id = ?').run(name.trim(), (description || '').trim(), id);
+  },
+
+  /** Set section image URL. */
+  setImage(id, url) {
+    getDB().prepare('UPDATE categories SET image = ? WHERE id = ?').run(url, id);
+  },
+
+  /** Count non-deleted, non-draft posts in a section. */
+  countPosts(id) {
+    return getDB().prepare(
+      'SELECT COUNT(*) as c FROM posts WHERE category_id = ? AND is_deleted = 0 AND is_draft = 0'
+    ).get(id)?.c || 0;
+  },
+
+  /** Delete a category and its related data (sub-cats, sub-mods, follows). */
+  deleteCascade(id) {
+    getDB().prepare('DELETE FROM sub_categories WHERE section_id = ?').run(id);
+    getDB().prepare('DELETE FROM section_sub_mods WHERE section_id = ?').run(id);
+    getDB().prepare('DELETE FROM section_follows WHERE section_id = ?').run(id);
+    this.delete(id);
   },
 
   /** Delete a category. */

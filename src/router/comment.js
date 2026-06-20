@@ -4,14 +4,14 @@ const commentService = require('../service/comment');
 const xpRepo = require('../repo/xp');
 const time = require('../util/time');
 const auth = require('../lib/auth');
+const { categoryRepo, sectionSubModRepo, userRepo } = require('../repo');
 const router = express.Router();
 
 router.post('/:id(\\d+)/comment', auth.requireActive, async (req, res) => {
   const r = await commentService.addComment(parseInt(req.params.id), { content: req.body.content, parentId: req.body.parent_id }, req.session.user);
   if (!r.ok) {
     if (r.banned) {
-      require('../database').getDB().prepare("UPDATE users SET banned=1,banned_until=? WHERE id=?")
-        .run(time.sqlFromNow(r.banDuration), req.session.user.id);
+      userRepo.ban(req.session.user.id, time.sqlFromNow(r.banDuration));
       return res.status(403).render('page/error', { title: '错误', code: 403, message: '评论审核未通过', detail: r.error, back: '/' });
     }
     return res.status(400).render('page/error', { title: '错误', code: 400, message: r.error, detail: '', back: '/' });
@@ -24,11 +24,10 @@ router.post('/:id(\\d+)/comment', auth.requireActive, async (req, res) => {
 router.get('/:id(\\d+)/comment/:cid', (req, res) => {
   const r = commentService.getThread(parseInt(req.params.id), req.params.cid, req.session.user);
   if (r.notFound) return res.status(404).render('page/404', { title: '404' });
-  // Section staff info
+  // Section staff info for in-section display
   let sectionModId = null;
   let sectionSubModIds = new Set();
   if (r.post.category_id) {
-    const { categoryRepo, sectionSubModRepo } = require('../repo');
     const sec = categoryRepo.findById(r.post.category_id);
     if (sec) {
       sectionModId = sec.moderator_id;

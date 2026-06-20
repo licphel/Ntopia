@@ -57,7 +57,7 @@ const sessionSecret = config.SESSION_SECRET || (() => {
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(session({
-  store: new FileStore({ path: config.SESSIONS_DIR, ttl: config.SESSION_MAX_AGE, fileExtension: '.ses' }),
+  store: new FileStore({ path: config.SESSIONS_DIR, ttl: config.SESSION_MAX_AGE, fileExtension: '.ses', retries: 0 }),
   secret: sessionSecret, resave: false, saveUninitialized: false,
   cookie: { maxAge: config.SESSION_MAX_AGE_MS, sameSite: 'lax' },
 }));

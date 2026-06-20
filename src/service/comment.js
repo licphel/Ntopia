@@ -1,7 +1,7 @@
 // Comment service — creating, listing, and managing comments.
 const config = require('../config');
 const auth = require('../lib/auth');
-const { commentRepo, postRepo, notificationRepo, xpRepo } = require('../repo');
+const { commentRepo, postRepo, notificationRepo, xpRepo, categoryRepo, sectionSubModRepo } = require('../repo');
 const { renderMarkdown, extractMentions, linkMentions } = require('../util/markdown');
 const { validateContent } = require('../util/validator');
 const moderationService = require('./moderation');
@@ -109,7 +109,15 @@ const commentService = {
   deleteComment(commentId, user) {
     const cmt = commentRepo.findByIdWithPost(commentId);
     if (!cmt) return { ok: false, error: '评论不存在' };
-    if (!auth.canDeleteComment(user, cmt)) return { ok: false, error: '权限不足' };
+    // Check if user is section mod for this comment's post's section
+    let isSecMod = false;
+    if (cmt.category_id) {
+      const sec = categoryRepo.findById(cmt.category_id);
+      if (sec) {
+        isSecMod = sec.moderator_id === user.id || sectionSubModRepo.isSubMod(sec.id, user.id);
+      }
+    }
+    if (!auth.canDeleteComment(user, cmt, isSecMod, cmt.author_role)) return { ok: false, error: '权限不足' };
     commentRepo.softDelete(commentId);
     return { ok: true, postId: cmt.post_id };
   },

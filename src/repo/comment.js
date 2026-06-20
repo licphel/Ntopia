@@ -30,7 +30,9 @@ const commentRepo = {
   /** Get a comment with post ID (for redirects after delete). */
   findByIdWithPost(id) {
     return getDB().prepare(`
-      SELECT c.*, p.id as post_id FROM comments c JOIN posts p ON c.post_id = p.id WHERE c.id = ?
+      SELECT c.*, p.id as post_id, p.category_id, u.role as author_role
+      FROM comments c JOIN posts p ON c.post_id = p.id JOIN users u ON c.author_id = u.id
+      WHERE c.id = ?
     `).get(id);
   },
 

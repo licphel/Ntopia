@@ -48,17 +48,17 @@ router.post('/users/:id/ban', needAdmin, (req, res) => {
 router.post('/users/:id/unban', needAdmin, (req, res) => {
   const u = adminService.unbanUser(req.params.id); res.redirect('/users/' + (u || ''));
 });
-router.post('/users/:id/promote', auth.requireAuth, (req, res) => {
+router.post('/users/:id/promote', needAdmin, (req, res) => {
   const r = adminService.promoteUser(req.params.id, req.session.user);
   if (!r.ok) return _err(res, r.error, '/users/' + r.id);
   res.redirect('/users/' + r.id);
 });
-router.post('/users/:id/demote', auth.requireAuth, (req, res) => {
+router.post('/users/:id/demote', needAdmin, (req, res) => {
   const r = adminService.demoteUser(req.params.id, req.session.user);
   if (!r.ok) return _err(res, r.error, '/users/' + r.id);
   res.redirect('/users/' + r.id);
 });
-router.post('/users/:id/delete', auth.requireAuth, (req, res) => {
+router.post('/users/:id/delete', needAdmin, (req, res) => {
   const r = adminService.deleteUser(req.params.id, req.session.user);
   if (!r.ok) return _err(res, r.error, '/users/' + r.id);
   res.redirect('/users/' + r.id);

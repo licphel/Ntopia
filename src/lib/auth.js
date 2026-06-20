@@ -66,29 +66,43 @@ function checkActive(user) {
 
 // ── Content permissions ────────────────────────────────────────
 
+/** Effective role: section mods/sub-mods treated as MOD within their section. */
+function effectiveRole(user, isSectionMod) {
+  if (!user) return LEVEL.GUEST;
+  const base = user.role || 0;
+  if (isSectionMod && base < LEVEL.MOD) return LEVEL.MOD;
+  return base;
+}
+
 /** User owns the content object (matches author_id). */
 function isOwner(user, content) {
   if (!isAuthenticated(user) || !content) return false;
   return user.id === content.author_id;
 }
 
-/** User can edit a post (owner, or mod+). */
-function canEditPost(user, post) {
+/** User can edit a post (owner always; otherwise need MOD+ & must not be lower than author). */
+function canEditPost(user, post, isSectionMod, authorRole) {
   if (!isAuthenticated(user) || !post) return false;
   if (isOwner(user, post)) return true;
-  return hasRole(user, LEVEL.MOD);
+  const eff = effectiveRole(user, isSectionMod);
+  if (eff < LEVEL.MOD) return false;
+  if (authorRole != null && eff < authorRole) return false;
+  return true;
 }
 
-/** User can delete a post (owner, or mod+). */
-function canDeletePost(user, post) {
-  return canEditPost(user, post);
+/** User can delete a post. */
+function canDeletePost(user, post, isSectionMod, authorRole) {
+  return canEditPost(user, post, isSectionMod, authorRole);
 }
 
-/** User can edit/delete a comment (owner, or mod+). */
-function canDeleteComment(user, comment) {
+/** User can edit/delete a comment. */
+function canDeleteComment(user, comment, isSectionMod, authorRole) {
   if (!isAuthenticated(user) || !comment) return false;
   if (isOwner(user, comment)) return true;
-  return hasRole(user, LEVEL.MOD);
+  const eff = effectiveRole(user, isSectionMod);
+  if (eff < LEVEL.MOD) return false;
+  if (authorRole != null && eff < authorRole) return false;
+  return true;
 }
 
 // ── Admin permissions ──────────────────────────────────────────
@@ -326,6 +340,7 @@ module.exports = {
   isAuthenticated,
   hasRole,
   outranks,
+  effectiveRole,
   isActive,
   checkActive,
   isOwner,

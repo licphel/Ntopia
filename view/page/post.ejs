@@ -1,4 +1,5 @@
 <div class="Post" style="position:relative">
+      <% var isSecMod = user && ((typeof sectionModId !== 'undefined' && user.id === sectionModId) || (typeof sectionSubModIds !== 'undefined' && sectionSubModIds.has(user.id))); %>
       <div class="PostHead">
         <div class="title-wrap">
           <h2>
@@ -52,12 +53,12 @@
                 style="font-size:11px;color:var(--text-muted)">举报</a>
               <a href="#" onclick="downloadPost(event)" style="font-size:11px;color:var(--text-muted)">下载 MD</a>
               <a href="#" onclick="toggleCite();return false" style="font-size:11px;color:var(--text-muted)">CITE</a>
-              <% if (user && (user.id===post.author_id || (user.role || 0)>= LEVEL.ADMIN)) { %>
+              <% if (user && (user.id===post.author_id || (user.role || 0)>= LEVEL.ADMIN || isSecMod)) { %>
                 <a href="/posts/<%= post.id %>/edit" style="font-size:11px;color:var(--text-muted)">编辑</a>
                 <a href="/posts/<%= post.id %>/revisions" style="font-size:11px;color:var(--text-muted)">历史</a>
                 <a href="#" onclick="delPost(event)" style="font-size:11px;color:var(--text-danger)">删除</a>
                 <% } %>
-                  <% if (user && (user.role || 0)>= LEVEL.MOD) { %>
+                  <% if (user && ((user.role || 0)>= LEVEL.MOD || isSecMod)) { %>
                     <a href="#" onclick="togglePin(event,<%= post.id %>)" style="font-size:11px;color:var(--c)">
                       <%= post.is_pinned ? '取消置顶' : '置顶' %>
                     </a>
@@ -85,9 +86,9 @@
   async function togglePin(e, postId) {
     e.preventDefault();
     var el = e.target;
-    await fetch('/admin/posts/' + postId + '/pin', { method: 'POST', headers: { 'x-csrf-token': '<%= csrf %>' }, redirect: 'manual' });
-    var pinned = el.textContent.trim() === '置顶';
-    el.textContent = pinned ? '取消置顶' : '置顶';
+    var resp = await fetch('/posts/' + postId + '/toggle-pin', { method: 'POST', headers: { 'x-csrf-token': '<%= csrf %>' } });
+    var d = await resp.json();
+    el.textContent = d.pinned ? '取消置顶' : '置顶';
   }
   async function toggleFeatured(e, postId) {
     e.preventDefault();
@@ -139,7 +140,7 @@
                 <% if (user) { %><a href="#" onclick="submitReport('comment', <%= c.id %>);return false"
                     style="font-size:10px;color:var(--text-muted);margin-left:4px">举报</a>
                   <% } %>
-                    <% if (user && (user.id===c.author_id || (user.role || 0)>= LEVEL.ADMIN)) { %>
+                    <% if (user && (user.id===c.author_id || (user.role || 0)>= LEVEL.ADMIN || isSecMod)) { %>
                       <button onclick="delConfirm(event,'/posts/comments/<%= c.id %>/delete')"
                         style="background:none;border:none;color:var(--text-danger);cursor:pointer;font-size:11px;padding:0;margin-left:4px">删除</button>
                       <% } %>

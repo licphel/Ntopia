@@ -1,3 +1,4 @@
+<% var isSecMod = user && ((typeof sectionModId !== 'undefined' && user.id === sectionModId) || (typeof sectionSubModIds !== 'undefined' && sectionSubModIds.has(user.id))); %>
 <div style="margin-bottom:16px">
   <a href="/<%= 'posts' %>/<%= post.id %>" style="font-size:13px">返回 <%= '文章' %></a>
   <span style="color:var(--text-muted);font-size:13px;margin-left:8px">
@@ -16,7 +17,7 @@
   </div>
   <div style="font-size:14px;line-height:1.7"><%- root.content_html %></div>
   <div style="margin-top:8px">
-    <% if (user && (user.id===root.author_id || (user.role || 0)>= 32)) { %>
+    <% if (user && (user.id===root.author_id || (user.role || 0)>= 32 || isSecMod)) { %>
       <form method="POST" action="/<%= 'posts' %>/comments/<%= root.id %>/delete" style="display:inline"
         onsubmit="return confirm('确认删除？')">
         <input type="hidden" name="_csrf" value="<%= csrf %>">
@@ -46,7 +47,7 @@
               <% if (user) { %><a href="/posts/<%= post.id %>/comment/<%= c.id %>"
                   style="font-size:10px;color:var(--c);margin-left:4px">回复</a>
                 <% } %>
-                  <% if (user && (user.id===c.author_id || (user.role || 0)>= 32)) { %>
+                  <% if (user && (user.id===c.author_id || (user.role || 0)>= 32 || isSecMod)) { %>
                     <form method="POST" action="/posts/comments/<%= c.id %>/delete" style="display:inline"
                       onsubmit="return confirm('确认删除？')"><input type="hidden" name="_csrf" value="<%= csrf %>"><button
                         style="background:none;border:none;color:var(--text-danger);cursor:pointer;font-size:10px;padding:0;margin-left:4px">删除</button>
