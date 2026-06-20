@@ -1,0 +1,108 @@
+<h2 style="margin:0 0 8px 0">留言板</h2>
+
+<% if (typeof boards !== 'undefined') { %>
+<div class="search-tabs" style="margin-bottom:12px">
+  <% boards.forEach(function(b){ %>
+  <a href="/guestbook/<%= b %>" class="<%= board === b ? 'active' : '' %>">/<%= b %>/</a>
+  <% }); %>
+</div>
+<% } %>
+
+<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">匿名发言，IP 记录。支持 Markdown。当前：/<%= board %>/</div>
+
+<form id="gbForm" onsubmit="return gbPost(event)" style="margin-bottom:12px">
+  <%- include('widget/comment-toolbar') %>
+  <textarea id="gbInput" placeholder="说点什么..." maxlength="2000" style="width:100%;height:80px;padding:6px 10px;border:1px solid var(--border-light);font:13px var(--font);border-radius:2px;resize:vertical" autocomplete="off"></textarea>
+  <button type="submit" style="margin-top:4px;background:var(--btn-accent-bg);color:var(--text-inverse);border:none;padding:6px 16px;border-radius:2px;cursor:pointer;font-size:12px">发送</button>
+</form>
+
+<div id="gbMsgs">
+<% if (typeof msgs !== 'undefined' && msgs.length) { %>
+  <% msgs.forEach(function(m){ %>
+  <div class="gb-msg" id="gb-<%= m.id %>" style="padding:8px 12px;margin-bottom:4px;border:1px solid var(--border-light);border-radius:2px">
+    <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">
+      #<%= m.id %> · <%- new Date(m.created_at + 'Z').toLocaleString() %>
+      <% if (m.ip && locals.user && (locals.user.role || 0) >= 16) { %><span style="margin-left:6px">IP: <%= m.ip %></span><% } %>
+      <% if (locals.user && (locals.user.role || 0) >= 16) { %>
+      <button onclick="gbDelete(<%= m.id %>)" style="background:none;border:none;color:var(--text-danger);cursor:pointer;font-size:10px;margin-left:8px">删除</button>
+      <% } %>
+    </div>
+    <div style="font-size:13px;line-height:1.6"><%- m.content_html %></div>
+    <div style="margin-top:4px">
+      <button onclick="gbReply(<%= m.id %>)" style="background:none;border:none;color:var(--c);cursor:pointer;font-size:10px">回复</button>
+      <% if (m.reply_count) { %><button onclick="gbLoadReplies(<%= m.id %>)" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:10px;margin-left:4px"><%= m.reply_count %> 条回复</button><% } %>
+    </div>
+    <div id="gb-replies-<%= m.id %>" style="margin-top:4px;margin-left:16px"></div>
+    <div id="gb-reply-form-<%= m.id %>" style="display:none;margin-top:4px;margin-left:16px">
+      <form onsubmit="return gbSubmitReply(event,<%= m.id %>)" style="display:flex;gap:4px">
+        <input type="text" class="gb-reply-input" placeholder="回复 #<%= m.id %>..." maxlength="500" style="flex:1;padding:2px 6px;border:1px solid var(--border-light);font:11px var(--font);border-radius:2px">
+        <button type="submit" style="background:var(--btn-accent-bg);color:var(--text-inverse);border:none;padding:2px 8px;border-radius:2px;cursor:pointer;font-size:10px">回复</button>
+      </form>
+    </div>
+  </div>
+  <% }); %>
+<% } else { %>
+<p style="color:var(--text-muted);text-align:center;padding:40px 0">暂无留言。</p>
+<% } %>
+</div>
+
+<%- include('widget/pagination', { page: page || 1, totalPages: totalPages || 1, baseUrl: '/guestbook/' + board, param: 'page' }) %>
+
+<script>
+var board = '<%= board %>';
+var csrf = '<%= csrf %>';
+function gbPost(e) {
+  e.preventDefault();
+  var inp = document.getElementById('gbInput');
+  var c = inp.value.trim();
+  if (!c) return;
+  fetch('/guestbook/' + board, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrf },
+    body: JSON.stringify({ content: c })
+  }).then(r => r.json()).then(d => {
+    if (d.ok) location.reload();
+    else alert(d.error);
+  });
+}
+function gbReply(id) {
+  var el = document.getElementById('gb-reply-form-' + id);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  if (el.style.display === 'block') el.querySelector('input').focus();
+}
+function gbSubmitReply(e, parentId) {
+  e.preventDefault();
+  var inp = e.target.querySelector('input');
+  var c = inp.value.trim();
+  if (!c) return;
+  fetch('/guestbook/' + board, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrf },
+    body: JSON.stringify({ content: c, parent_id: parentId })
+  }).then(r => r.json()).then(d => {
+    if (d.ok) location.reload();
+    else alert(d.error);
+  });
+}
+function gbLoadReplies(id) {
+  var el = document.getElementById('gb-replies-' + id);
+  if (el.innerHTML) { el.innerHTML = ''; return; }
+  fetch('/guestbook/' + board + '/replies/' + id)
+    .then(r => r.json()).then(d => {
+      if (!d.replies || !d.replies.length) { el.innerHTML = '<div style="font-size:10px;color:var(--text-muted)">暂无回复</div>'; return; }
+      el.innerHTML = d.replies.map(function(r){
+        var t = new Date(r.created_at + 'Z');
+        return '<div style="padding:3px 0;border-bottom:1px dotted var(--border-light);font-size:12px">' +
+          '<span style="color:var(--text-muted);font-size:10px">#' + r.id + '</span> ' +
+          '<span>' + (r.content_html || r.content).replace(/<[^>]*>/g,'').slice(0, 200) + '</span>' +
+          '</div>';
+      }).join('');
+    });
+}
+function gbDelete(id) {
+  if (!confirm('确认删除？')) return;
+  fetch('/guestbook/' + board + '/delete/' + id, { method: 'POST', headers: { 'x-csrf-token': csrf } })
+    .then(r => r.json()).then(d => {
+      if (d.ok) { var el = document.getElementById('gb-' + id); if (el) el.remove(); }
+      else alert(d.error);
+    });
+}
+</script>

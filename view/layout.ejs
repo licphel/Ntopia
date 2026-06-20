@@ -869,15 +869,24 @@
 
     .search-tabs {
       display: flex;
+      flex-wrap: wrap;
       margin-bottom: 12px;
       border-bottom: 2px solid var(--c)
     }
 
     .search-tabs a,
     .search-tabs span {
-      padding: 6px 14px;
+      padding: 4px 10px;
       font-size: 12px;
-      color: #555
+      color: #555;
+      white-space: nowrap
+    }
+
+    @media(max-width:640px) {
+      .search-tabs a, .search-tabs span {
+        padding: 3px 7px;
+        font-size: 11px
+      }
     }
 
     /* === Profile === */
@@ -1369,6 +1378,7 @@
       <div id="MenuTop">
         <ul>
           <li><a href="/forum" class="<%= path.startsWith('/forum') ? 'nav-active' : '' %>">论坛</a></li>
+          <li><a href="/guestbook" class="<%= path.startsWith('/guestbook') ? 'nav-active' : '' %>">留言</a></li>
           <li><a href="/search" class="<%= path === '/search' ? 'nav-active' : '' %>">搜索</a></li>
           <% if (user) { %>
             <li><a href="/users/<%= user.id %>">我的</a></li>
@@ -1437,7 +1447,7 @@
               </div>
             </div>
 
-                <div id="MainBody" <%=(typeof hideSidebar !=='undefined' && hideSidebar)
+            <div id="MainBody" <%=(typeof hideSidebar !=='undefined' && hideSidebar)
                   ? ' style="max-width:860px;margin:0 auto"' : '' %>>
                   <div id="content"><%- body %></div>
                   <% if (typeof hideSidebar==='undefined' || !hideSidebar) { %><%- include('widget/sidebar') %>

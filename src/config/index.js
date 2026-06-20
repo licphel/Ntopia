@@ -95,6 +95,14 @@ const config = {
   MAX_BIO_LENGTH: 64,
   MAX_USERNAME_LENGTH: 64,
   MAX_PASSWORD_LENGTH: 64,
+
+  // ── Guestbook ──────────────────────────────────────────────────
+  GUESTBOOK_BOARDS: [
+    'general', 'tech', 'life', 'game', 'anime',
+    'music', 'art', 'science', 'food', 'sports',
+    'book', 'film', 'meme',
+  ],
+
 };
 
 module.exports = config;

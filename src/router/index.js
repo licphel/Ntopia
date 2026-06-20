@@ -13,6 +13,7 @@ function mountAll(app) {
   app.use('/',        require('./feed'));
   app.use('/',        require('./page'));
   app.use('/',        require('./tools'));
+  app.use('/',        require('./guestbook'));
 }
 
 module.exports = { mountAll };

@@ -244,6 +244,15 @@ function initIndexes(db) {
     CREATE INDEX IF NOT EXISTS idx_follows_follow   ON follows(follow_id);
     CREATE INDEX IF NOT EXISTS idx_reports_status   ON reports(status);
     CREATE INDEX IF NOT EXISTS idx_login_logs_user  ON login_logs(user_id);
+    CREATE TABLE IF NOT EXISTS guestbook (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      board       TEXT NOT NULL DEFAULT 'general',
+      content     TEXT NOT NULL,
+      parent_id   INTEGER REFERENCES guestbook(id),
+      ip          TEXT DEFAULT '',
+      created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE INDEX IF NOT EXISTS idx_attachments_user ON attachments(user_id);
     CREATE INDEX IF NOT EXISTS idx_attachments_name ON attachments(filename);
     CREATE INDEX IF NOT EXISTS idx_email_codes_email ON email_codes(email, expires_at);
@@ -253,6 +262,12 @@ function initIndexes(db) {
   const cols = db.prepare("PRAGMA table_info(categories)").all().map(c => c.name);
   if (!cols.includes('is_private')) {
     db.exec('ALTER TABLE categories ADD COLUMN is_private INTEGER DEFAULT 0');
+  }
+
+  // Migration: add board to guestbook if missing
+  const gbCols = db.prepare("PRAGMA table_info(guestbook)").all().map(c => c.name);
+  if (gbCols.length > 0 && !gbCols.includes('board')) {
+    db.exec("ALTER TABLE guestbook ADD COLUMN board TEXT NOT NULL DEFAULT 'general'");
   }
 }
 

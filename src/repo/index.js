@@ -13,6 +13,7 @@ const { categoryRepo, emailCodeRepo } = require('./category');
 const subCategoryRepo = require('./sub_category');
 const sectionFollowRepo = require('./section_follow');
 const sectionSubModRepo = require('./section_sub_mod');
+const guestbookRepo = require('./guestbook');
 
 module.exports = {
   userRepo,
@@ -31,4 +32,5 @@ module.exports = {
   subCategoryRepo,
   sectionFollowRepo,
   sectionSubModRepo,
+  guestbookRepo,
 };
